@@ -1,0 +1,17 @@
+# File Excel mẫu cho import sản phẩm
+# Các cột cần có:
+# - name: Tên sản phẩm
+# - description: Mô tả
+# - import_price: Giá nhập
+# - selling_price: Giá bán
+# - category: Danh mục
+# - brand: Thương hiệu
+# - sku: Mã SKU
+# - stock: Tồn kho
+# - volume: Dung tích
+# - concentration: Nồng độ
+# - origin: Xuất xứ
+# - import_date: Ngày nhập hàng
+# - is_active: Trạng thái hoạt động
+
+# Đây là file template, bạn cần tạo file Excel thực tế với các cột này

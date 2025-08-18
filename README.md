@@ -1,61 +1,129 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# PerfumeShop - Hệ thống quản lý cửa hàng nước hoa
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+## Mô tả
+PerfumeShop là một hệ thống quản lý cửa hàng nước hoa được xây dựng bằng Laravel, cung cấp các chức năng quản lý sản phẩm, kho hàng và bán hàng.
 
-## About Laravel
+## Tính năng chính
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+### Trang Danh sách sản phẩm
+- **Giao diện hiện đại**: Thiết kế theo phong cách admin dashboard với sidebar navigation
+- **Tìm kiếm thông minh**: Tìm kiếm theo mã sản phẩm (SKU), tên sản phẩm, barcode
+- **Bộ lọc đa dạng**: 
+  - Kênh bán hàng (Shopee, Tiktok Shop, Offline)
+  - Loại sản phẩm (Nước hoa nam, nữ, unisex)
+  - Tag sản phẩm
+  - Trạng thái có thể bán
+- **Quản lý sản phẩm**:
+  - Thêm sản phẩm mới
+  - Import/Export Excel
+  - Chọn nhiều sản phẩm (checkbox)
+  - Phân trang linh hoạt (20, 50, 100 sản phẩm/trang)
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+### Cấu trúc dữ liệu sản phẩm
+- Thông tin cơ bản: tên, mô tả, SKU, barcode
+- Giá cả: giá nhập, giá bán
+- Phân loại: danh mục, thương hiệu, kênh bán hàng
+- Đặc tính: dung tích, nồng độ, xuất xứ
+- Quản lý kho: số lượng tồn kho, ngày nhập hàng
+- Trạng thái: hoạt động/không hoạt động
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Cài đặt và chạy
 
-## Learning Laravel
+### Yêu cầu hệ thống
+- PHP >= 8.1
+- Composer
+- SQLite (hoặc MySQL/PostgreSQL)
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+### Cài đặt
+```bash
+# Clone repository
+git clone <repository-url>
+cd PerfumeShop
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+# Cài đặt dependencies
+composer install
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+# Tạo file .env
+cp .env.example .env
 
-## Laravel Sponsors
+# Tạo key ứng dụng
+php artisan key:generate
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+# Chạy migrations
+php artisan migrate
 
-### Premium Partners
+# Tạo dữ liệu mẫu
+php artisan db:seed --class=ProductSeeder
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+# Chạy server
+php artisan serve
+```
 
-## Contributing
+### Truy cập
+- URL: http://localhost:8000
+- Tự động chuyển hướng đến trang Danh sách sản phẩm
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## Cấu trúc project
 
-## Code of Conduct
+```
+PerfumeShop/
+├── app/
+│   ├── Http/Controllers/
+│   │   └── ProductController.php      # Xử lý logic sản phẩm
+│   └── Models/
+│       └── Product.php                # Model sản phẩm
+├── database/
+│   ├── migrations/                    # Cấu trúc database
+│   └── seeders/
+│       └── ProductSeeder.php          # Dữ liệu mẫu
+├── resources/views/
+│   ├── layouts/
+│   │   └── app.blade.php              # Layout chính
+│   └── products/
+│       └── index.blade.php            # Trang danh sách sản phẩm
+└── routes/
+    └── web.php                        # Định tuyến
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## Chức năng nghiệp vụ
 
-## Security Vulnerabilities
+### Quản lý sản phẩm
+- **CRUD operations**: Tạo, đọc, cập nhật, xóa sản phẩm
+- **Import/Export**: Hỗ trợ file Excel (.xlsx, .xls) và CSV
+- **Tìm kiếm và lọc**: Hỗ trợ tìm kiếm theo nhiều tiêu chí
+- **Phân trang**: Hiển thị số lượng sản phẩm tùy chọn
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### Quản lý kho
+- **Theo dõi tồn kho**: Hiển thị số lượng hiện có
+- **Lịch sử nhập hàng**: Ghi nhận ngày nhập và giá nhập
+- **Trạng thái sản phẩm**: Hoạt động/không hoạt động
+
+### Báo cáo và thống kê
+- **Thống kê theo danh mục**: Phân loại sản phẩm
+- **Thống kê theo kênh bán**: Theo dõi hiệu quả từng kênh
+- **Xuất báo cáo**: Định dạng Excel/CSV
+
+## Công nghệ sử dụng
+
+- **Backend**: Laravel 10.x
+- **Database**: SQLite (có thể thay đổi sang MySQL/PostgreSQL)
+- **Frontend**: HTML5, CSS3, JavaScript (Vanilla)
+- **UI Framework**: Custom CSS với Font Awesome icons
+- **Excel Processing**: Maatwebsite Excel package
+
+## Đóng góp
+
+1. Fork project
+2. Tạo feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to branch (`git push origin feature/AmazingFeature`)
+5. Tạo Pull Request
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Distributed under the MIT License. See `LICENSE` for more information.
+
+## Liên hệ
+
+- Email: [your-email@example.com]
+- Project Link: [https://github.com/username/PerfumeShop](https://github.com/username/PerfumeShop)
