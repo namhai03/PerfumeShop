@@ -15,6 +15,9 @@
         <form action="{{ route('products.update', $product->id) }}" method="POST" enctype="multipart/form-data">
             @csrf
             @method('PUT')
+            @if(request('from') === 'inventory')
+                <input type="hidden" name="redirect_to" value="inventory">
+            @endif
             
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 28px;">
                 <!-- Left Column -->
@@ -87,6 +90,14 @@
                         <label for="stock" class="form-label">Số lượng tồn kho *</label>
                         <input type="number" id="stock" name="stock" class="form-control @error('stock') is-invalid @enderror" value="{{ old('stock', $product->stock) }}" min="0" required>
                         @error('stock')
+                            <div style="color: #dc3545; font-size: 12px; margin-top: 4px;">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    <div class="form-group">
+                        <label for="low_stock_threshold" class="form-label">Ngưỡng cảnh báo sắp hết</label>
+                        <input type="number" id="low_stock_threshold" name="low_stock_threshold" class="form-control @error('low_stock_threshold') is-invalid @enderror" value="{{ old('low_stock_threshold', $product->low_stock_threshold ?? 5) }}" min="0">
+                        @error('low_stock_threshold')
                             <div style="color: #dc3545; font-size: 12px; margin-top: 4px;">{{ $message }}</div>
                         @enderror
                     </div>

@@ -185,7 +185,11 @@
             cursor: pointer;
             transition: all 0.2s ease;
             border: 1px solid #e2e8f0;
+            font-size: 14px; /* chuẩn hóa kích thước icon */
         }
+
+        .header-icon i { font-size: 14px; }
+        .table i, .table .fa, .table .fas, .table .far { font-size: 14px; }
 
         .header-icon:hover {
             background: #4299e1;
@@ -355,6 +359,8 @@
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
 
+        .btn i { font-size: 14px; }
+
         .btn-primary {
             background: #4299e1;
             color: white;
@@ -491,6 +497,17 @@
             border: 1px solid #feb2b2;
         }
 
+        /* Pagination - professional look, hide oversized chevrons */
+        .pagination-controls nav, .pagination { display:flex; gap:8px; align-items:center; justify-content:flex-end; }
+        .pagination li { list-style:none; }
+        .pagination a, .pagination span { 
+            padding: 6px 10px; border:1px solid #e5e7eb; border-radius:6px; text-decoration:none; color:#374151; background:#fff; 
+        }
+        .pagination a:hover { background:#f3f4f6; }
+        .pagination .active span, .pagination a[aria-current="page"] { background:#4299e1; color:#fff; border-color:#4299e1; }
+        .pagination svg { width:14px; height:14px; display:none; } /* ẩn icon mũi tên lớn nếu có */
+        .pagination a[rel="prev"], .pagination a[rel="next"] { color:#4299e1; }
+
         /* Modal */
         .modal {
             display: none;
@@ -518,88 +535,27 @@
         }
 
         @keyframes modalSlideIn {
-            from {
-                opacity: 0;
-                transform: translateY(-50px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(-50px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 16px;
-            border-bottom: 1px solid #e2e8f0;
-        }
-
-        .modal-header h3 {
-            font-size: 18px;
-            font-weight: 600;
-            color: #2d3748;
-        }
-
-        .close {
-            font-size: 24px;
-            font-weight: 300;
-            color: #718096;
-            cursor: pointer;
-            transition: color 0.2s ease;
-        }
-
-        .close:hover {
-            color: #e53e3e;
-        }
+        .modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #e2e8f0; }
+        .modal-header h3 { font-size: 18px; font-weight: 600; color: #2d3748; }
+        .close { font-size: 24px; font-weight: 300; color: #718096; cursor: pointer; transition: color 0.2s ease; }
+        .close:hover { color: #e53e3e; }
 
         /* Responsive */
         @media (max-width: 768px) {
-            .sidebar {
-                width: 100%;
-                height: auto;
-                position: relative;
-            }
-            
-            .main-content {
-                margin-left: 0;
-            }
-            
-            .search-bar {
-                width: 200px;
-            }
-            
-            .header {
-                padding: 16px 20px;
-            }
-            
-            .content {
-                padding: 20px;
-            }
-            
-            .page-title {
-                font-size: 24px;
-            }
-            
-            .card {
-                padding: 20px;
-            }
-
-            /* Responsive cho bảng */
-            .table {
-                font-size: 12px;
-            }
-
-            .table th,
-            .table td {
-                padding: 8px 12px;
-            }
-
-            .table td.product-name {
-                max-width: 150px;
-            }
+            .sidebar { width: 100%; height: auto; position: relative; }
+            .main-content { margin-left: 0; }
+            .search-bar { width: 200px; }
+            .header { padding: 16px 20px; }
+            .content { padding: 20px; }
+            .page-title { font-size: 24px; }
+            .card { padding: 20px; }
+            .table { font-size: 12px; }
+            .table th, .table td { padding: 8px 12px; }
+            .table td.product-name { max-width: 150px; }
         }
     </style>
 </head>
@@ -649,10 +605,14 @@
                 </li>
 
                 <li class="nav-item">
-                    <a href="#" class="nav-link">
+                    <a href="{{ route('inventory.index') }}" class="nav-link {{ request()->routeIs('inventory.*') ? 'active' : '' }}">
                         <i class="icon fas fa-warehouse"></i>
                         Quản lý kho
                     </a>
+                    <ul class="sub-nav">
+                        <li class="nav-item"><a href="{{ route('inventory.index') }}" class="nav-link {{ request()->routeIs('inventory.index') ? 'active' : '' }}">Tồn kho</a></li>
+                        <li class="nav-item"><a href="{{ route('inventory.history') }}" class="nav-link {{ request()->routeIs('inventory.history') ? 'active' : '' }}">Lịch sử</a></li>
+                    </ul>
                 </li>
                 <li class="nav-item">
                     <a href="#" class="nav-link">
@@ -742,5 +702,10 @@
     </div>
 
     @stack('scripts')
+    @stack('styles')
+    <style>
+        .qty-pos{ color:#16a34a; }
+        .qty-neg{ color:#dc2626; }
+    </style>
 </body>
 </html>

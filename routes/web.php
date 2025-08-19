@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\InventoryController;
 
 Route::get('/', function () {
     return redirect()->route('products.index');
@@ -18,3 +19,9 @@ Route::resource('products', ProductController::class)->whereNumber('product');
 
 // Categories
 Route::resource('categories', CategoryController::class)->whereNumber('category');
+
+// Inventory
+Route::get('inventory', [InventoryController::class, 'index'])->name('inventory.index');
+Route::get('inventory/history', [InventoryController::class, 'history'])->name('inventory.history');
+Route::post('inventory/{product}/adjust', [InventoryController::class, 'adjust'])->name('inventory.adjust');
+Route::get('inventory/{product}', [InventoryController::class, 'show'])->name('inventory.show')->whereNumber('product');

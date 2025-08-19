@@ -152,10 +152,12 @@ class ProductController extends Controller
             'description' => 'nullable|string',
             'import_price' => 'required|numeric|min:0',
             'selling_price' => 'required|numeric|min:0',
-            'category' => 'required|string|max:255',
+            // Cho phép bỏ qua trường category khi dùng danh mục nhiều (categories[])
+            'category' => 'nullable|string|max:255',
             'brand' => 'nullable|string|max:255',
             'sku' => 'required|string|unique:products,sku|max:255',
             'stock' => 'required|integer|min:0',
+            'low_stock_threshold' => 'nullable|integer|min:0',
             'image' => 'nullable|image|max:4096',
             'volume' => 'nullable|string|max:255',
             'concentration' => 'nullable|string|max:255',
@@ -175,6 +177,9 @@ class ProductController extends Controller
         }
         if ($request->has('tags')) {
             $data['tags'] = $this->normalizeTags($request->input('tags'));
+        }
+        if (!isset($data['low_stock_threshold'])) {
+            $data['low_stock_threshold'] = 5;
         }
         $product = Product::create($data);
 
@@ -206,10 +211,12 @@ class ProductController extends Controller
             'description' => 'nullable|string',
             'import_price' => 'required|numeric|min:0',
             'selling_price' => 'required|numeric|min:0',
-            'category' => 'required|string|max:255',
+            // Cho phép bỏ qua trường category khi dùng danh mục nhiều (categories[])
+            'category' => 'nullable|string|max:255',
             'brand' => 'nullable|string|max:255',
             'sku' => 'required|string|unique:products,sku,' . $product->id . '|max:255',
             'stock' => 'required|integer|min:0',
+            'low_stock_threshold' => 'nullable|integer|min:0',
             'image' => 'nullable|image|max:4096',
             'volume' => 'nullable|string|max:255',
             'concentration' => 'nullable|string|max:255',
@@ -229,10 +236,20 @@ class ProductController extends Controller
         if ($request->has('tags')) {
             $data['tags'] = $this->normalizeTags($request->input('tags'));
         }
+        if (!isset($data['low_stock_threshold'])) {
+            $data['low_stock_threshold'] = $product->low_stock_threshold ?? 5;
+        }
         $product->update($data);
 
         // Cập nhật gán danh mục
         $product->categories()->sync($request->input('categories', []));
+
+        // Điều hướng theo ngữ cảnh (ví dụ: từ trang tồn kho)
+        $redirectTo = $request->input('redirect_to');
+        if ($redirectTo === 'inventory') {
+            return redirect()->route('inventory.index')
+                ->with('success', 'Sản phẩm đã được cập nhật thành công!');
+        }
 
         return redirect()->route('products.index')
             ->with('success', 'Sản phẩm đã được cập nhật thành công!');
@@ -308,6 +325,7 @@ class ProductController extends Controller
                             'product_form' => $row['product_form'] ?? $product->product_form,
                             'expiry_date' => $row['expiry_date'] ?? $product->expiry_date,
                             'is_active' => isset($row['is_active']) ? (bool)$row['is_active'] : $product->is_active,
+                            'low_stock_threshold' => $row['low_stock_threshold'] ?? $product->low_stock_threshold,
                         ]);
                         return null; // Không tạo mới
                     } else {
@@ -333,6 +351,7 @@ class ProductController extends Controller
                             'product_form' => $row['product_form'] ?? null,
                             'expiry_date' => $row['expiry_date'] ?? null,
                             'is_active' => isset($row['is_active']) ? (bool)$row['is_active'] : true,
+                            'low_stock_threshold' => $row['low_stock_threshold'] ?? 5,
                         ]);
                     }
                 }
@@ -372,7 +391,7 @@ class ProductController extends Controller
         $filename = 'products_template.' . $format;
 
         $columns = [
-            'name','description','import_price','selling_price','category','brand','sku','barcode','stock','image','volume','concentration','origin','import_date','sales_channel','tags','product_type','product_form','expiry_date','is_active'
+            'name','description','import_price','selling_price','category','brand','sku','barcode','stock','low_stock_threshold','image','volume','concentration','origin','import_date','sales_channel','tags','product_type','product_form','expiry_date','is_active'
         ];
 
         if ($format === 'csv') {
@@ -500,6 +519,7 @@ class ProductController extends Controller
                 'brand' => $data['brand'] ?? null,
                 'barcode' => $data['barcode'] ?? null,
                 'stock' => isset($data['stock']) ? (int)$data['stock'] : 0,
+                'low_stock_threshold' => isset($data['low_stock_threshold']) ? (int)$data['low_stock_threshold'] : 5,
                 'image' => $data['image'] ?? null,
                 'volume' => $data['volume'] ?? null,
                 'concentration' => $data['concentration'] ?? null,

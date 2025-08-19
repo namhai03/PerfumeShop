@@ -9,7 +9,7 @@ class Product extends Model
 {
     protected $fillable = [
         'name', 'description', 'import_price', 'selling_price', 'category', 'brand', 'sku',
-        'barcode', 'stock', 'image', 'volume', 'concentration', 'origin', 'import_date', 
+        'barcode', 'stock', 'low_stock_threshold', 'image', 'volume', 'concentration', 'origin', 'import_date', 
         'sales_channel', 'tags', 'is_active', 'product_type', 'product_form', 'expiry_date',
         'branch_price', 'customer_group_price', 'created_date'
     ];
@@ -18,6 +18,7 @@ class Product extends Model
         'import_price' => 'decimal:2',
         'selling_price' => 'decimal:2',
         'stock' => 'integer',
+        'low_stock_threshold' => 'integer',
         'import_date' => 'date',
         'expiry_date' => 'date',
         'created_date' => 'date',

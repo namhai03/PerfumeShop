@@ -93,6 +93,14 @@
                     </div>
 
                     <div class="form-group">
+                        <label for="low_stock_threshold" class="form-label">Ngưỡng cảnh báo sắp hết</label>
+                        <input type="number" id="low_stock_threshold" name="low_stock_threshold" class="form-control @error('low_stock_threshold') is-invalid @enderror" value="{{ old('low_stock_threshold', 5) }}" min="0">
+                        @error('low_stock_threshold')
+                            <div style="color: #dc3545; font-size: 12px; margin-top: 4px;">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    <div class="form-group">
                         <label for="volume" class="form-label">Dung tích (ml)</label>
                         <input type="text" id="volume" name="volume" class="form-control @error('volume') is-invalid @enderror" value="{{ old('volume') }}" placeholder="VD: 50ml, 100ml">
                         @error('volume')
