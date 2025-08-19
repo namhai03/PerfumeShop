@@ -36,15 +36,14 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="category" class="form-label">Danh mục *</label>
-                        <select id="category" name="category" class="form-control @error('category') is-invalid @enderror" required>
-                            <option value="">Chọn danh mục</option>
-                            <option value="Nước hoa nam" {{ old('category', $product->category) == 'Nước hoa nam' ? 'selected' : '' }}>Nước hoa nam</option>
-                            <option value="Nước hoa nữ" {{ old('category', $product->category) == 'Nước hoa nữ' ? 'selected' : '' }}>Nước hoa nữ</option>
-                            <option value="Nước hoa unisex" {{ old('category', $product->category) == 'Nước hoa unisex' ? 'selected' : '' }}>Nước hoa unisex</option>
-                            <option value="Nước hoa trẻ em" {{ old('category', $product->category) == 'Nước hoa trẻ em' ? 'selected' : '' }}>Nước hoa trẻ em</option>
+                        <label class="form-label">Danh mục (gán nhiều)</label>
+                        <select name="categories[]" class="form-control" multiple size="6">
+                            @foreach(($categories ?? []) as $cat)
+                                <option value="{{ $cat->id }}" {{ (collect(old('categories', $selectedCategoryIds ?? []))->contains($cat->id)) ? 'selected' : '' }}>{{ $cat->name }}</option>
+                            @endforeach
                         </select>
-                        @error('category')
+                        <small style="color:#6c757d;">Giữ Ctrl/Cmd để chọn nhiều danh mục.</small>
+                        @error('categories')
                             <div style="color: #dc3545; font-size: 12px; margin-top: 4px;">{{ $message }}</div>
                         @enderror
                     </div>

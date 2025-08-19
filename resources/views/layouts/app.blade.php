@@ -640,7 +640,7 @@
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a href="#" class="nav-link">Danh mục sản phẩm</a>
+                            <a href="{{ route('categories.index') }}" class="nav-link {{ request()->routeIs('categories.*') ? 'active' : '' }}">Danh mục sản phẩm</a>
                         </li>
                         <li class="nav-item">
                             <a href="#" class="nav-link">Bảng giá</a>

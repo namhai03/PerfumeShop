@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
+use App\Models\Category;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
 use Maatwebsite\Excel\Concerns\ToModel;
@@ -140,7 +141,8 @@ class ProductController extends Controller
 
     public function create()
     {
-        return view('products.create');
+        $categories = Category::orderBy('name')->get();
+        return view('products.create', compact('categories'));
     }
 
     public function store(Request $request)
@@ -160,7 +162,9 @@ class ProductController extends Controller
             'origin' => 'nullable|string|max:255',
             'import_date' => 'nullable|date',
             'is_active' => 'boolean',
-            'tags' => 'nullable|string'
+            'tags' => 'nullable|string',
+            'categories' => 'nullable|array',
+            'categories.*' => 'exists:categories,id'
         ]);
 
         $data = $request->all();
@@ -172,7 +176,12 @@ class ProductController extends Controller
         if ($request->has('tags')) {
             $data['tags'] = $this->normalizeTags($request->input('tags'));
         }
-        Product::create($data);
+        $product = Product::create($data);
+
+        // Gán danh mục (nhiều) nếu có
+        if ($request->filled('categories')) {
+            $product->categories()->sync($request->input('categories'));
+        }
 
         return redirect()->route('products.index')
             ->with('success', 'Sản phẩm đã được tạo thành công!');
@@ -185,7 +194,9 @@ class ProductController extends Controller
 
     public function edit(Product $product)
     {
-        return view('products.edit', compact('product'));
+        $categories = Category::orderBy('name')->get();
+        $selectedCategoryIds = $product->categories()->pluck('categories.id')->toArray();
+        return view('products.edit', compact('product', 'categories', 'selectedCategoryIds'));
     }
 
     public function update(Request $request, Product $product)
@@ -205,7 +216,9 @@ class ProductController extends Controller
             'origin' => 'nullable|string|max:255',
             'import_date' => 'nullable|date',
             'is_active' => 'boolean',
-            'tags' => 'nullable|string'
+            'tags' => 'nullable|string',
+            'categories' => 'nullable|array',
+            'categories.*' => 'exists:categories,id'
         ]);
 
         $data = $request->all();
@@ -217,6 +230,9 @@ class ProductController extends Controller
             $data['tags'] = $this->normalizeTags($request->input('tags'));
         }
         $product->update($data);
+
+        // Cập nhật gán danh mục
+        $product->categories()->sync($request->input('categories', []));
 
         return redirect()->route('products.index')
             ->with('success', 'Sản phẩm đã được cập nhật thành công!');

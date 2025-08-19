@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\CategoryController;
 
 Route::get('/', function () {
     return redirect()->route('products.index');
@@ -14,3 +15,6 @@ Route::delete('products/bulk-delete', [ProductController::class, 'bulkDestroy'])
 
 // Ràng buộc id là số để tránh trùng path như 'export'
 Route::resource('products', ProductController::class)->whereNumber('product');
+
+// Categories
+Route::resource('categories', CategoryController::class)->whereNumber('category');
