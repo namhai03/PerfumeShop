@@ -12,6 +12,18 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('products', function (Blueprint $table) {
+            if (!Schema::hasColumn('products', 'barcode')) {
+                $table->string('barcode')->nullable()->after('sku');
+            }
+
+            if (!Schema::hasColumn('products', 'sales_channel')) {
+                $table->string('sales_channel')->nullable()->after('import_date');
+            }
+
+            if (!Schema::hasColumn('products', 'tags')) {
+                $table->string('tags')->nullable()->after('sales_channel');
+            }
+
             // Thêm các trường mới cho bộ lọc nâng cao
             if (!Schema::hasColumn('products', 'product_type')) {
                 $table->string('product_type')->nullable()->after('tags');

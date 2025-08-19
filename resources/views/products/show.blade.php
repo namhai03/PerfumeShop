@@ -130,14 +130,14 @@
 
     <!-- Action Buttons -->
     <div style="margin-top: 28px; display: flex; gap: 12px; justify-content: center;">
-        <a href="{{ route('products.edit', $product->id) }}" class="btn btn-primary" style="font-size: 13px; padding: 8px 16px; min-width: 140px; justify-content: center;">
+        <a href="{{ route('products.edit', $product->id) }}" class="btn btn-primary" style="font-size: 13px; padding: 8px 16px; min-width: 140px; height: 40px; display: flex; align-items: center; justify-content: center;">
             <i class="fas fa-edit"></i>
             Chỉnh sửa
         </a>
         <form action="{{ route('products.destroy', $product->id) }}" method="POST" style="display: inline;" onsubmit="return confirm('Bạn có chắc chắn muốn xóa sản phẩm này?')">
             @csrf
             @method('DELETE')
-            <button type="submit" class="btn btn-danger" style="font-size: 13px; padding: 8px 16px; min-width: 140px; justify-content: center;">
+            <button type="submit" class="btn btn-danger" style="font-size: 13px; padding: 8px 16px; min-width: 140px; height: 40px; display: flex; align-items: center; justify-content: center;">
                 <i class="fas fa-trash"></i>
                 Xóa sản phẩm
             </button>

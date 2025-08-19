@@ -40,9 +40,14 @@ class ProductController extends Controller
             $query->where('category', $request->category);
         }
 
-        // Lọc theo tag
-        if ($request->filled('tag')) {
-            $query->where('tags', 'like', "%{$request->tag}%");
+        // Lọc theo tag (hỗ trợ nhiều tag)
+        if ($request->filled('tags')) {
+            $selectedTags = (array) $request->input('tags');
+            foreach ($selectedTags as $tag) {
+                $query->whereRaw('FIND_IN_SET(?, tags)', [$tag]);
+            }
+        } elseif ($request->filled('tag')) { // tương thích tham số cũ
+            $query->whereRaw('FIND_IN_SET(?, tags)', [$request->input('tag')]);
         }
 
         // Lọc theo trạng thái có thể bán
@@ -79,6 +84,24 @@ class ProductController extends Controller
             }
         }
 
+        // Lọc theo bảng giá chi nhánh có/không
+        if ($request->filled('has_branch_price')) {
+            if ($request->has_branch_price == '1') {
+                $query->whereNotNull('branch_price');
+            } else {
+                $query->whereNull('branch_price');
+            }
+        }
+
+        // Lọc theo bảng giá theo nhóm khách hàng có/không
+        if ($request->filled('has_customer_group_price')) {
+            if ($request->has_customer_group_price == '1') {
+                $query->whereNotNull('customer_group_price');
+            } else {
+                $query->whereNull('customer_group_price');
+            }
+        }
+
         // Sắp xếp
         $sortBy = $request->get('sort_by', 'created_at');
         $sortOrder = $request->get('sort_order', 'desc');
@@ -92,7 +115,15 @@ class ProductController extends Controller
         $categories = Product::distinct()->pluck('category')->filter()->values();
         $brands = Product::distinct()->pluck('brand')->filter()->values();
         $salesChannels = Product::distinct()->pluck('sales_channel')->filter()->values();
-        $tags = Product::distinct()->pluck('tags')->filter()->values();
+        // Tách các tag duy nhất từ chuỗi CSV 'tags'
+        $tags = collect(Product::pluck('tags')->filter()->all())
+            ->flatMap(function ($csv) {
+                return collect(explode(',', $csv))
+                    ->map(fn ($t) => trim($t))
+                    ->filter();
+            })
+            ->unique()
+            ->values();
         $productTypes = Product::distinct()->pluck('product_type')->filter()->values();
         $productForms = Product::distinct()->pluck('product_form')->filter()->values();
 
@@ -123,15 +154,25 @@ class ProductController extends Controller
             'brand' => 'nullable|string|max:255',
             'sku' => 'required|string|unique:products,sku|max:255',
             'stock' => 'required|integer|min:0',
-            'image' => 'nullable|string',
+            'image' => 'nullable|image|max:4096',
             'volume' => 'nullable|string|max:255',
             'concentration' => 'nullable|string|max:255',
             'origin' => 'nullable|string|max:255',
             'import_date' => 'nullable|date',
-            'is_active' => 'boolean'
+            'is_active' => 'boolean',
+            'tags' => 'nullable|string'
         ]);
 
-        Product::create($request->all());
+        $data = $request->all();
+        // Upload ảnh nếu có
+        if ($request->hasFile('image')) {
+            $path = $request->file('image')->store('products', 'public');
+            $data['image'] = '/storage/' . $path;
+        }
+        if ($request->has('tags')) {
+            $data['tags'] = $this->normalizeTags($request->input('tags'));
+        }
+        Product::create($data);
 
         return redirect()->route('products.index')
             ->with('success', 'Sản phẩm đã được tạo thành công!');
@@ -158,18 +199,37 @@ class ProductController extends Controller
             'brand' => 'nullable|string|max:255',
             'sku' => 'required|string|unique:products,sku,' . $product->id . '|max:255',
             'stock' => 'required|integer|min:0',
-            'image' => 'nullable|string',
+            'image' => 'nullable|image|max:4096',
             'volume' => 'nullable|string|max:255',
             'concentration' => 'nullable|string|max:255',
             'origin' => 'nullable|string|max:255',
             'import_date' => 'nullable|date',
-            'is_active' => 'boolean'
+            'is_active' => 'boolean',
+            'tags' => 'nullable|string'
         ]);
 
-        $product->update($request->all());
+        $data = $request->all();
+        if ($request->hasFile('image')) {
+            $path = $request->file('image')->store('products', 'public');
+            $data['image'] = '/storage/' . $path;
+        }
+        if ($request->has('tags')) {
+            $data['tags'] = $this->normalizeTags($request->input('tags'));
+        }
+        $product->update($data);
 
         return redirect()->route('products.index')
             ->with('success', 'Sản phẩm đã được cập nhật thành công!');
+    }
+
+    public function bulkDestroy(Request $request)
+    {
+        $ids = $request->input('ids', []);
+        if (!is_array($ids) || empty($ids)) {
+            return redirect()->route('products.index')->with('error', 'Chưa chọn sản phẩm nào.');
+        }
+        Product::whereIn('id', $ids)->delete();
+        return redirect()->route('products.index')->with('success', 'Đã xóa ' . count($ids) . ' sản phẩm.');
     }
 
     public function destroy(Product $product)
@@ -183,10 +243,27 @@ class ProductController extends Controller
     public function import(Request $request)
     {
         $request->validate([
-            'file' => 'required|mimes:xlsx,xls|max:2048'
+            'file' => 'required|mimes:xlsx,xls,csv,txt|max:4096'
         ]);
 
         try {
+            $ext = strtolower($request->file('file')->getClientOriginalExtension());
+
+            // Fallback: nếu là CSV/TXT thì nhập bằng PHP thuần, không cần package Excel
+            if (in_array($ext, ['csv', 'txt'])) {
+                $this->importCsv($request->file('file'));
+                return redirect()->route('products.index')
+                    ->with('success', 'Import sản phẩm (CSV) thành công!');
+            }
+
+            // XLSX/XLS: cần package maatwebsite/excel bản hỗ trợ Concerns
+            if (!class_exists(\Maatwebsite\Excel\Facades\Excel::class)
+                || !interface_exists(\Maatwebsite\Excel\Concerns\ToModel::class)
+                || !interface_exists(\Maatwebsite\Excel\Concerns\WithHeadingRow::class)) {
+                return redirect()->route('products.index')
+                    ->with('error', 'Môi trường thiếu hỗ trợ import Excel (xlsx/xls). Vui lòng chuyển file sang CSV để nhập.');
+            }
+
             Excel::import(new class implements ToModel, WithHeadingRow, WithValidation {
                 public function model(array $row)
                 {
@@ -202,12 +279,18 @@ class ProductController extends Controller
                             'selling_price' => $row['selling_price'] ?? $product->selling_price,
                             'category' => $row['category'] ?? $product->category,
                             'brand' => $row['brand'] ?? $product->brand,
+                            'barcode' => $row['barcode'] ?? $product->barcode,
                             'stock' => $row['stock'] ?? $product->stock,
                             'image' => $row['image'] ?? $product->image,
                             'volume' => $row['volume'] ?? $product->volume,
                             'concentration' => $row['concentration'] ?? $product->concentration,
                             'origin' => $row['origin'] ?? $product->origin,
                             'import_date' => $row['import_date'] ?? $product->import_date,
+                            'sales_channel' => $row['sales_channel'] ?? $product->sales_channel,
+                            'tags' => isset($row['tags']) ? self::normalizeTagsStatic($row['tags']) : $product->tags,
+                            'product_type' => $row['product_type'] ?? $product->product_type,
+                            'product_form' => $row['product_form'] ?? $product->product_form,
+                            'expiry_date' => $row['expiry_date'] ?? $product->expiry_date,
                             'is_active' => isset($row['is_active']) ? (bool)$row['is_active'] : $product->is_active,
                         ]);
                         return null; // Không tạo mới
@@ -221,12 +304,18 @@ class ProductController extends Controller
                             'category' => $row['category'],
                             'brand' => $row['brand'] ?? null,
                             'sku' => $row['sku'],
+                            'barcode' => $row['barcode'] ?? null,
                             'stock' => $row['stock'] ?? 0,
                             'image' => $row['image'] ?? null,
                             'volume' => $row['volume'] ?? null,
                             'concentration' => $row['concentration'] ?? null,
                             'origin' => $row['origin'] ?? null,
                             'import_date' => $row['import_date'] ?? null,
+                            'sales_channel' => $row['sales_channel'] ?? null,
+                            'tags' => isset($row['tags']) ? self::normalizeTagsStatic($row['tags']) : null,
+                            'product_type' => $row['product_type'] ?? null,
+                            'product_form' => $row['product_form'] ?? null,
+                            'expiry_date' => $row['expiry_date'] ?? null,
                             'is_active' => isset($row['is_active']) ? (bool)$row['is_active'] : true,
                         ]);
                     }
@@ -239,8 +328,16 @@ class ProductController extends Controller
                         'import_price' => 'required|numeric',
                         'selling_price' => 'required|numeric',
                         'category' => 'required',
-                        'sku' => 'required|unique:products,sku',
+                        'sku' => 'required',
                     ];
+                }
+
+                public static function normalizeTagsStatic(?string $tags): ?string
+                {
+                    if (!$tags) return null;
+                    $parts = array_filter(array_map('trim', explode(',', $tags)));
+                    $parts = array_values(array_unique($parts));
+                    return empty($parts) ? null : implode(',', $parts);
                 }
             }, $request->file('file'));
 
@@ -255,34 +352,159 @@ class ProductController extends Controller
 
     public function export()
     {
-        return Excel::download(new class implements \Maatwebsite\Excel\Concerns\FromCollection, \Maatwebsite\Excel\Concerns\WithHeadings {
+        $format = request('format', 'xlsx');
+        $filename = 'products_template.' . $format;
+
+        $columns = [
+            'name','description','import_price','selling_price','category','brand','sku','barcode','stock','image','volume','concentration','origin','import_date','sales_channel','tags','product_type','product_form','expiry_date','is_active'
+        ];
+
+        if ($format === 'csv') {
+            $callback = function() use ($columns) {
+                $handle = fopen('php://output', 'w');
+                // BOM cho UTF-8 (Excel Windows hiển thị tiếng Việt đúng)
+                fprintf($handle, chr(0xEF).chr(0xBB).chr(0xBF));
+                fputcsv($handle, $columns);
+                Product::select($columns)->orderBy('id')->chunk(500, function($rows) use ($handle) {
+                    foreach ($rows as $row) {
+                        $data = $row->toArray();
+                        // Chuẩn hóa ngày và boolean
+                        foreach (['import_date','expiry_date'] as $d) {
+                            if (!empty($data[$d])) {
+                                $data[$d] = (string) $row->$d?->format('Y-m-d');
+                            }
+                        }
+                        $data['is_active'] = (int) ($data['is_active'] ?? 0);
+                        // Đảm bảo thứ tự cột
+                        $ordered = [];
+                        foreach ($columns as $col) { $ordered[] = $data[$col] ?? ''; }
+                        fputcsv($handle, $ordered);
+                    }
+                });
+                fclose($handle);
+            };
+            return response()->streamDownload($callback, $filename, [
+                'Content-Type' => 'text/csv; charset=UTF-8',
+            ]);
+        }
+
+        // Nếu môi trường không có Concerns (package cũ), fallback sang CSV
+        if (!class_exists(\Maatwebsite\Excel\Facades\Excel::class)
+            || !interface_exists(\Maatwebsite\Excel\Concerns\FromCollection::class)) {
+            // ép xuất CSV thay thế
+            $altName = 'products_template.csv';
+            $callback = function() use ($columns) {
+                $handle = fopen('php://output', 'w');
+                fprintf($handle, chr(0xEF).chr(0xBB).chr(0xBF));
+                fputcsv($handle, $columns);
+                Product::select($columns)->orderBy('id')->chunk(500, function($rows) use ($handle, $columns) {
+                    foreach ($rows as $row) {
+                        $data = $row->only($columns);
+                        foreach (['import_date','expiry_date'] as $d) {
+                            if (!empty($data[$d])) { $data[$d] = $row->$d?->format('Y-m-d'); }
+                        }
+                        $data['is_active'] = (int) ($data['is_active'] ?? 0);
+                        $ordered = [];
+                        foreach ($columns as $col) { $ordered[] = $data[$col] ?? ''; }
+                        fputcsv($handle, $ordered);
+                    }
+                });
+                fclose($handle);
+            };
+            return response()->streamDownload($callback, $altName, [
+                'Content-Type' => 'text/csv; charset=UTF-8',
+            ]);
+        }
+
+        // Mặc định xuất XLSX qua thư viện Excel (FromCollection để tương thích rộng)
+        $export = new class($columns) implements \Maatwebsite\Excel\Concerns\FromCollection, \Maatwebsite\Excel\Concerns\WithHeadings {
+            private array $cols; 
+            public function __construct(array $cols) { $this->cols = $cols; }
             public function collection()
             {
-                return Product::all();
+                return Product::query()->get($this->cols)->map(function($row){
+                    $data = $row->only($this->cols);
+                    foreach (['import_date','expiry_date'] as $d) {
+                        if (!empty($data[$d])) { $data[$d] = $row->$d?->format('Y-m-d'); }
+                    }
+                    $data['is_active'] = (int) ($data['is_active'] ?? 0);
+                    return $data;
+                });
+            }
+            public function headings(): array { return $this->cols; }
+        };
+        return Excel::download($export, $filename);
+    }
+
+    private function normalizeTags(?string $tags): ?string
+    {
+        if (!$tags) {
+            return null;
+        }
+        $parts = array_filter(array_map('trim', explode(',', $tags)));
+        $parts = array_values(array_unique($parts));
+        return empty($parts) ? null : implode(',', $parts);
+    }
+
+    private function importCsv($uploadedFile): void
+    {
+        $path = $uploadedFile->getRealPath();
+        $handle = fopen($path, 'r');
+        if ($handle === false) {
+            throw new \RuntimeException('Không thể mở file CSV');
+        }
+
+        $headers = [];
+        if (($row = fgetcsv($handle)) !== false) {
+            // Loại bỏ BOM UTF-8
+            if (isset($row[0])) {
+                $row[0] = preg_replace('/^\xEF\xBB\xBF/', '', $row[0]);
+            }
+            $headers = array_map(fn($h) => strtolower(trim($h)), $row);
+        }
+
+        while (($row = fgetcsv($handle)) !== false) {
+            if (count($row) === 1 && trim($row[0]) === '') { continue; }
+            $data = [];
+            foreach ($headers as $i => $key) {
+                $data[$key] = $row[$i] ?? null;
             }
 
-            public function headings(): array
-            {
-                return [
-                    'ID',
-                    'Tên sản phẩm',
-                    'Mô tả',
-                    'Giá nhập',
-                    'Giá bán',
-                    'Danh mục',
-                    'Thương hiệu',
-                    'SKU',
-                    'Tồn kho',
-                    'Hình ảnh',
-                    'Dung tích',
-                    'Nồng độ',
-                    'Xuất xứ',
-                    'Ngày nhập hàng',
-                    'Trạng thái',
-                    'Ngày tạo',
-                    'Ngày cập nhật'
-                ];
+            if (empty($data['sku']) || empty($data['name']) || empty($data['category'])) {
+                continue; // bỏ qua dòng thiếu dữ liệu bắt buộc
             }
-        }, 'products.xlsx');
+
+            $product = Product::where('sku', $data['sku'])->first();
+            $payload = [
+                'name' => $data['name'] ?? null,
+                'description' => $data['description'] ?? null,
+                'import_price' => isset($data['import_price']) ? (float)$data['import_price'] : null,
+                'selling_price' => isset($data['selling_price']) ? (float)$data['selling_price'] : null,
+                'category' => $data['category'] ?? null,
+                'brand' => $data['brand'] ?? null,
+                'barcode' => $data['barcode'] ?? null,
+                'stock' => isset($data['stock']) ? (int)$data['stock'] : 0,
+                'image' => $data['image'] ?? null,
+                'volume' => $data['volume'] ?? null,
+                'concentration' => $data['concentration'] ?? null,
+                'origin' => $data['origin'] ?? null,
+                'import_date' => $data['import_date'] ?? null,
+                'sales_channel' => $data['sales_channel'] ?? null,
+                'tags' => $this->normalizeTags($data['tags'] ?? null),
+                'product_type' => $data['product_type'] ?? null,
+                'product_form' => $data['product_form'] ?? null,
+                'expiry_date' => $data['expiry_date'] ?? null,
+                'is_active' => isset($data['is_active']) ? (bool)$data['is_active'] : true,
+            ];
+
+            if ($product) {
+                $product->update($payload);
+            } else {
+                $payload['sku'] = $data['sku'];
+                Product::create($payload);
+            }
+        }
+
+        fclose($handle);
     }
 }

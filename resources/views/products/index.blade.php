@@ -60,14 +60,7 @@
 
                 <!-- Filters -->
                 <div class="filters-container" style="display: flex; gap: 12px; flex-wrap: wrap;">
-                    <select name="sales_channel" class="filter-select">
-                        <option value="">Kênh bán hàng</option>
-                        @foreach($salesChannels as $channel)
-                            <option value="{{ $channel }}" {{ request('sales_channel') == $channel ? 'selected' : '' }}>
-                                {{ $channel }}
-                            </option>
-                        @endforeach
-                    </select>
+                    
 
                     <select name="category" class="filter-select">
                         <option value="">Loại sản phẩm</option>
@@ -87,7 +80,7 @@
                         @endforeach
                     </select>
 
-                    <button type="button" class="btn btn-outline" style="padding: 8px 16px; font-size: 13px;">
+                    <button type="button" class="btn btn-outline" style="padding: 8px 16px; font-size: 13px;" onclick="openAdvancedFilter()">
                         <i class="fas fa-filter"></i>
                         Bộ lọc khác
                     </button>
@@ -103,6 +96,9 @@
     <!-- Products Table -->
     <div class="card">
         <div class="table-container">
+            <form id="bulkDeleteForm" action="{{ route('products.bulkDestroy') }}" method="POST">
+                @csrf
+                @method('DELETE')
             <table class="table">
                 <thead>
                     <tr>
@@ -120,7 +116,7 @@
                     @forelse($products as $product)
                         <tr>
                             <td>
-                                <input type="checkbox" name="selected_products[]" value="{{ $product->id }}" style="margin: 0;">
+                                <input type="checkbox" name="ids[]" value="{{ $product->id }}" style="margin: 0;">
                             </td>
                             <td class="product-cell">
                                 <div style="display: flex; align-items: center; gap: 12px;">
@@ -132,7 +128,9 @@
                                         </div>
                                     @endif
                                     <div>
-                                        <div style="font-weight: 600; color: #2c3e50; margin-bottom: 4px;">{{ $product->name }}</div>
+                                        <div style="font-weight: 600; color: #2c3e50; margin-bottom: 4px;">
+                                            <a href="{{ route('products.show', $product->id) }}" style="color: inherit; text-decoration: none;">{{ $product->name }}</a>
+                                        </div>
                                         <div style="font-size: 12px; color: #6c757d;">{{ $product->sku }}</div>
                                     </div>
                                 </div>
@@ -172,6 +170,7 @@
                     @endforelse
                 </tbody>
             </table>
+            </form>
         </div>
 
         <!-- Pagination and Display Options -->
@@ -181,6 +180,7 @@
             </div>
             
             <div class="display-options" style="display: flex; align-items: center; gap: 16px;">
+                <button type="button" id="bulkDeleteBtn" class="btn btn-danger" onclick="submitBulkDelete()" style="font-size:13px; padding:8px 16px;" disabled>Xóa đã chọn</button>
                 <div style="display: flex; align-items: center; gap: 8px;">
                     <span style="font-size: 14px; color: #4a5568;">Hiển thị</span>
                     <select name="per_page" class="per-page-select" onchange="this.form.submit()">
@@ -224,6 +224,83 @@
         </div>
     </div>
 
+    <!-- Advanced Filter Modal -->
+    <div class="modal" id="advancedFilterModal" style="display: none;">
+        <div class="modal-content" style="max-width: 520px;">
+            <div class="modal-header">
+                <h3>Bộ lọc khác</h3>
+                <span class="close" onclick="closeAdvancedFilter()">&times;</span>
+            </div>
+            <form method="GET" action="{{ route('products.index') }}">
+                <div class="form-group">
+                    <label class="form-label">Nhãn hiệu</label>
+                    <input type="text" name="brand" value="{{ request('brand') }}" class="form-control" placeholder="VD: Dior, Chanel">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Ngày tạo</label>
+                    <input type="date" name="created_date" value="{{ request('created_date') }}" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Kênh bán hàng</label>
+                    <select name="sales_channel" class="form-control">
+                        <option value="">-- Chọn --</option>
+                        <option value="online" {{ request('sales_channel')=='online' ? 'selected' : '' }}>Online</option>
+                        <option value="offline" {{ request('sales_channel')=='offline' ? 'selected' : '' }}>Offline</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Danh mục</label>
+                    <input type="text" name="category" value="{{ request('category') }}" class="form-control" placeholder="VD: Nước hoa nam">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Loại sản phẩm</label>
+                    <input type="text" name="product_type" value="{{ request('product_type') }}" class="form-control" placeholder="VD: Chính hãng, decant">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Tag</label>
+                    <input type="text" name="tags[]" value="{{ is_array(request('tags')) ? implode(',', request('tags')) : request('tags') }}" class="form-control" placeholder="Nhập nhiều tag, cách nhau bởi dấu phẩy">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Hình thức sản phẩm</label>
+                    <input type="text" name="product_form" value="{{ request('product_form') }}" class="form-control" placeholder="VD: Full box, Tester">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Sản phẩm lô - HSD</label>
+                    <select name="has_expiry" class="form-control">
+                        <option value="">-- Tất cả --</option>
+                        <option value="1" {{ request('has_expiry')=='1' ? 'selected' : '' }}>Có HSD</option>
+                        <option value="0" {{ request('has_expiry')=='0' ? 'selected' : '' }}>Không HSD</option>
+                    </select>
+                </div>
+                <div class="form-group" style="display:flex; gap:12px;">
+                    <div style="flex:1;">
+                        <label class="form-label">Bảng giá theo chi nhánh</label>
+                        <select name="has_branch_price" class="form-control">
+                            <option value="">-- Tất cả --</option>
+                            <option value="1" {{ request('has_branch_price')=='1' ? 'selected' : '' }}>Có</option>
+                            <option value="0" {{ request('has_branch_price')=='0' ? 'selected' : '' }}>Không</option>
+                        </select>
+                    </div>
+                    <div style="flex:1;">
+                        <label class="form-label">Bảng giá theo nhóm KH</label>
+                        <select name="has_customer_group_price" class="form-control">
+                            <option value="">-- Tất cả --</option>
+                            <option value="1" {{ request('has_customer_group_price')=='1' ? 'selected' : '' }}>Có</option>
+                            <option value="0" {{ request('has_customer_group_price')=='0' ? 'selected' : '' }}>Không</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="display:flex; justify-content: space-between; gap: 12px;">
+                    <a href="{{ route('products.index') }}" class="btn btn-outline">Xóa hết bộ lọc</a>
+                    <div>
+                        <button type="button" class="btn btn-outline" onclick="closeAdvancedFilter()">Đóng</button>
+                        <button type="submit" class="btn btn-primary" style="margin-left:8px;">Lọc</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Import Modal -->
     <div class="modal" id="importModal" style="display: none;">
         <div class="modal-content">
@@ -235,15 +312,15 @@
             <div style="background-color: #ebf8ff; padding: 12px; border-radius: 6px; margin-bottom: 16px; border-left: 3px solid #4299e1;">
                 <p style="margin: 0; color: #2b6cb0; font-size: 13px;">
                     <i class="fas fa-info-circle" style="margin-right: 6px;"></i>
-                    <strong>Lưu ý:</strong> Import sẽ cập nhật sản phẩm đã tồn tại (theo SKU) hoặc tạo mới nếu chưa có.
+                    <strong>Lưu ý:</strong> Khuyến nghị dùng CSV (.csv). Hệ thống sẽ cập nhật theo SKU nếu có, hoặc tạo mới nếu chưa có.
                 </p>
             </div>
             
             <form action="{{ route('products.import') }}" method="POST" enctype="multipart/form-data">
                 @csrf
                 <div class="form-group">
-                    <label for="file" class="form-label">Chọn file Excel (.xlsx, .xls)</label>
-                    <input type="file" id="file" name="file" class="form-control" accept=".xlsx,.xls" required>
+                    <label for="file" class="form-label">Chọn file CSV hoặc Excel (.csv, .xlsx, .xls)</label>
+                    <input type="file" id="file" name="file" class="form-control" accept=".csv,.xlsx,.xls,.txt" required>
                 </div>
                 
                 <div style="display: flex; gap: 12px; justify-content: flex-end;">
@@ -312,12 +389,43 @@
     });
 
     // Select all functionality
-    document.getElementById('select-all').addEventListener('change', function() {
-        const checkboxes = document.querySelectorAll('input[name="selected_products[]"]');
-        checkboxes.forEach(checkbox => {
-            checkbox.checked = this.checked;
+    // Bulk select
+    const selectAllEl = document.getElementById('select-all');
+    const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
+    function updateBulkDeleteState() {
+        const checked = document.querySelectorAll('input[name="ids[]"]:checked');
+        const count = checked.length;
+        bulkDeleteBtn.disabled = count === 0;
+        bulkDeleteBtn.textContent = count > 0 ? `Xóa đã chọn (${count})` : 'Xóa đã chọn';
+    }
+
+    if (selectAllEl) {
+        selectAllEl.addEventListener('change', function() {
+            const checkboxes = document.querySelectorAll('input[name="ids[]"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+            updateBulkDeleteState();
         });
+    }
+
+    // Lắng nghe từng checkbox hàng
+    document.addEventListener('change', function(e) {
+        if (e.target && e.target.name === 'ids[]') {
+            updateBulkDeleteState();
+        }
     });
+
+    function submitBulkDelete() {
+        const checked = document.querySelectorAll('input[name="ids[]"]:checked');
+        if (checked.length === 0) {
+            alert('Vui lòng chọn ít nhất 1 sản phẩm.');
+            return;
+        }
+        if (confirm('Bạn có chắc muốn xóa ' + checked.length + ' sản phẩm đã chọn?')) {
+            document.getElementById('bulkDeleteForm').submit();
+        }
+    }
 
     // Modal functions
     function openImportModal() {
@@ -336,15 +444,27 @@
         document.getElementById('exportModal').style.display = 'none';
     }
 
+    function openAdvancedFilter() {
+        document.getElementById('advancedFilterModal').style.display = 'block';
+    }
+
+    function closeAdvancedFilter() {
+        document.getElementById('advancedFilterModal').style.display = 'none';
+    }
+
     // Close modal when clicking outside
     window.onclick = function(event) {
         const importModal = document.getElementById('importModal');
         const exportModal = document.getElementById('exportModal');
+        const advancedFilterModal = document.getElementById('advancedFilterModal');
         if (event.target == importModal) {
             importModal.style.display = 'none';
         }
         if (event.target == exportModal) {
             exportModal.style.display = 'none';
+        }
+        if (event.target == advancedFilterModal) {
+            advancedFilterModal.style.display = 'none';
         }
     }
 </script>

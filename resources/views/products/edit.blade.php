@@ -109,6 +109,14 @@
                     </div>
 
                     <div class="form-group">
+                        <label for="tags" class="form-label">Tag (nhiều, cách nhau bằng dấu phẩy)</label>
+                        <input type="text" id="tags" name="tags" class="form-control @error('tags') is-invalid @enderror" value="{{ old('tags', $product->tags) }}" placeholder="VD: top, new, sale">
+                        @error('tags')
+                            <div style="color: #dc3545; font-size: 12px; margin-top: 4px;">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    <div class="form-group">
                         <label for="import_date" class="form-label">Ngày nhập hàng</label>
                         <input type="date" id="import_date" name="import_date" class="form-control @error('import_date') is-invalid @enderror" value="{{ old('import_date', $product->import_date ? $product->import_date->format('Y-m-d') : '') }}">
                         @error('import_date')
@@ -132,6 +140,7 @@
                             </div>
                         @endif
                         <input type="file" id="image" name="image" class="form-control @error('image') is-invalid @enderror" accept="image/*">
+                        <small style="color:#6c757d;">Tải ảnh mới để thay thế, ảnh lưu tại storage/public/products</small>
                         @error('image')
                             <div style="color: #dc3545; font-size: 12px; margin-top: 4px;">{{ $message }}</div>
                         @enderror

@@ -137,8 +137,29 @@ class ProductSeeder extends Seeder
             ],
         ];
 
-        foreach ($products as $product) {
-            Product::create($product);
+        // Tạo 3 sản phẩm mẫu trước
+        foreach (array_slice($products, 0, 3) as $product) {
+            Product::updateOrCreate(['sku' => $product['sku']], $product);
+        }
+
+        // Sinh 30 sản phẩm dựa trên 3 mẫu (mỗi mẫu 10 biến thể)
+        $counter = 1;
+        foreach (array_slice($products, 0, 3) as $base) {
+            for ($i = 1; $i <= 10; $i++) {
+                $variant = $base;
+                $variant['name'] = $base['name'] . ' - ' . $i;
+                $variant['sku'] = preg_replace('/[^A-Z0-9\-]/', '', strtoupper(substr($base['sku'], 0, 10))) . '-' . str_pad((string)$i, 3, '0', STR_PAD_LEFT);
+                $variant['selling_price'] = (int)$base['selling_price'] + ($i * 10000);
+                $variant['import_price'] = (int)$base['import_price'] + ($i * 8000);
+                $variant['stock'] = max(0, (int)$base['stock'] + $i);
+                $variant['volume'] = $base['volume'];
+                $variant['tags'] = $base['tags'];
+                $variant['created_date'] = now()->subDays($counter)->format('Y-m-d');
+                $variant['import_date'] = now()->subDays($counter + 2)->format('Y-m-d');
+                $variant['expiry_date'] = isset($base['expiry_date']) && $base['expiry_date'] ? now()->addYears(2)->format('Y-m-d') : null;
+                Product::updateOrCreate(['sku' => $variant['sku']], $variant);
+                $counter++;
+            }
         }
     }
 }

@@ -29,10 +29,10 @@
 
         /* Sidebar */
         .sidebar {
-            width: 280px;
-            background: linear-gradient(180deg, #2d3748 0%, #4a5568 50%, #718096 100%);
+            width: 240px;
+            background: linear-gradient(180deg, #0f172a 0%, #111827 50%, #1f2937 100%);
             color: white;
-            padding: 24px 0;
+            padding: 20px 0;
             position: fixed;
             height: 100vh;
             overflow-y: auto;
@@ -41,67 +41,84 @@
         }
 
         .logo {
-            font-size: 24px;
-            font-weight: 600;
+            font-size: 20px;
+            font-weight: 700;
             color: white;
             text-decoration: none;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.2px;
             display: block;
-            text-align: center;
-            margin-bottom: 32px;
-            padding: 0 24px;
+            text-align: left;
+            margin-bottom: 16px;
+            padding: 0 20px;
         }
 
-        .nav-item {
-            list-style: none;
+        .nav { list-style: none; }
+        .nav-item { list-style: none; }
+
+        .nav-section-title {
+            color: rgba(255,255,255,0.5);
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.6px;
+            text-transform: uppercase;
+            padding: 8px 20px;
+            margin-top: 8px;
+        }
+
+        .nav-divider {
+            height: 1px;
+            background: rgba(255,255,255,0.08);
+            margin: 8px 20px;
+            border-radius: 1px;
         }
 
         .nav-link {
             display: flex;
             align-items: center;
-            padding: 12px 24px;
+            gap: 12px;
+            padding: 10px 20px;
             color: rgba(255,255,255,0.85);
             text-decoration: none;
             transition: all 0.2s ease;
-            border-radius: 0 20px 20px 0;
-            margin-right: 16px;
+            border-radius: 8px;
             font-weight: 500;
             font-size: 14px;
-            letter-spacing: 0.2px;
         }
 
+        .nav-link .icon { width: 18px; text-align: center; opacity: 0.9; }
+
         .nav-link:hover {
-            background: rgba(255,255,255,0.08);
+            background: rgba(255,255,255,0.06);
             color: white;
-            transform: translateX(3px);
         }
 
         .nav-link.active {
-            background: rgba(255,255,255,0.15);
-            color: white;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            background: rgba(59,130,246,0.18);
+            color: #fff;
+            box-shadow: inset 0 0 0 1px rgba(59,130,246,0.35);
         }
 
         .sub-nav {
             list-style: none;
-            margin-left: 20px;
-            margin-top: 8px;
+            margin: 6px 0 6px 0;
+            padding-left: 16px;
+            border-left: 1px dashed rgba(255,255,255,0.12);
         }
 
         .sub-nav .nav-link {
-            padding: 10px 24px;
+            padding: 8px 14px;
             font-size: 13px;
-            margin-right: 16px;
+            border-radius: 6px;
         }
 
         .sub-nav .nav-link.active {
-            background: rgba(255,255,255,0.12);
-            box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+            background: rgba(59,130,246,0.22);
+            box-shadow: inset 0 0 0 1px rgba(59,130,246,0.35);
         }
 
         /* Main Content */
         .main-content {
-            margin-left: 280px;
+            margin-left: 240px;
             min-height: 100vh;
         }
 
@@ -349,6 +366,15 @@
             box-shadow: 0 2px 8px rgba(66, 153, 225, 0.3);
         }
 
+        /* Disabled state for buttons */
+        .btn:disabled,
+        .btn[disabled] {
+            opacity: 0.6;
+            cursor: not-allowed;
+            pointer-events: none;
+            box-shadow: none;
+        }
+
         .btn-outline {
             background-color: white;
             color: #4299e1;
@@ -485,6 +511,8 @@
             border-radius: 12px;
             width: 90%;
             max-width: 480px;
+            max-height: 80vh;
+            overflow-y: auto;
             box-shadow: 0 10px 40px rgba(0,0,0,0.2);
             animation: modalSlideIn 0.2s ease;
         }
@@ -579,78 +607,103 @@
     <!-- Sidebar -->
     <div class="sidebar">
         <a href="{{ route('products.index') }}" class="logo">PerfumeShop</a>
-        
         <nav>
-            <ul>
+            <ul class="nav">
                 <li class="nav-item">
                     <a href="#" class="nav-link">
+                        <i class="icon fas fa-gauge-high"></i>
                         Tổng quan
                     </a>
                 </li>
                 <li class="nav-item">
                     <a href="#" class="nav-link">
+                        <i class="icon fas fa-receipt"></i>
                         Đơn hàng
                     </a>
                 </li>
                 <li class="nav-item">
                     <a href="#" class="nav-link">
+                        <i class="icon fas fa-truck"></i>
                         Vận chuyển
                     </a>
                 </li>
+
                 <li class="nav-item">
-                    <a href="#" class="nav-link active">
+                    <a href="#" class="nav-link {{ request()->routeIs('products.*') ? 'active' : '' }}">
+                        <i class="icon fas fa-box"></i>
                         Sản phẩm
                     </a>
                     <ul class="sub-nav">
                         <li class="nav-item">
-                            <a href="{{ route('products.index') }}" class="nav-link active">
+                            <a href="{{ route('products.index') }}" class="nav-link {{ request()->routeIs('products.*') ? 'active' : '' }}">
                                 Danh sách sản phẩm
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a href="#" class="nav-link">
-                                Danh mục sản phẩm
-                            </a>
+                            <a href="#" class="nav-link">Danh mục sản phẩm</a>
                         </li>
                         <li class="nav-item">
-                            <a href="#" class="nav-link">
-                                Bảng giá
-                            </a>
+                            <a href="#" class="nav-link">Bảng giá</a>
                         </li>
                     </ul>
                 </li>
+
                 <li class="nav-item">
                     <a href="#" class="nav-link">
+                        <i class="icon fas fa-warehouse"></i>
                         Quản lý kho
                     </a>
                 </li>
                 <li class="nav-item">
                     <a href="#" class="nav-link">
+                        <i class="icon fas fa-users"></i>
                         Khách hàng
                     </a>
                 </li>
                 <li class="nav-item">
                     <a href="#" class="nav-link">
+                        <i class="icon fas fa-gift"></i>
                         Khuyến mại
                     </a>
                 </li>
                 <li class="nav-item">
                     <a href="#" class="nav-link">
+                        <i class="icon fas fa-wallet"></i>
                         Sổ quỹ
                     </a>
                 </li>
                 <li class="nav-item">
                     <a href="#" class="nav-link">
+                        <i class="icon fas fa-chart-line"></i>
                         Báo cáo
                     </a>
                 </li>
                 <li class="nav-item">
                     <a href="#" class="nav-link">
+                        <i class="icon fas fa-comments"></i>
                         Chat OmniAI
+                    </a>
+                </li>
+
+                <div class="nav-divider"></div>
+                <div class="nav-section-title">Kênh bán hàng</div>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="icon fa-brands fa-shopify"></i>
+                        Shopee
                     </a>
                 </li>
                 <li class="nav-item">
                     <a href="#" class="nav-link">
+                        <i class="icon fa-brands fa-tiktok"></i>
+                        Tiktok Shop
+                    </a>
+                </li>
+
+                <div class="nav-divider"></div>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="icon fas fa-gear"></i>
                         Cấu hình
                     </a>
                 </li>
