@@ -615,21 +615,32 @@
                     </ul>
                 </li>
                 <li class="nav-item">
-                    <a href="#" class="nav-link">
+                    <a href="{{ route('customers.index') }}" class="nav-link {{ request()->routeIs('customers.*') || request()->routeIs('customer-groups.*') ? 'active' : '' }}">
                         <i class="icon fas fa-users"></i>
                         Khách hàng
                     </a>
+                    <ul class="sub-nav">
+                        <li class="nav-item"><a href="{{ route('customers.index') }}" class="nav-link {{ request()->routeIs('customers.*') ? 'active' : '' }}">Danh sách khách hàng</a></li>
+                        <li class="nav-item"><a href="{{ route('customer-groups.index') }}" class="nav-link {{ request()->routeIs('customer-groups.*') ? 'active' : '' }}">Nhóm khách hàng</a></li>
+                    </ul>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('cashbook.index') }}" class="nav-link {{ request()->routeIs('cashbook.*') ? 'active' : '' }}">
+                        <i class="icon fas fa-wallet"></i>
+                        Sổ quỹ
+                    </a>
+                    <ul class="sub-nav">
+                        <li class="nav-item"><a href="{{ route('cashbook.index') }}" class="nav-link {{ request()->routeIs('cashbook.index') ? 'active' : '' }}">Tất cả phiếu</a></li>
+                        <li class="nav-item"><a href="{{ route('cashbook.index', ['type' => 'receipt']) }}" class="nav-link {{ request('type') == 'receipt' ? 'active' : '' }}">Phiếu thu</a></li>
+                        <li class="nav-item"><a href="{{ route('cashbook.index', ['type' => 'payment']) }}" class="nav-link {{ request('type') == 'payment' ? 'active' : '' }}">Phiếu chi</a></li>
+                        <li class="nav-item"><a href="{{ route('cashbook.index', ['type' => 'transfer']) }}" class="nav-link {{ request('type') == 'transfer' ? 'active' : '' }}">Chuyển quỹ nội bộ</a></li>
+                        <li class="nav-item"><a href="{{ route('cashbook.accounts.index') }}" class="nav-link {{ request()->routeIs('cashbook.accounts.*') ? 'active' : '' }}">Tài khoản</a></li>
+                    </ul>
                 </li>
                 <li class="nav-item">
                     <a href="#" class="nav-link">
                         <i class="icon fas fa-gift"></i>
                         Khuyến mại
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link">
-                        <i class="icon fas fa-wallet"></i>
-                        Sổ quỹ
                     </a>
                 </li>
                 <li class="nav-item">

@@ -85,9 +85,7 @@
                         Bộ lọc khác
                     </button>
 
-                    <button type="button" class="btn btn-outline" style="padding: 8px 16px; font-size: 13px; background-color: #6c757d; color: white;">
-                        Lưu bộ lọc
-                    </button>
+                    
                 </div>
             </div>
         </div>

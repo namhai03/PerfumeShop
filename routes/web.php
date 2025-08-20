@@ -4,6 +4,10 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\InventoryController;
+use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\CustomerGroupController;
+use App\Http\Controllers\CashVoucherController;
+use App\Http\Controllers\CashAccountController;
 
 Route::get('/', function () {
     return redirect()->route('products.index');
@@ -25,3 +29,30 @@ Route::get('inventory', [InventoryController::class, 'index'])->name('inventory.
 Route::get('inventory/history', [InventoryController::class, 'history'])->name('inventory.history');
 Route::post('inventory/{product}/adjust', [InventoryController::class, 'adjust'])->name('inventory.adjust');
 Route::get('inventory/{product}', [InventoryController::class, 'show'])->name('inventory.show')->whereNumber('product');
+
+// Customers
+Route::get('customers/export', [CustomerController::class, 'export'])->name('customers.export');
+Route::post('customers/import', [CustomerController::class, 'import'])->name('customers.import');
+Route::delete('customers/bulk-delete', [CustomerController::class, 'bulkDestroy'])->name('customers.bulkDestroy');
+Route::resource('customers', CustomerController::class)->whereNumber('customer');
+
+// Customer Groups
+Route::resource('customer-groups', CustomerGroupController::class)->whereNumber('customer_group');
+
+// Cashbook
+Route::get('cashbook', [CashVoucherController::class, 'index'])->name('cashbook.index');
+Route::get('cashbook/create', [CashVoucherController::class, 'create'])->name('cashbook.create');
+Route::post('cashbook', [CashVoucherController::class, 'store'])->name('cashbook.store');
+Route::get('cashbook/{voucher}', [CashVoucherController::class, 'show'])->name('cashbook.show')->whereNumber('voucher');
+Route::get('cashbook/{voucher}/edit', [CashVoucherController::class, 'edit'])->name('cashbook.edit')->whereNumber('voucher');
+Route::put('cashbook/{voucher}', [CashVoucherController::class, 'update'])->name('cashbook.update')->whereNumber('voucher');
+Route::delete('cashbook/{voucher}', [CashVoucherController::class, 'destroy'])->name('cashbook.destroy')->whereNumber('voucher');
+
+// Cash Accounts - Sửa để không bị nested resource
+Route::get('cashbook/accounts', [CashAccountController::class, 'index'])->name('cashbook.accounts.index');
+Route::get('cashbook/accounts/create', [CashAccountController::class, 'create'])->name('cashbook.accounts.create');
+Route::post('cashbook/accounts', [CashAccountController::class, 'store'])->name('cashbook.accounts.store');
+Route::get('cashbook/accounts/{account}', [CashAccountController::class, 'show'])->name('cashbook.accounts.show')->whereNumber('account');
+Route::get('cashbook/accounts/{account}/edit', [CashAccountController::class, 'edit'])->name('cashbook.accounts.edit')->whereNumber('account');
+Route::put('cashbook/accounts/{account}', [CashAccountController::class, 'update'])->name('cashbook.accounts.update')->whereNumber('account');
+Route::delete('cashbook/accounts/{account}', [CashAccountController::class, 'destroy'])->name('cashbook.accounts.destroy')->whereNumber('account');
