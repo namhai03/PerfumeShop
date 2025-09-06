@@ -8,18 +8,10 @@
             <h1 class="page-title">Sổ quỹ</h1>
         </div>
         <div style="display: flex; gap: 12px;">
-            <div class="dropdown" style="position: relative;">
-                <a href="{{ route('cashbook.create') }}" class="btn btn-primary" style="font-size: 13px; padding: 8px 16px;">
-                    <i class="fas fa-plus"></i>
-                    Tạo phiếu
-                    <i class="fas fa-chevron-down" style="margin-left: 8px; font-size: 10px;"></i>
-                </a>
-                <div class="dropdown-menu" style="display: none; position: absolute; top: 100%; right: 0; background: white; border: 1px solid #e2e8f0; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); min-width: 160px; z-index: 1000;">
-                    <a href="{{ route('cashbook.create', ['type' => 'receipt']) }}" class="dropdown-item">Phiếu thu</a>
-                    <a href="{{ route('cashbook.create', ['type' => 'payment']) }}" class="dropdown-item">Phiếu chi</a>
-                    <a href="{{ route('cashbook.create', ['type' => 'transfer']) }}" class="dropdown-item">Chuyển quỹ nội bộ</a>
-                </div>
-            </div>
+            <a href="{{ route('cashbook.create') }}" class="btn btn-primary" style="font-size: 13px; padding: 8px 16px;">
+                <i class="fas fa-plus"></i>
+                Tạo phiếu
+            </a>
             <a href="{{ route('cashbook.accounts.index') }}" class="btn btn-outline" style="font-size: 13px; padding: 8px 16px;">
                 <i class="fas fa-university"></i>
                 Tài khoản
@@ -41,17 +33,7 @@
         </div>
     @endif
 
-    <!-- Tab Navigation -->
-    <div class="card" style="padding: 0;">
-        <div class="tab-navigation">
-            <div class="tab-list">
-                <a href="{{ route('cashbook.index') }}" class="tab-item {{ !request('type') ? 'active' : '' }}">Tất cả</a>
-                <a href="{{ route('cashbook.index', ['type' => 'receipt']) }}" class="tab-item {{ request('type') == 'receipt' ? 'active' : '' }}">Phiếu thu</a>
-                <a href="{{ route('cashbook.index', ['type' => 'payment']) }}" class="tab-item {{ request('type') == 'payment' ? 'active' : '' }}">Phiếu chi</a>
-                <a href="{{ route('cashbook.index', ['type' => 'transfer']) }}" class="tab-item {{ request('type') == 'transfer' ? 'active' : '' }}">Chuyển quỹ nội bộ</a>
-            </div>
-        </div>
-    </div>
+    <!-- Tab Navigation removed as yêu cầu: chỉ giữ danh sách + bộ lọc -->
 
     <!-- Search and Filter -->
     <form method="GET" action="{{ route('cashbook.index') }}" id="filterForm">
@@ -202,19 +184,5 @@
             select.addEventListener('change', function(){ filterForm.submit(); });
         });
     });
-
-    // Dropdown functionality
-    const dropdown = document.querySelector('.dropdown');
-    const dropdownMenu = document.querySelector('.dropdown-menu');
-    
-    if (dropdown && dropdownMenu) {
-        dropdown.addEventListener('mouseenter', function() {
-            dropdownMenu.style.display = 'block';
-        });
-        
-        dropdown.addEventListener('mouseleave', function() {
-            dropdownMenu.style.display = 'none';
-        });
-    }
 </script>
 @endpush

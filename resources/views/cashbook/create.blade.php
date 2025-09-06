@@ -8,15 +8,7 @@
             <a href="{{ route('cashbook.index') }}" class="btn btn-outline" style="padding: 8px 12px;">
                 <i class="fas fa-arrow-left"></i>
             </a>
-            <h1 class="page-title">
-                @if($type == 'receipt')
-                    Tạo phiếu thu
-                @elseif($type == 'payment')
-                    Tạo phiếu chi
-                @else
-                    Chuyển quỹ nội bộ
-                @endif
-            </h1>
+            <h1 class="page-title">Tạo phiếu</h1>
         </div>
         <div style="display: flex; gap: 12px;">
             <a href="{{ route('cashbook.index') }}" class="btn btn-outline">Hủy</a>
@@ -26,7 +18,20 @@
 
     <form id="voucherForm" action="{{ route('cashbook.store') }}" method="POST" enctype="multipart/form-data">
         @csrf
-        <input type="hidden" name="type" value="{{ $type }}">
+        <div class="card">
+            <div class="card-header">
+                <h3>Loại phiếu</h3>
+            </div>
+            <div class="form-group" style="max-width: 360px;">
+                <label class="form-label">Chọn loại phiếu*</label>
+                <select class="form-control" name="type" required>
+                    <option value="">-- Chọn --</option>
+                    <option value="receipt" {{ ($type ?? request('type')) == 'receipt' ? 'selected' : '' }}>Phiếu thu</option>
+                    <option value="payment" {{ ($type ?? request('type')) == 'payment' ? 'selected' : '' }}>Phiếu chi</option>
+                    <option value="transfer" {{ ($type ?? request('type')) == 'transfer' ? 'selected' : '' }}>Chuyển quỹ nội bộ</option>
+                </select>
+            </div>
+        </div>
 
         <div class="card">
             <div class="card-header">
@@ -52,6 +57,33 @@
             <div class="form-group">
                 <label class="form-label">Ghi chú</label>
                 <textarea name="note" rows="2" class="form-control" placeholder="Nhập ghi chú"></textarea>
+            </div>
+        </div>
+
+        <!-- Tài khoản theo loại phiếu -->
+        <div class="card">
+            <div class="card-header">
+                <h3>Tài khoản</h3>
+            </div>
+            <div style="display: flex; gap: 12px;">
+                <div class="form-group" style="flex: 1;">
+                    <label class="form-label">Từ tài khoản</label>
+                    <select name="from_account_id" class="form-control">
+                        <option value="">Chọn tài khoản nguồn</option>
+                        @foreach($accounts as $account)
+                            <option value="{{ $account->id }}">{{ $account->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label class="form-label">Đến tài khoản</label>
+                    <select name="to_account_id" class="form-control">
+                        <option value="">Chọn tài khoản đích</option>
+                        @foreach($accounts as $account)
+                            <option value="{{ $account->id }}">{{ $account->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
             </div>
         </div>
 

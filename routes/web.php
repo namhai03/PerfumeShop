@@ -8,10 +8,19 @@ use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\CustomerGroupController;
 use App\Http\Controllers\CashVoucherController;
 use App\Http\Controllers\CashAccountController;
+use App\Http\Controllers\PromotionController;
+use App\Http\Controllers\ShippingController;
+use App\Http\Controllers\ShipmentController;
+use App\Http\Controllers\OrderController;
 
 Route::get('/', function () {
     return redirect()->route('products.index');
 });
+
+// Test N8N Integration
+Route::get('/n8n/test', function () {
+    return view('n8n.test');
+})->name('n8n.test');
 
 // Đặt export/import TRƯỚC resource để không bị nuốt bởi route show products/{product}
 Route::get('products/export', [ProductController::class, 'export'])->name('products.export');
@@ -56,3 +65,16 @@ Route::get('cashbook/accounts/{account}', [CashAccountController::class, 'show']
 Route::get('cashbook/accounts/{account}/edit', [CashAccountController::class, 'edit'])->name('cashbook.accounts.edit')->whereNumber('account');
 Route::put('cashbook/accounts/{account}', [CashAccountController::class, 'update'])->name('cashbook.accounts.update')->whereNumber('account');
 Route::delete('cashbook/accounts/{account}', [CashAccountController::class, 'destroy'])->name('cashbook.accounts.destroy')->whereNumber('account');
+
+// Promotions
+Route::resource('promotions', PromotionController::class)->whereNumber('promotion');
+
+// Shipping
+Route::get('shipping/overview', [ShippingController::class, 'overview'])->name('shipping.overview');
+Route::get('shipments', [ShipmentController::class, 'index'])->name('shipments.index');
+
+// Orders
+Route::get('orders/sales', [OrderController::class, 'sales'])->name('orders.sales');
+Route::get('orders/returns', [OrderController::class, 'returns'])->name('orders.returns');
+Route::get('orders/drafts', [OrderController::class, 'drafts'])->name('orders.drafts');
+Route::resource('orders', OrderController::class)->whereNumber('order');

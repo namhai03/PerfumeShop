@@ -125,10 +125,10 @@
         /* Header */
         .header {
             background: #ffffff;
-            padding: 20px 32px;
+            padding: 12px 20px;
             border-bottom: 1px solid #e2e8f0;
             display: flex;
-            justify-content: space-between;
+            justify-content: flex-end;
             align-items: center;
             box-shadow: 0 1px 3px rgba(0,0,0,0.05);
             position: sticky;
@@ -136,47 +136,16 @@
             z-index: 100;
         }
 
-        .search-bar {
-            display: flex;
-            align-items: center;
-            background: #f7fafc;
-            border-radius: 8px;
-            padding: 10px 16px;
-            width: 380px;
-            border: 1px solid #e2e8f0;
-            transition: all 0.2s ease;
-        }
-
-        .search-bar:focus-within {
-            border-color: #4299e1;
-            box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
-            background: white;
-        }
-
-        .search-bar input {
-            border: none;
-            background: none;
-            outline: none;
-            width: 100%;
-            margin-left: 12px;
-            font-size: 14px;
-            color: #4a5568;
-        }
-
-        .search-bar input::placeholder {
-            color: #718096;
-        }
-
         .header-actions {
             display: flex;
             align-items: center;
-            gap: 20px;
+            gap: 12px;
         }
 
         .header-icon {
-            width: 36px;
-            height: 36px;
-            border-radius: 8px;
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
             background: #f7fafc;
             display: flex;
             align-items: center;
@@ -185,10 +154,10 @@
             cursor: pointer;
             transition: all 0.2s ease;
             border: 1px solid #e2e8f0;
-            font-size: 14px; /* chuẩn hóa kích thước icon */
+            font-size: 12px;
         }
 
-        .header-icon i { font-size: 14px; }
+        .header-icon i { font-size: 12px; }
         .table i, .table .fa, .table .fas, .table .far { font-size: 14px; }
 
         .header-icon:hover {
@@ -201,10 +170,10 @@
         .user-profile {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
             cursor: pointer;
-            padding: 8px 16px;
-            border-radius: 8px;
+            padding: 6px 12px;
+            border-radius: 6px;
             background: #f7fafc;
             border: 1px solid #e2e8f0;
             transition: all 0.2s ease;
@@ -218,16 +187,16 @@
         }
 
         .user-avatar {
-            width: 28px;
-            height: 28px;
-            border-radius: 6px;
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
             background: #4299e1;
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
             font-weight: 600;
-            font-size: 12px;
+            font-size: 10px;
         }
 
         /* Content */
@@ -572,16 +541,26 @@
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="#" class="nav-link">
+                    <a href="{{ route('orders.index') }}" class="nav-link {{ request()->routeIs('orders.*') ? 'active' : '' }}">
                         <i class="icon fas fa-receipt"></i>
                         Đơn hàng
                     </a>
+                    <ul class="sub-nav">
+                        <li class="nav-item"><a href="{{ route('orders.index') }}" class="nav-link {{ request()->routeIs('orders.index') ? 'active' : '' }}">Tất cả đơn hàng</a></li>
+                        <li class="nav-item"><a href="{{ route('orders.sales') }}" class="nav-link {{ request()->routeIs('orders.sales') ? 'active' : '' }}">Đơn bán</a></li>
+                        <li class="nav-item"><a href="{{ route('orders.returns') }}" class="nav-link {{ request()->routeIs('orders.returns') ? 'active' : '' }}">Đơn trả</a></li>
+                        <li class="nav-item"><a href="{{ route('orders.drafts') }}" class="nav-link {{ request()->routeIs('orders.drafts') ? 'active' : '' }}">Đơn nháp</a></li>
+                    </ul>
                 </li>
                 <li class="nav-item">
-                    <a href="#" class="nav-link">
+                    <a href="{{ route('shipping.overview') }}" class="nav-link {{ request()->routeIs('shipping.*') ? 'active' : '' }}">
                         <i class="icon fas fa-truck"></i>
                         Vận chuyển
                     </a>
+                    <ul class="sub-nav">
+                        <li class="nav-item"><a href="{{ route('shipping.overview') }}" class="nav-link {{ request()->routeIs('shipping.overview') ? 'active' : '' }}">Tổng quan</a></li>
+                        <li class="nav-item"><a href="{{ route('shipments.index') }}" class="nav-link {{ request()->routeIs('shipments.*') ? 'active' : '' }}">Vận đơn</a></li>
+                    </ul>
                 </li>
 
                 <li class="nav-item">
@@ -631,14 +610,11 @@
                     </a>
                     <ul class="sub-nav">
                         <li class="nav-item"><a href="{{ route('cashbook.index') }}" class="nav-link {{ request()->routeIs('cashbook.index') ? 'active' : '' }}">Tất cả phiếu</a></li>
-                        <li class="nav-item"><a href="{{ route('cashbook.index', ['type' => 'receipt']) }}" class="nav-link {{ request('type') == 'receipt' ? 'active' : '' }}">Phiếu thu</a></li>
-                        <li class="nav-item"><a href="{{ route('cashbook.index', ['type' => 'payment']) }}" class="nav-link {{ request('type') == 'payment' ? 'active' : '' }}">Phiếu chi</a></li>
-                        <li class="nav-item"><a href="{{ route('cashbook.index', ['type' => 'transfer']) }}" class="nav-link {{ request('type') == 'transfer' ? 'active' : '' }}">Chuyển quỹ nội bộ</a></li>
                         <li class="nav-item"><a href="{{ route('cashbook.accounts.index') }}" class="nav-link {{ request()->routeIs('cashbook.accounts.*') ? 'active' : '' }}">Tài khoản</a></li>
                     </ul>
                 </li>
                 <li class="nav-item">
-                    <a href="#" class="nav-link">
+                    <a href="{{ route('promotions.index') }}" class="nav-link {{ request()->routeIs('promotions.*') ? 'active' : '' }}">
                         <i class="icon fas fa-gift"></i>
                         Khuyến mại
                     </a>
@@ -686,11 +662,6 @@
     <div class="main-content">
         <!-- Header -->
         <header class="header">
-            <div class="search-bar">
-                <i class="fas fa-search" style="color: #6c757d;"></i>
-                <input type="text" placeholder="Tìm kiếm (Ctrl + K)" />
-            </div>
-            
             <div class="header-actions">
                 <div class="header-icon">
                     <i class="fas fa-question"></i>
@@ -717,6 +688,87 @@
     <style>
         .qty-pos{ color:#16a34a; }
         .qty-neg{ color:#dc2626; }
+        
+        /* Order Status and Type Badges */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .badge-new {
+            background-color: #dbeafe;
+            color: #1e40af;
+        }
+        
+        .badge-processing {
+            background-color: #fef3c7;
+            color: #d97706;
+        }
+        
+        .badge-completed {
+            background-color: #d1fae5;
+            color: #059669;
+        }
+        
+        .badge-sale {
+            background-color: #e0e7ff;
+            color: #3730a3;
+        }
+        
+        .badge-return {
+            background-color: #fce7f3;
+            color: #be185d;
+        }
+        
+        .badge-draft {
+            background-color: #f3f4f6;
+            color: #6b7280;
+        }
+        
+        .badge-default {
+            background-color: #f3f4f6;
+            color: #6b7280;
+        }
+        
+        /* Order Actions */
+        .order-actions {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+        
+        .order-actions .btn {
+            padding: 6px 12px;
+            font-size: 12px;
+            border-radius: 4px;
+        }
+        
+        /* Order Table Styles */
+        .order-number {
+            font-weight: 600;
+            color: #2d3748;
+        }
+        
+        .customer-name {
+            color: #4a5568;
+            font-weight: 500;
+        }
+        
+        .order-amount {
+            font-weight: 600;
+            color: #2d3748;
+        }
+        
+        .order-date {
+            color: #718096;
+            font-size: 13px;
+        }
     </style>
 </body>
 </html>

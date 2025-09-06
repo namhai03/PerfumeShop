@@ -82,15 +82,16 @@ class CashVoucherController extends Controller
     {
         $validated = $request->validate([
             'type' => 'required|in:receipt,payment,transfer',
-            'amount' => 'required|numeric|min:0',
+            'amount' => 'required|numeric|min:0.01',
             'description' => 'required|string',
             'reason' => 'nullable|string',
             'payer_group' => 'nullable|string',
             'payer_name' => 'nullable|string',
             'payer_id' => 'nullable|integer',
             'payer_type' => 'nullable|string',
-            'from_account_id' => 'nullable|exists:cash_accounts,id',
-            'to_account_id' => 'nullable|exists:cash_accounts,id',
+            // Ràng buộc theo nghiệp vụ
+            'from_account_id' => 'nullable|exists:cash_accounts,id|required_if:type,payment,transfer',
+            'to_account_id' => 'nullable|exists:cash_accounts,id|required_if:type,receipt,transfer|different:from_account_id',
             'branch_id' => 'nullable|integer',
             'transaction_date' => 'required|date',
             'reference' => 'nullable|string',
@@ -100,11 +101,14 @@ class CashVoucherController extends Controller
         $validated['voucher_code'] = $this->generateVoucherCode($validated['type']);
         $validated['status'] = 'pending';
 
-        // Xử lý tài khoản cho phiếu thu/chi
-        if ($validated['type'] == 'receipt') {
-            $validated['to_account_id'] = $request->input('payment_method') == 'bank' ? $request->input('bank_account_id') : null;
-        } elseif ($validated['type'] == 'payment') {
-            $validated['from_account_id'] = $request->input('payment_method') == 'bank' ? $request->input('bank_account_id') : null;
+        // Kiểm tra bổ sung cho chuyển quỹ: bắt buộc khác tài khoản và có đủ 2 phía
+        if ($validated['type'] === 'transfer') {
+            if (empty($validated['from_account_id']) || empty($validated['to_account_id'])) {
+                return back()->withInput()->with('error', 'Chuyển quỹ cần chọn đủ tài khoản nguồn và đích.');
+            }
+            if ((int)$validated['from_account_id'] === (int)$validated['to_account_id']) {
+                return back()->withInput()->with('error', 'Tài khoản nguồn và đích không được trùng nhau.');
+            }
         }
 
         $voucher = CashVoucher::create($validated);
@@ -152,20 +156,30 @@ class CashVoucherController extends Controller
     public function update(Request $request, CashVoucher $voucher)
     {
         $validated = $request->validate([
-            'amount' => 'required|numeric|min:0',
+            'amount' => 'required|numeric|min:0.01',
             'description' => 'required|string',
             'reason' => 'nullable|string',
             'payer_group' => 'nullable|string',
             'payer_name' => 'nullable|string',
             'payer_id' => 'nullable|integer',
             'payer_type' => 'nullable|string',
-            'from_account_id' => 'nullable|exists:cash_accounts,id',
-            'to_account_id' => 'nullable|exists:cash_accounts,id',
+            // Cho phép cập nhật account theo nghiệp vụ hiện tại của phiếu
+            'from_account_id' => 'nullable|exists:cash_accounts,id' . ($voucher->type !== 'receipt' ? '|required' : ''),
+            'to_account_id' => 'nullable|exists:cash_accounts,id' . ($voucher->type !== 'payment' ? '|required' : ''),
             'branch_id' => 'nullable|integer',
             'transaction_date' => 'required|date',
             'reference' => 'nullable|string',
             'note' => 'nullable|string',
         ]);
+
+        if ($voucher->type === 'transfer') {
+            if (empty($validated['from_account_id']) || empty($validated['to_account_id'])) {
+                return back()->withInput()->with('error', 'Chuyển quỹ cần chọn đủ tài khoản nguồn và đích.');
+            }
+            if ((int)($validated['from_account_id'] ?? 0) === (int)($validated['to_account_id'] ?? -1)) {
+                return back()->withInput()->with('error', 'Tài khoản nguồn và đích không được trùng nhau.');
+            }
+        }
 
         $voucher->update($validated);
 
