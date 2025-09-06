@@ -23,6 +23,13 @@ class InventoryController extends Controller
             });
         }
 
+        // Filter by category
+        if ($request->filled('category')) {
+            $baseQuery->whereHas('categories', function($q) use ($request) {
+                $q->where('categories.id', $request->category);
+            });
+        }
+
         // Tabs: tat_ca | con_hang | het_hang | low_stock
         $tab = $request->get('tab', 'tat_ca');
         if ($tab === 'con_hang') {
@@ -47,9 +54,9 @@ class InventoryController extends Controller
         ])->orderBy($sortBy, $sortOrder);
 
         $perPage = $request->get('per_page', 20);
-        $products = $listQuery->paginate($perPage)->appends($request->query());
+        $products = $listQuery->with('categories')->paginate($perPage)->appends($request->query());
 
-        $categories = Product::distinct()->pluck('category')->filter()->values();
+        $categories = \App\Models\Category::orderBy('name')->get();
 
         // Tổng theo toàn bộ tập kết quả đã lọc (không phân trang)
         $overallTotals = (clone $baseQuery)

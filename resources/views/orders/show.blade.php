@@ -43,7 +43,7 @@
                     
                     <div class="form-group">
                         <label class="form-label">Khách hàng</label>
-                        <div style="color: #4a5568;">{{ $order->customer->name ?? 'N/A' }}</div>
+                        <div style="color: #4a5568;">{{ $order->customer->name ?? $order->customer_name ?? 'N/A' }}</div>
                     </div>
                     
                     <div class="form-group">

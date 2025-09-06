@@ -36,9 +36,11 @@ class ProductController extends Controller
             $query->where('sales_channel', $request->sales_channel);
         }
 
-        // Lọc theo loại sản phẩm (category)
+        // Lọc theo loại sản phẩm (category) - sử dụng relationship
         if ($request->filled('category')) {
-            $query->where('category', $request->category);
+            $query->whereHas('categories', function($q) use ($request) {
+                $q->where('categories.id', $request->category);
+            });
         }
 
         // Lọc theo tag (hỗ trợ nhiều tag)
@@ -110,10 +112,10 @@ class ProductController extends Controller
 
         // Phân trang
         $perPage = $request->get('per_page', 20);
-        $products = $query->paginate($perPage);
+        $products = $query->with('categories')->paginate($perPage);
 
         // Lấy danh sách các giá trị duy nhất cho filter
-        $categories = Product::distinct()->pluck('category')->filter()->values();
+        $categories = Category::orderBy('name')->get();
         $brands = Product::distinct()->pluck('brand')->filter()->values();
         $salesChannels = Product::distinct()->pluck('sales_channel')->filter()->values();
         // Tách các tag duy nhất từ chuỗi CSV 'tags'

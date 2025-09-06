@@ -65,8 +65,8 @@
                     <select name="category" class="filter-select">
                         <option value="">Loại sản phẩm</option>
                         @foreach($categories as $category)
-                            <option value="{{ $category }}" {{ request('category') == $category ? 'selected' : '' }}>
-                                {{ $category }}
+                            <option value="{{ $category->id }}" {{ request('category') == $category->id ? 'selected' : '' }}>
+                                {{ $category->name }}
                             </option>
                         @endforeach
                     </select>
@@ -140,9 +140,15 @@
                             </span>
                             </td>
                             <td>
-                                <span style="padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: 500; background-color: #e3f2fd; color: #1976d2;">
-                                    {{ $product->category ?? '-' }}
-                                </span>
+                                @if($product->categories->count() > 0)
+                                    @foreach($product->categories as $category)
+                                        <span style="padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: 500; background-color: #e3f2fd; color: #1976d2; margin-right: 4px;">
+                                            {{ $category->name }}
+                                        </span>
+                                    @endforeach
+                                @else
+                                    <span style="color: #999;">-</span>
+                                @endif
                             </td>
                             <td>
                                 <span style="font-size: 14px; color: #4a5568;">

@@ -14,6 +14,7 @@ class Order extends Model
     protected $fillable = [
         'order_number',
         'customer_id',
+        'customer_name',
         'status',
         'type',
         'total_amount',
@@ -36,9 +37,8 @@ class Order extends Model
     ];
 
     // Constants for status
-    const STATUS_NEW = 'new';
-    const STATUS_PROCESSING = 'processing';
-    const STATUS_COMPLETED = 'completed';
+    const STATUS_UNPAID = 'unpaid';
+    const STATUS_PAID = 'paid';
 
     // Constants for type
     const TYPE_SALE = 'sale';
@@ -60,9 +60,8 @@ class Order extends Model
     public function getStatusTextAttribute(): string
     {
         return match($this->status) {
-            self::STATUS_NEW => 'Mới',
-            self::STATUS_PROCESSING => 'Đang xử lý',
-            self::STATUS_COMPLETED => 'Hoàn thành',
+            self::STATUS_UNPAID => 'Chưa thanh toán',
+            self::STATUS_PAID => 'Đã thanh toán',
             default => 'Không xác định'
         };
     }
@@ -80,9 +79,8 @@ class Order extends Model
     public function getStatusBadgeClassAttribute(): string
     {
         return match($this->status) {
-            self::STATUS_NEW => 'badge-new',
-            self::STATUS_PROCESSING => 'badge-processing',
-            self::STATUS_COMPLETED => 'badge-completed',
+            self::STATUS_UNPAID => 'badge-unpaid',
+            self::STATUS_PAID => 'badge-paid',
             default => 'badge-default'
         };
     }

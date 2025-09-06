@@ -44,7 +44,7 @@
                 <select name="category" class="form-control" onchange="this.form.submit()">
                     <option value="">Tất cả</option>
                     @foreach(($categories ?? []) as $cat)
-                        <option value="{{ $cat }}" {{ request('category')==$cat ? 'selected' : '' }}>{{ $cat }}</option>
+                        <option value="{{ $cat->id }}" {{ request('category')==$cat->id ? 'selected' : '' }}>{{ $cat->name }}</option>
                     @endforeach
                 </select>
             </div>

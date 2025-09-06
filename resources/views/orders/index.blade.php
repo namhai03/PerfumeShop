@@ -69,9 +69,8 @@
                 <div class="filters-container" style="display: flex; gap: 12px; flex-wrap: wrap;">
                     <select name="status" class="filter-select">
                         <option value="">Trạng thái</option>
-                        <option value="new" {{ request('status') == 'new' ? 'selected' : '' }}>Mới</option>
-                        <option value="processing" {{ request('status') == 'processing' ? 'selected' : '' }}>Đang xử lý</option>
-                        <option value="completed" {{ request('status') == 'completed' ? 'selected' : '' }}>Hoàn thành</option>
+                        <option value="unpaid" {{ request('status') == 'unpaid' ? 'selected' : '' }}>Chưa thanh toán</option>
+                        <option value="paid" {{ request('status') == 'paid' ? 'selected' : '' }}>Đã thanh toán</option>
                     </select>
 
                     <select name="type" class="filter-select">
@@ -113,11 +112,11 @@
                             </td>
                             <td>
                                 <div class="customer-name">
-                                    {{ $order->customer->name ?? 'N/A' }}
+                                    {{ $order->customer->name ?? $order->customer_name ?? 'N/A' }}
                                 </div>
-                                @if($order->phone)
+                                @if($order->customer->phone ?? $order->phone)
                                     <div style="font-size: 12px; color: #718096;">
-                                        {{ $order->phone }}
+                                        {{ $order->customer->phone ?? $order->phone }}
                                     </div>
                                 @endif
                             </td>

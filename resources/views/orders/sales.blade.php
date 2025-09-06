@@ -105,11 +105,11 @@
                             </td>
                             <td>
                                 <div class="customer-name">
-                                    {{ $order->customer->name ?? 'N/A' }}
+                                    {{ $order->customer->name ?? $order->customer_name ?? 'N/A' }}
                                 </div>
-                                @if($order->phone)
+                                @if($order->customer->phone ?? $order->phone)
                                     <div style="font-size: 12px; color: #718096;">
-                                        {{ $order->phone }}
+                                        {{ $order->customer->phone ?? $order->phone }}
                                     </div>
                                 @endif
                             </td>

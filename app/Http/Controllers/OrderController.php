@@ -5,9 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\Order;
 use App\Models\Customer;
 use App\Models\Product;
+use App\Models\InventoryMovement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 use App\Services\N8nService;
 
 class OrderController extends Controller
@@ -35,8 +37,10 @@ class OrderController extends Controller
             $search = $request->search;
             $query->where(function($q) use ($search) {
                 $q->where('order_number', 'like', "%{$search}%")
+                  ->orWhere('customer_name', 'like', "%{$search}%")
                   ->orWhereHas('customer', function($q) use ($search) {
-                      $q->where('name', 'like', "%{$search}%");
+                      $q->where('name', 'like', "%{$search}%")
+                        ->orWhere('phone', 'like', "%{$search}%");
                   });
             });
         }
@@ -51,10 +55,9 @@ class OrderController extends Controller
      */
     public function create()
     {
-        $customers = Customer::orderBy('name')->get();
         $products = Product::orderBy('name')->get();
         
-        return view('orders.create', compact('customers', 'products'));
+        return view('orders.create', compact('products'));
     }
 
     /**
@@ -63,9 +66,9 @@ class OrderController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'customer_id' => 'required|exists:customers,id',
+            'customer_name' => 'required|string|max:255',
             'type' => 'required|in:sale,return,draft',
-            'status' => 'required|in:new,processing,completed',
+            'status' => 'required|in:unpaid,paid',
             'order_date' => 'required|date',
             'delivery_date' => 'nullable|date|after_or_equal:order_date',
             'payment_method' => 'nullable|string|max:255',
@@ -77,6 +80,11 @@ class OrderController extends Controller
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.unit_price' => 'required|numeric|min:0',
         ]);
+
+        // Validate stock availability for sale orders
+        if ($request->type === 'sale') {
+            $this->validateStockAvailability($request->items);
+        }
 
         // Generate order number
         $orderNumber = 'DH' . date('Ymd') . Str::random(4);
@@ -90,32 +98,84 @@ class OrderController extends Controller
         $discountAmount = $request->discount_amount ?? 0;
         $finalAmount = $totalAmount - $discountAmount;
 
-        // Create order
-        $order = Order::create([
-            'order_number' => $orderNumber,
-            'customer_id' => $request->customer_id,
-            'status' => $request->status,
-            'type' => $request->type,
-            'total_amount' => $totalAmount,
-            'discount_amount' => $discountAmount,
-            'final_amount' => $finalAmount,
-            'notes' => $request->notes,
-            'order_date' => $request->order_date,
-            'delivery_date' => $request->delivery_date,
-            'payment_method' => $request->payment_method,
-            'delivery_address' => $request->delivery_address,
-            'phone' => $request->phone,
-        ]);
+        // Use database transaction to ensure data consistency
+        DB::beginTransaction();
+        
+        try {
+            // Find or create customer
+            $customer = Customer::where('name', $request->customer_name)
+                ->where('phone', $request->phone)
+                ->first();
+            
+            if (!$customer) {
+                $customer = Customer::create([
+                    'name' => $request->customer_name,
+                    'phone' => $request->phone,
+                    'address' => $request->delivery_address,
+                    'customer_type' => 'walkin',
+                    'source' => 'offline',
+                    'is_active' => true,
+                ]);
+            } else {
+                // Update customer information if provided
+                $updateData = [];
+                if ($request->phone && $customer->phone !== $request->phone) {
+                    $updateData['phone'] = $request->phone;
+                }
+                if ($request->delivery_address && $customer->address !== $request->delivery_address) {
+                    $updateData['address'] = $request->delivery_address;
+                }
+                if (!empty($updateData)) {
+                    $customer->update($updateData);
+                }
+            }
 
-        // Create order items
-        foreach ($request->items as $item) {
-            $order->items()->create([
-                'product_id' => $item['product_id'],
-                'quantity' => $item['quantity'],
-                'unit_price' => $item['unit_price'],
-                'total_price' => $item['quantity'] * $item['unit_price'],
-                'custom_notes' => $item['custom_notes'] ?? null,
+            // Create order
+            $order = Order::create([
+                'order_number' => $orderNumber,
+                'customer_id' => $customer->id,
+                'customer_name' => $request->customer_name,
+                'status' => $request->status,
+                'type' => $request->type,
+                'total_amount' => $totalAmount,
+                'discount_amount' => $discountAmount,
+                'final_amount' => $finalAmount,
+                'notes' => $request->notes,
+                'order_date' => $request->order_date,
+                'delivery_date' => $request->delivery_date,
+                'payment_method' => $request->payment_method,
+                'delivery_address' => $request->delivery_address,
+                'phone' => $request->phone,
             ]);
+
+            // Create order items and update inventory
+            foreach ($request->items as $item) {
+                $orderItem = $order->items()->create([
+                    'product_id' => $item['product_id'],
+                    'quantity' => $item['quantity'],
+                    'unit_price' => $item['unit_price'],
+                    'total_price' => $item['quantity'] * $item['unit_price'],
+                    'custom_notes' => $item['custom_notes'] ?? null,
+                ]);
+
+                // Update inventory based on order type
+                $this->updateInventoryForOrder($order, $orderItem);
+            }
+
+            // Update customer statistics
+            $customer->increment('total_orders');
+            $customer->increment('total_spent', $finalAmount);
+
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollback();
+            Log::error('Failed to create order', [
+                'error' => $e->getMessage(),
+                'request_data' => $request->all()
+            ]);
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Có lỗi xảy ra khi tạo đơn hàng: ' . $e->getMessage());
         }
 
         // Sau khi tạo đơn hàng thành công, gửi thông báo qua n8n
@@ -125,7 +185,8 @@ class OrderController extends Controller
                 $n8nService->sendNewOrderNotification([
                     'id' => $order->id,
                     'order_number' => $order->order_number,
-                    'customer_name' => $order->customer->name ?? 'N/A',
+                    'customer_name' => $order->customer_name ?? 'N/A',
+                    'customer_phone' => $order->phone ?? 'N/A',
                     'total_amount' => $order->total_amount,
                     'status' => $order->status,
                     'order_date' => $order->order_date->format('Y-m-d H:i:s')
@@ -157,11 +218,10 @@ class OrderController extends Controller
      */
     public function edit(Order $order)
     {
-        $customers = Customer::orderBy('name')->get();
         $products = Product::orderBy('name')->get();
         $order->load(['customer', 'items.product']);
         
-        return view('orders.edit', compact('order', 'customers', 'products'));
+        return view('orders.edit', compact('order', 'products'));
     }
 
     /**
@@ -170,9 +230,9 @@ class OrderController extends Controller
     public function update(Request $request, Order $order)
     {
         $request->validate([
-            'customer_id' => 'required|exists:customers,id',
+            'customer_name' => 'required|string|max:255',
             'type' => 'required|in:sale,return,draft',
-            'status' => 'required|in:new,processing,completed',
+            'status' => 'required|in:unpaid,paid',
             'order_date' => 'required|date',
             'delivery_date' => 'nullable|date|after_or_equal:order_date',
             'payment_method' => 'nullable|string|max:255',
@@ -194,9 +254,38 @@ class OrderController extends Controller
         $discountAmount = $request->discount_amount ?? 0;
         $finalAmount = $totalAmount - $discountAmount;
 
+        // Find or create customer
+        $customer = Customer::where('name', $request->customer_name)
+            ->where('phone', $request->phone)
+            ->first();
+        
+        if (!$customer) {
+            $customer = Customer::create([
+                'name' => $request->customer_name,
+                'phone' => $request->phone,
+                'address' => $request->delivery_address,
+                'customer_type' => 'walkin',
+                'source' => 'offline',
+                'is_active' => true,
+            ]);
+        } else {
+            // Update customer information if provided
+            $updateData = [];
+            if ($request->phone && $customer->phone !== $request->phone) {
+                $updateData['phone'] = $request->phone;
+            }
+            if ($request->delivery_address && $customer->address !== $request->delivery_address) {
+                $updateData['address'] = $request->delivery_address;
+            }
+            if (!empty($updateData)) {
+                $customer->update($updateData);
+            }
+        }
+
         // Update order
         $order->update([
-            'customer_id' => $request->customer_id,
+            'customer_id' => $customer->id,
+            'customer_name' => $request->customer_name,
             'status' => $request->status,
             'type' => $request->type,
             'total_amount' => $totalAmount,
@@ -231,11 +320,88 @@ class OrderController extends Controller
      */
     public function destroy(Order $order)
     {
-        $order->items()->delete();
-        $order->delete();
-
-        return redirect()->route('orders.index')
-            ->with('success', 'Đơn hàng đã được xóa thành công!');
+        DB::beginTransaction();
+        
+        try {
+            // Restore inventory for sale orders
+            if ($order->type === 'sale') {
+                foreach ($order->items as $item) {
+                    $product = $item->product;
+                    $beforeStock = $product->stock;
+                    $afterStock = $beforeStock + $item->quantity;
+                    
+                    $product->update(['stock' => $afterStock]);
+                    
+                    // Create inventory movement record
+                    InventoryMovement::create([
+                        'product_id' => $product->id,
+                        'type' => 'return',
+                        'quantity_change' => $item->quantity,
+                        'before_stock' => $beforeStock,
+                        'after_stock' => $afterStock,
+                        'performed_by' => null,
+                        'note' => "Hủy đơn hàng {$order->order_number}",
+                        'transaction_date' => now(),
+                        'reference_id' => $order->order_number,
+                        'order_id' => $order->id,
+                    ]);
+                }
+            }
+            
+            // For return orders, subtract from stock when deleting
+            if ($order->type === 'return') {
+                foreach ($order->items as $item) {
+                    $product = $item->product;
+                    $beforeStock = $product->stock;
+                    $afterStock = $beforeStock - $item->quantity;
+                    
+                    if ($afterStock < 0) {
+                        throw new \Exception("Không thể hủy đơn trả hàng. Tồn kho sẽ âm.");
+                    }
+                    
+                    $product->update(['stock' => $afterStock]);
+                    
+                    // Create inventory movement record
+                    InventoryMovement::create([
+                        'product_id' => $product->id,
+                        'type' => 'export',
+                        'quantity_change' => -$item->quantity,
+                        'before_stock' => $beforeStock,
+                        'after_stock' => $afterStock,
+                        'performed_by' => null,
+                        'note' => "Hủy đơn trả hàng {$order->order_number}",
+                        'transaction_date' => now(),
+                        'reference_id' => $order->order_number,
+                        'order_id' => $order->id,
+                    ]);
+                }
+            }
+            
+            // Update customer statistics before deleting
+            if ($order->customer_id) {
+                $customer = $order->customer;
+                $customer->decrement('total_orders');
+                $customer->decrement('total_spent', $order->final_amount);
+            }
+            
+            $order->items()->delete();
+            $order->delete();
+            
+            DB::commit();
+            
+            return redirect()->route('orders.index')
+                ->with('success', 'Đơn hàng đã được xóa thành công!');
+                
+        } catch (\Exception $e) {
+            DB::rollback();
+            Log::error('Failed to delete order', [
+                'order_id' => $order->id,
+                'error' => $e->getMessage()
+            ]);
+            
+            return redirect()->back()
+                ->with('error', 'Không thể xóa đơn hàng: ' . $e->getMessage());
+        }
     }
 
     /**
@@ -251,8 +417,10 @@ class OrderController extends Controller
             $search = $request->search;
             $query->where(function($q) use ($search) {
                 $q->where('order_number', 'like', "%{$search}%")
+                  ->orWhere('customer_name', 'like', "%{$search}%")
                   ->orWhereHas('customer', function($q) use ($search) {
-                      $q->where('name', 'like', "%{$search}%");
+                      $q->where('name', 'like', "%{$search}%")
+                        ->orWhere('phone', 'like', "%{$search}%");
                   });
             });
         }
@@ -274,8 +442,10 @@ class OrderController extends Controller
             $search = $request->search;
             $query->where(function($q) use ($search) {
                 $q->where('order_number', 'like', "%{$search}%")
+                  ->orWhere('customer_name', 'like', "%{$search}%")
                   ->orWhereHas('customer', function($q) use ($search) {
-                      $q->where('name', 'like', "%{$search}%");
+                      $q->where('name', 'like', "%{$search}%")
+                        ->orWhere('phone', 'like', "%{$search}%");
                   });
             });
         }
@@ -297,13 +467,89 @@ class OrderController extends Controller
             $search = $request->search;
             $query->where(function($q) use ($search) {
                 $q->where('order_number', 'like', "%{$search}%")
+                  ->orWhere('customer_name', 'like', "%{$search}%")
                   ->orWhereHas('customer', function($q) use ($search) {
-                      $q->where('name', 'like', "%{$search}%");
+                      $q->where('name', 'like', "%{$search}%")
+                        ->orWhere('phone', 'like', "%{$search}%");
                   });
             });
         }
 
         $orders = $query->paginate(15);
         return view('orders.drafts', compact('orders'));
+    }
+
+    /**
+     * Validate stock availability for sale orders
+     */
+    private function validateStockAvailability(array $items)
+    {
+        foreach ($items as $item) {
+            $product = Product::find($item['product_id']);
+            
+            if (!$product) {
+                throw new \Exception("Sản phẩm không tồn tại.");
+            }
+
+            if (!$product->is_active) {
+                throw new \Exception("Sản phẩm '{$product->name}' đã ngừng bán.");
+            }
+
+            if ($product->stock < $item['quantity']) {
+                throw new \Exception("Sản phẩm '{$product->name}' chỉ còn {$product->stock} sản phẩm, không đủ để bán {$item['quantity']} sản phẩm.");
+            }
+
+            // Check expiry date if exists
+            if ($product->expiry_date && $product->expiry_date < now()) {
+                throw new \Exception("Sản phẩm '{$product->name}' đã hết hạn sử dụng.");
+            }
+        }
+    }
+
+    /**
+     * Update inventory based on order type
+     */
+    private function updateInventoryForOrder(Order $order, $orderItem)
+    {
+        $product = $orderItem->product;
+        $quantity = $orderItem->quantity;
+        
+        // Determine inventory change based on order type
+        $quantityChange = 0;
+        $movementType = '';
+        
+        switch ($order->type) {
+            case 'sale':
+                $quantityChange = -$quantity; // Subtract from stock
+                $movementType = 'export';
+                break;
+            case 'return':
+                $quantityChange = $quantity; // Add to stock
+                $movementType = 'return';
+                break;
+            case 'draft':
+                // Don't update inventory for drafts
+                return;
+        }
+
+        // Update product stock
+        $beforeStock = $product->stock;
+        $afterStock = $beforeStock + $quantityChange;
+        
+        $product->update(['stock' => $afterStock]);
+
+        // Create inventory movement record
+        InventoryMovement::create([
+            'product_id' => $product->id,
+            'type' => $movementType,
+            'quantity_change' => $quantityChange,
+            'before_stock' => $beforeStock,
+            'after_stock' => $afterStock,
+            'performed_by' => null, // TODO: Add user authentication
+            'note' => "Đơn hàng {$order->order_number} - {$order->type_text}",
+            'transaction_date' => now(),
+            'reference_id' => $order->order_number,
+            'order_id' => $order->id,
+        ]);
     }
 }

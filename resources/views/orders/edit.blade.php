@@ -44,15 +44,9 @@
                 </div>
                 
                 <div class="form-group">
-                    <label class="form-label">Khách hàng <span style="color: #e53e3e;">*</span></label>
-                    <select name="customer_id" id="customer_id" class="form-control" required>
-                        <option value="">-- Chọn khách hàng --</option>
-                        @foreach($customers as $customer)
-                            <option value="{{ $customer->id }}" {{ old('customer_id', $order->customer_id) == $customer->id ? 'selected' : '' }}>
-                                {{ $customer->name }} - {{ $customer->phone ?? 'N/A' }}
-                            </option>
-                        @endforeach
-                    </select>
+                    <label class="form-label">Tên khách hàng <span style="color: #e53e3e;">*</span></label>
+                    <input type="text" name="customer_name" id="customer_name" class="form-control" 
+                           value="{{ old('customer_name', $order->customer_name) }}" placeholder="Nhập tên khách hàng" required>
                 </div>
 
                 <div class="form-group">
@@ -68,9 +62,8 @@
                 <div class="form-group">
                     <label class="form-label">Trạng thái <span style="color: #e53e3e;">*</span></label>
                     <select name="status" id="status" class="form-control" required>
-                        <option value="new" {{ old('status', $order->status) == 'new' ? 'selected' : '' }}>Mới</option>
-                        <option value="processing" {{ old('status', $order->status) == 'processing' ? 'selected' : '' }}>Đang xử lý</option>
-                        <option value="completed" {{ old('status', $order->status) == 'completed' ? 'selected' : '' }}>Hoàn thành</option>
+                        <option value="unpaid" {{ old('status', $order->status) == 'unpaid' ? 'selected' : '' }}>Chưa thanh toán</option>
+                        <option value="paid" {{ old('status', $order->status) == 'paid' ? 'selected' : '' }}>Đã thanh toán</option>
                     </select>
                 </div>
 
@@ -138,9 +131,9 @@
                         <select name="items[{{ $index }}][product_id]" class="form-control product-select" required>
                             <option value="">-- Chọn sản phẩm --</option>
                             @foreach($products as $product)
-                                <option value="{{ $product->id }}" data-price="{{ $product->price ?? 0 }}" 
+                                <option value="{{ $product->id }}" data-price="{{ $product->selling_price ?? 0 }}" 
                                         {{ $item->product_id == $product->id ? 'selected' : '' }}>
-                                    {{ $product->name }} - {{ number_format($product->price ?? 0, 0, ',', '.') }} ₫
+                                    {{ $product->name }} - {{ number_format($product->selling_price ?? 0, 0, ',', '.') }} ₫
                                 </option>
                             @endforeach
                         </select>
@@ -155,7 +148,7 @@
                     <div class="form-group" style="margin-bottom: 0;">
                         <label class="form-label">Đơn giá <span style="color: #e53e3e;">*</span></label>
                         <input type="number" name="items[{{ $index }}][unit_price]" class="form-control price-input" 
-                               min="0" step="0.01" value="{{ $item->unit_price }}" required>
+                               min="0" step="0.01" value="{{ $item->unit_price }}" required readonly style="background-color: #f7fafc;">
                     </div>
                     
                     <div class="form-group" style="margin-bottom: 0;">
@@ -256,6 +249,8 @@
         newProduct.querySelector('.product-select').value = '';
         newProduct.querySelector('.quantity-input').value = 1;
         newProduct.querySelector('.price-input').value = '';
+        newProduct.querySelector('.price-input').readOnly = true;
+        newProduct.querySelector('.price-input').style.backgroundColor = '#f7fafc';
         newProduct.querySelector('.total-price').value = '';
         newProduct.querySelector('input[name*="custom_notes"]').value = '';
         
