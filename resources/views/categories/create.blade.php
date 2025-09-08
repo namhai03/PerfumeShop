@@ -9,44 +9,44 @@
     </div>
 
     <div class="card" style="max-width:720px;">
-        <form method="POST" action="{{ route('categories.store') }}">
+        <form method="POST" action="{{ route('categories.store') }}" enctype="multipart/form-data">
             @csrf
-            <div class="form-group">
-                <label class="form-label">Tên danh mục</label>
-                <input type="text" name="name" value="{{ old('name') }}" class="form-control" required>
+            @if ($errors->any())
+                <div class="alert alert-danger" style="margin-bottom:16px;">
+                    <ul style="margin:0 0 0 16px;">
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+            <div class="form-group" style="display:flex; gap:16px;">
+                <div style="flex:2;">
+                    <label class="form-label">Tên danh mục</label>
+                    <input type="text" name="name" value="{{ old('name') }}" class="form-control" required>
+                </div>
+                <div style="flex:1;">
+                    <label class="form-label">Trạng thái</label>
+                    <select name="is_active" class="form-control">
+                        <option value="1" {{ old('is_active',1)==1?'selected':'' }}>Đang dùng</option>
+                        <option value="0" {{ old('is_active')==='0'?'selected':'' }}>Ngừng</option>
+                    </select>
+                </div>
             </div>
+            
             <div class="form-group">
-                <label class="form-label">Loại danh mục</label>
-                <select name="type" class="form-control">
-                    <option value="manual" {{ old('type','manual')=='manual'?'selected':'' }}>Thủ công</option>
-                    <option value="smart" {{ old('type')=='smart'?'selected':'' }}>Thông minh</option>
-                </select>
+                <label class="form-label">Mô tả</label>
+                <textarea name="description" class="form-control" rows="3" placeholder="Mô tả ngắn về danh mục">{{ old('description') }}</textarea>
             </div>
-            <div class="form-group">
-                <label class="form-label">Kênh bán hàng</label>
-                <select name="sales_channel" class="form-control">
-                    <option value="">-- Tất cả --</option>
-                    <option value="online" {{ old('sales_channel')=='online'?'selected':'' }}>Online</option>
-                    <option value="offline" {{ old('sales_channel')=='offline'?'selected':'' }}>Offline</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Điều kiện (cho danh mục thông minh)</label>
-                <textarea name="conditions" class="form-control" rows="4" placeholder='JSON điều kiện, ví dụ: {"category":"Nước hoa nam"}'>{{ old('conditions') }}</textarea>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Trạng thái</label>
-                <select name="is_active" class="form-control">
-                    <option value="1" {{ old('is_active',1)==1?'selected':'' }}>Đang dùng</option>
-                    <option value="0" {{ old('is_active')==='0'?'selected':'' }}>Ngừng</option>
-                </select>
-            </div>
+            
+
             <div style="display:flex; gap:12px; justify-content:flex-end;">
                 <a href="{{ route('categories.index') }}" class="btn btn-outline">Hủy</a>
                 <button type="submit" class="btn btn-primary">Lưu</button>
             </div>
         </form>
     </div>
+    <script>(function(){})();</script>
 @endsection
 
 

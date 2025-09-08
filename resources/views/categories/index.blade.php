@@ -17,6 +17,12 @@
             {{ session('success') }}
         </div>
     @endif
+    @if(session('error'))
+        <div class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle" style="margin-right:8px;"></i>
+            {{ session('error') }}
+        </div>
+    @endif
 
     <form method="GET" action="{{ route('categories.index') }}" id="filterForm">
         <div class="card">
@@ -27,17 +33,7 @@
                         <input type="text" name="search" placeholder="Tìm kiếm danh mục" value="{{ request('search') }}" style="border:none; outline:none; width:100%; background:none; font-size:14px;">
                     </div>
                 </div>
-                <select name="type" class="filter-select">
-                    <option value="">Loại danh mục</option>
-                    <option value="manual" {{ request('type')=='manual' ? 'selected' : '' }}>Thủ công</option>
-                    <option value="smart" {{ request('type')=='smart' ? 'selected' : '' }}>Thông minh</option>
-                    <option value="system" {{ request('type')=='system' ? 'selected' : '' }}>Hệ thống</option>
-                </select>
-                <select name="sales_channel" class="filter-select">
-                    <option value="">Kênh bán hàng</option>
-                    <option value="online" {{ request('sales_channel')=='online' ? 'selected' : '' }}>Online</option>
-                    <option value="offline" {{ request('sales_channel')=='offline' ? 'selected' : '' }}>Offline</option>
-                </select>
+                
                 <button type="submit" class="btn btn-outline" style="font-size:13px; padding:8px 16px;">Lọc</button>
             </div>
         </div>
@@ -51,8 +47,8 @@
                         <th style="width:50px;"><input type="checkbox" style="margin:0;" disabled></th>
                         <th>Danh mục</th>
                         <th>Số lượng</th>
-                        <th>Điều kiện áp dụng</th>
-                        <th>Kênh bán hàng</th>
+                        
+                        
                         <th>Trạng thái</th>
                         <th></th>
                     </tr>
@@ -67,33 +63,25 @@
                                         <i class="fas fa-layer-group"></i>
                                     </div>
                                     <div>
-                                        <div style="font-weight:600; color:#2c3e50; margin-bottom:4px;">{{ $category->name }}</div>
-                                        <div style="font-size:12px; color:#6c757d;">{{ $category->slug }}</div>
+                                        <div style="font-weight:600; color:#2c3e50; margin-bottom:4px;">
+                                            <a href="{{ route('categories.show', $category) }}" style="text-decoration:none; color:inherit;">{{ $category->name }}</a>
+                                        </div>
+                                        
                                     </div>
                                 </div>
                             </td>
-                            <td>{{ $categoryCounts[$category->id] ?? 0 }}</td>
                             <td>
-                                @if($category->type === 'smart')
-                                    <span style="padding:4px 8px; border-radius:12px; font-size:12px; background:#fff8e1; color:#8d6e63;">Theo điều kiện</span>
-                                @else
-                                    <span style="padding:4px 8px; border-radius:12px; font-size:12px; background:#e3f2fd; color:#1976d2;">Thủ công</span>
-                                @endif
+                                @php($count = $categoryCounts[$category->id] ?? 0)
+                                <a href="{{ route('products.index', ['category' => $category->id]) }}" class="link" title="Xem sản phẩm thuộc danh mục này">{{ $count }}</a>
                             </td>
-                            <td>{{ $category->sales_channel ? strtoupper($category->sales_channel) : '-' }}</td>
+                            
+                            
                             <td>
                                 <span class="px-2 py-1 rounded-md text-xs font-medium {{ $category->is_active ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700' }}">
                                     {{ $category->is_active ? 'Đang dùng' : 'Ngừng' }}
                                 </span>
                             </td>
-                            <td class="actions">
-                                <a href="{{ route('categories.edit', $category) }}" class="btn btn-outline" style="padding:6px 10px; font-size:12px;">Sửa</a>
-                                <form action="{{ route('categories.destroy', $category) }}" method="POST" style="display:inline-block" onsubmit="return confirm('Xóa danh mục này?')">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn btn-danger" style="padding:6px 10px; font-size:12px;">Xóa</button>
-                                </form>
-                            </td>
+                            
                         </tr>
                     @empty
                         <tr>
@@ -108,14 +96,44 @@
             </table>
         </div>
         <div class="table-footer" style="display:flex; justify-content:space-between; align-items:center; margin-top:20px; padding-top:20px; border-top:1px solid #e2e8f0;">
-            <div style="color:#6c757d; font-size:14px;">
+            <div class="pagination-info" style="color:#6c757d; font-size:14px;">
                 Từ {{ $categories->firstItem() ?? 0 }} đến {{ $categories->lastItem() ?? 0 }} trên tổng {{ $categories->total() }}
             </div>
-            <div class="pagination-controls">
-                {{ $categories->withQueryString()->links() }}
+            <div class="display-options" style="display:flex; align-items:center; gap:16px;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span style="font-size:14px; color:#4a5568;">Hiển thị</span>
+                    <select name="per_page" form="filterForm" class="per-page-select">
+                        @php($pp = (int) request('per_page', 20))
+                        <option value="20" {{ $pp===20 ? 'selected' : '' }}>20</option>
+                        <option value="50" {{ $pp===50 ? 'selected' : '' }}>50</option>
+                        <option value="100" {{ $pp===100 ? 'selected' : '' }}>100</option>
+                    </select>
+                    <span style="font-size:14px; color:#4a5568;">Kết quả</span>
+                </div>
+                <div class="pagination-controls">
+                    {{ $categories->withQueryString()->links() }}
+                </div>
             </div>
         </div>
     </div>
+@push('scripts')
+<script>
+    document.addEventListener('DOMContentLoaded', function(){
+        const filterForm = document.getElementById('filterForm');
+        const searchInput = filterForm.querySelector('input[name="search"]');
+        const selects = filterForm.querySelectorAll('.filter-select, .per-page-select');
+
+        let timer;
+        if (searchInput){
+            searchInput.addEventListener('input', function(){
+                clearTimeout(timer);
+                timer = setTimeout(()=> filterForm.submit(), 500);
+            });
+        }
+        selects.forEach(s => s.addEventListener('change', ()=> filterForm.submit()));
+    });
+</script>
+@endpush
 @endsection
 
 

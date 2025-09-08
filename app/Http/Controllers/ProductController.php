@@ -32,11 +32,6 @@ class ProductController extends Controller
             });
         }
 
-        // Lọc theo kênh bán hàng (sales_channel)
-        if ($request->filled('sales_channel')) {
-            $query->where('sales_channel', $request->sales_channel);
-        }
-
         // Lọc theo loại sản phẩm (category) - sử dụng relationship
         if ($request->filled('category')) {
             $query->whereHas('categories', function($q) use ($request) {
@@ -64,46 +59,34 @@ class ProductController extends Controller
             $query->where('brand', $request->brand);
         }
 
-        // Lọc theo ngày tạo
-        if ($request->filled('created_date')) {
-            $query->whereDate('created_date', $request->created_date);
+        // Lọc theo thuộc tính mùi hương và giới tính
+        if ($request->filled('fragrance_family')) {
+            $query->where('fragrance_family', $request->fragrance_family);
+        }
+        if ($request->filled('concentration')) {
+            $query->where('concentration', $request->concentration);
+        }
+        if ($request->filled('gender')) {
+            $query->where('gender', $request->gender);
         }
 
-        // Lọc theo loại sản phẩm (product_type)
-        if ($request->filled('product_type')) {
-            $query->where('product_type', $request->product_type);
+        // Lọc tồn kho thấp
+        if ($request->filled('low_stock') && $request->low_stock == '1') {
+            $query->whereColumn('stock', '<=', 'low_stock_threshold');
         }
 
-        // Lọc theo hình thức sản phẩm (product_form)
-        if ($request->filled('product_form')) {
-            $query->where('product_form', $request->product_form);
+        // Lọc theo khoảng thời gian tạo và ngày nhập hàng
+        if ($request->filled('created_from')) {
+            $query->whereDate('created_at', '>=', $request->created_from);
         }
-
-        // Lọc theo sản phẩm lô - HSD
-        if ($request->filled('has_expiry')) {
-            if ($request->has_expiry == '1') {
-                $query->whereNotNull('expiry_date');
-            } else {
-                $query->whereNull('expiry_date');
-            }
+        if ($request->filled('created_to')) {
+            $query->whereDate('created_at', '<=', $request->created_to);
         }
-
-        // Lọc theo bảng giá chi nhánh có/không
-        if ($request->filled('has_branch_price')) {
-            if ($request->has_branch_price == '1') {
-                $query->whereNotNull('branch_price');
-            } else {
-                $query->whereNull('branch_price');
-            }
+        if ($request->filled('import_from')) {
+            $query->whereDate('import_date', '>=', $request->import_from);
         }
-
-        // Lọc theo bảng giá theo nhóm khách hàng có/không
-        if ($request->filled('has_customer_group_price')) {
-            if ($request->has_customer_group_price == '1') {
-                $query->whereNotNull('customer_group_price');
-            } else {
-                $query->whereNull('customer_group_price');
-            }
+        if ($request->filled('import_to')) {
+            $query->whereDate('import_date', '<=', $request->import_to);
         }
 
         // Sắp xếp
@@ -118,7 +101,6 @@ class ProductController extends Controller
         // Lấy danh sách các giá trị duy nhất cho filter
         $categories = Category::orderBy('name')->get();
         $brands = Product::distinct()->pluck('brand')->filter()->values();
-        $salesChannels = Product::distinct()->pluck('sales_channel')->filter()->values();
         $fragranceFamilies = Product::distinct()->pluck('fragrance_family')->filter()->values();
         $genders = Product::distinct()->pluck('gender')->filter()->values();
         // Tách các tag duy nhất từ chuỗi CSV 'tags'
@@ -130,17 +112,13 @@ class ProductController extends Controller
             })
             ->unique()
             ->values();
-        $productTypes = Product::distinct()->pluck('product_type')->filter()->values();
-        $productForms = Product::distinct()->pluck('product_form')->filter()->values();
+        // Không dùng productTypes/productForms nữa
 
         return view('products.index', compact(
             'products', 
             'categories', 
             'brands', 
-            'salesChannels', 
             'tags',
-            'productTypes',
-            'productForms',
             'fragranceFamilies',
             'genders'
         ));

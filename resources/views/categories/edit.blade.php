@@ -12,30 +12,24 @@
         <form method="POST" action="{{ route('categories.update', $category) }}">
             @csrf
             @method('PUT')
+            @if ($errors->any())
+                <div class="alert alert-danger" style="margin-bottom:16px;">
+                    <ul style="margin:0 0 0 16px;">
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
             <div class="form-group">
                 <label class="form-label">Tên danh mục</label>
                 <input type="text" name="name" value="{{ old('name', $category->name) }}" class="form-control" required>
             </div>
             <div class="form-group">
-                <label class="form-label">Loại danh mục</label>
-                <select name="type" class="form-control">
-                    <option value="manual" {{ old('type', $category->type)=='manual'?'selected':'' }}>Thủ công</option>
-                    <option value="smart" {{ old('type', $category->type)=='smart'?'selected':'' }}>Thông minh</option>
-                    <option value="system" {{ old('type', $category->type)=='system'?'selected':'' }}>Hệ thống</option>
-                </select>
+                <label class="form-label">Mô tả</label>
+                <textarea name="description" class="form-control" rows="3">{{ old('description', $category->description) }}</textarea>
             </div>
-            <div class="form-group">
-                <label class="form-label">Kênh bán hàng</label>
-                <select name="sales_channel" class="form-control">
-                    <option value="" {{ old('sales_channel', $category->sales_channel)==''?'selected':'' }}>-- Tất cả --</option>
-                    <option value="online" {{ old('sales_channel', $category->sales_channel)=='online'?'selected':'' }}>Online</option>
-                    <option value="offline" {{ old('sales_channel', $category->sales_channel)=='offline'?'selected':'' }}>Offline</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Điều kiện (cho danh mục thông minh)</label>
-                <textarea name="conditions" class="form-control" rows="4" placeholder='JSON điều kiện'>{{ old('conditions', $category->conditions ? json_encode($category->conditions) : '') }}</textarea>
-            </div>
+            
             <div class="form-group">
                 <label class="form-label">Trạng thái</label>
                 <select name="is_active" class="form-control">
@@ -49,6 +43,7 @@
             </div>
         </form>
     </div>
+    <script>(function(){})();</script>
 @endsection
 
 

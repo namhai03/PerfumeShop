@@ -13,11 +13,17 @@ class Category extends Model
         'sales_channel', // online | offline | null
         'conditions', // json rule for smart category
         'is_active',
+        'description',
+        'image',
+        'sort_order',
+        'meta_title',
+        'meta_description',
     ];
 
     protected $casts = [
         'conditions' => 'array',
         'is_active' => 'boolean',
+        'sort_order' => 'integer',
     ];
 
     public function products()

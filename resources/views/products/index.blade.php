@@ -60,10 +60,8 @@
 
                 <!-- Filters -->
                 <div class="filters-container" style="display: flex; gap: 12px; flex-wrap: wrap;">
-                    
-
                     <select name="category" class="filter-select">
-                        <option value="">Loại sản phẩm</option>
+                        <option value="">Danh mục</option>
                         @foreach($categories as $category)
                             <option value="{{ $category->id }}" {{ request('category') == $category->id ? 'selected' : '' }}>
                                 {{ $category->name }}
@@ -71,12 +69,17 @@
                         @endforeach
                     </select>
 
+                    <select name="brand" class="filter-select">
+                        <option value="">Thương hiệu</option>
+                        @foreach($brands as $brand)
+                            <option value="{{ $brand }}" {{ request('brand') == $brand ? 'selected' : '' }}>{{ $brand }}</option>
+                        @endforeach
+                    </select>
+
                     <select name="tag" class="filter-select">
                         <option value="">Tag</option>
                         @foreach($tags as $tag)
-                            <option value="{{ $tag }}" {{ request('tag') == $tag ? 'selected' : '' }}>
-                                {{ $tag }}
-                            </option>
+                            <option value="{{ $tag }}" {{ request('tag') == $tag ? 'selected' : '' }}>{{ $tag }}</option>
                         @endforeach
                     </select>
 
@@ -84,8 +87,6 @@
                         <i class="fas fa-filter"></i>
                         Bộ lọc khác
                     </button>
-
-                    
                 </div>
             </div>
         </div>
@@ -104,10 +105,12 @@
                             <input type="checkbox" id="select-all" style="margin: 0;">
                         </th>
                         <th>Sản phẩm</th>
-                        <th>Có thể bán</th>
-                        <th>Loại</th>
-                        <th>Nhãn hiệu</th>
-                        <th>Ngày khởi tạo</th>
+                        <th>Thương hiệu</th>
+                        <th>Giá bán</th>
+                        <th>Tồn kho</th>
+                        <th>Nồng độ</th>
+                        <th>Nhóm hương</th>
+                        <th>Trạng thái</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -118,46 +121,51 @@
                             </td>
                             <td class="product-cell">
                                 <div style="display: flex; align-items: center; gap: 12px;">
-                                    @if($product->image)
-                                        <img src="{{ $product->image }}" alt="{{ $product->name }}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 6px;">
+                                    @php
+                                        $imgPath = null;
+                                        if (!empty($product->image)) {
+                                            $img = $product->image;
+                                            $isAbsolute = \Illuminate\Support\Str::startsWith($img, ['http://','https://']);
+                                            $isStorage = \Illuminate\Support\Str::startsWith($img, ['/storage/','storage/']);
+                                            $imgPath = $isAbsolute ? $img : ($isStorage ? $img : Storage::url($img));
+                                        }
+                                    @endphp
+                                    @if($imgPath)
+                                        <img src="{{ $imgPath }}" alt="{{ $product->name }}" style="width: 64px; height: 64px; object-fit: cover; border-radius: 10px; border:1px solid #e2e8f0;">
                                     @else
-                                        <div style="width: 40px; height: 40px; background-color: #f8f9fa; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #6c757d;">
+                                        <div style="width: 64px; height: 64px; background-color: #f8f9fa; border:1px solid #e2e8f0; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #6c757d;">
                                             <i class="fas fa-image"></i>
                                         </div>
                                     @endif
-                                    <div>
-                                        <div style="font-weight: 600; color: #2c3e50; margin-bottom: 4px;">
+                                    <div style="min-width: 0;">
+                                        <div class="product-name">
                                             <a href="{{ route('products.show', $product->id) }}" style="color: inherit; text-decoration: none;">{{ $product->name }}</a>
                                         </div>
-                                        <div style="font-size: 12px; color: #6c757d;">{{ $product->sku }}</div>
+                                        <div class="product-sku">{{ $product->sku }}</div>
                                     </div>
                                 </div>
                             </td>
                             <td>
-                            <span class="px-2 py-1 rounded-md text-xs font-medium
-                                {{ $product->is_active ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700' }}">
-                                {{ $product->is_active ? 'Đang bán' : 'Không bán' }}
-                            </span>
+                                <span style="font-size: 14px; color: #4a5568;">{{ $product->brand ?? '-' }}</span>
                             </td>
                             <td>
-                                @if($product->categories->count() > 0)
-                                    @foreach($product->categories as $category)
-                                        <span style="padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: 500; background-color: #e3f2fd; color: #1976d2; margin-right: 4px;">
-                                            {{ $category->name }}
-                                        </span>
-                                    @endforeach
-                                @else
-                                    <span style="color: #999;">-</span>
-                                @endif
+                                <span style="font-weight:600; color:#2c7a7b;">{{ number_format($product->selling_price, 0, ',', '.') }} đ</span>
                             </td>
                             <td>
-                                <span style="font-size: 14px; color: #4a5568;">
-                                    {{ $product->brand ?? '-' }}
+                                @php $isLow = ($product->low_stock_threshold ?? 5) > 0 && $product->stock <= ($product->low_stock_threshold ?? 5); @endphp
+                                <span class="px-2 py-1 rounded-md text-xs font-medium {{ $isLow ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700' }}">
+                                    {{ $product->stock }}
                                 </span>
                             </td>
                             <td>
-                                <span style="font-size: 14px; color: #4a5568;">
-                                    {{ $product->created_at ? $product->created_at->format('d/m/Y') : '-' }}
+                                <span style="font-size: 14px; color: #4a5568;">{{ $product->concentration ?? '-' }}</span>
+                            </td>
+                            <td>
+                                <span style="font-size: 14px; color: #4a5568;">{{ $product->fragrance_family ?? '-' }}</span>
+                            </td>
+                            <td>
+                                <span class="px-2 py-1 rounded-md text-xs font-medium {{ $product->is_active ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700' }}">
+                                    {{ $product->is_active ? 'Đang bán' : 'Không bán' }}
                                 </span>
                             </td>
                         </tr>
@@ -230,68 +238,80 @@
 
     <!-- Advanced Filter Modal -->
     <div class="modal" id="advancedFilterModal" style="display: none;">
-        <div class="modal-content" style="max-width: 520px;">
+        <div class="modal-content" style="max-width: 640px;">
             <div class="modal-header">
                 <h3>Bộ lọc khác</h3>
                 <span class="close" onclick="closeAdvancedFilter()">&times;</span>
             </div>
             <form method="GET" action="{{ route('products.index') }}">
-                <div class="form-group">
-                    <label class="form-label">Nhãn hiệu</label>
-                    <input type="text" name="brand" value="{{ request('brand') }}" class="form-control" placeholder="VD: Dior, Chanel">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Ngày tạo</label>
-                    <input type="date" name="created_date" value="{{ request('created_date') }}" class="form-control">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Kênh bán hàng</label>
-                    <select name="sales_channel" class="form-control">
-                        <option value="">-- Chọn --</option>
-                        <option value="online" {{ request('sales_channel')=='online' ? 'selected' : '' }}>Online</option>
-                        <option value="offline" {{ request('sales_channel')=='offline' ? 'selected' : '' }}>Offline</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Danh mục</label>
-                    <input type="text" name="category" value="{{ request('category') }}" class="form-control" placeholder="VD: Nước hoa nam">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Loại sản phẩm</label>
-                    <input type="text" name="product_type" value="{{ request('product_type') }}" class="form-control" placeholder="VD: Chính hãng, decant">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Tag</label>
-                    <input type="text" name="tags[]" value="{{ is_array(request('tags')) ? implode(',', request('tags')) : request('tags') }}" class="form-control" placeholder="Nhập nhiều tag, cách nhau bởi dấu phẩy">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Hình thức sản phẩm</label>
-                    <input type="text" name="product_form" value="{{ request('product_form') }}" class="form-control" placeholder="VD: Full box, Tester">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Sản phẩm lô - HSD</label>
-                    <select name="has_expiry" class="form-control">
-                        <option value="">-- Tất cả --</option>
-                        <option value="1" {{ request('has_expiry')=='1' ? 'selected' : '' }}>Có HSD</option>
-                        <option value="0" {{ request('has_expiry')=='0' ? 'selected' : '' }}>Không HSD</option>
-                    </select>
-                </div>
+                
                 <div class="form-group" style="display:flex; gap:12px;">
                     <div style="flex:1;">
-                        <label class="form-label">Bảng giá theo chi nhánh</label>
-                        <select name="has_branch_price" class="form-control">
+                        <label class="form-label">Nồng độ</label>
+                        <select name="concentration" class="form-control">
                             <option value="">-- Tất cả --</option>
-                            <option value="1" {{ request('has_branch_price')=='1' ? 'selected' : '' }}>Có</option>
-                            <option value="0" {{ request('has_branch_price')=='0' ? 'selected' : '' }}>Không</option>
+                            @foreach(['Parfum','EDP','EDT','EDC','Mist'] as $opt)
+                                <option value="{{ $opt }}" {{ request('concentration') == $opt ? 'selected' : '' }}>{{ $opt }}</option>
+                            @endforeach
                         </select>
                     </div>
                     <div style="flex:1;">
-                        <label class="form-label">Bảng giá theo nhóm KH</label>
-                        <select name="has_customer_group_price" class="form-control">
+                        <label class="form-label">Nhóm hương</label>
+                        <select name="fragrance_family" class="form-control">
                             <option value="">-- Tất cả --</option>
-                            <option value="1" {{ request('has_customer_group_price')=='1' ? 'selected' : '' }}>Có</option>
-                            <option value="0" {{ request('has_customer_group_price')=='0' ? 'selected' : '' }}>Không</option>
+                            @foreach($fragranceFamilies as $opt)
+                                <option value="{{ $opt }}" {{ request('fragrance_family') == $opt ? 'selected' : '' }}>{{ $opt }}</option>
+                            @endforeach
                         </select>
+                    </div>
+                </div>
+                <div class="form-group" style="display:flex; gap:12px;">
+                    <div style="flex:1;">
+                        <label class="form-label">Giới tính</label>
+                        <select name="gender" class="form-control">
+                            <option value="">-- Tất cả --</option>
+                            @foreach($genders as $opt)
+                                <option value="{{ $opt }}" {{ request('gender') == $opt ? 'selected' : '' }}>{{ $opt }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div style="flex:1;">
+                        <label class="form-label">Trạng thái</label>
+                        <select name="is_active" class="form-control">
+                            <option value="">-- Tất cả --</option>
+                            <option value="1" {{ request('is_active')==='1' ? 'selected' : '' }}>Đang bán</option>
+                            <option value="0" {{ request('is_active')==='0' ? 'selected' : '' }}>Không bán</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group" style="display:flex; gap:12px;">
+                    
+                    <div style="flex:1;">
+                        <label class="form-label">Tồn kho</label>
+                        <select name="low_stock" class="form-control">
+                            <option value="">-- Tất cả --</option>
+                            <option value="1" {{ request('low_stock')==='1' ? 'selected' : '' }}>Sắp hết (≤ ngưỡng)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group" style="display:flex; gap:12px;">
+                    <div style="flex:1;">
+                        <label class="form-label">Từ ngày tạo</label>
+                        <input type="date" name="created_from" value="{{ request('created_from') }}" class="form-control">
+                    </div>
+                    <div style="flex:1;">
+                        <label class="form-label">Đến ngày tạo</label>
+                        <input type="date" name="created_to" value="{{ request('created_to') }}" class="form-control">
+                    </div>
+                </div>
+                <div class="form-group" style="display:flex; gap:12px;">
+                    <div style="flex:1;">
+                        <label class="form-label">Nhập hàng từ</label>
+                        <input type="date" name="import_from" value="{{ request('import_from') }}" class="form-control">
+                    </div>
+                    <div style="flex:1;">
+                        <label class="form-label">Nhập hàng đến</label>
+                        <input type="date" name="import_to" value="{{ request('import_to') }}" class="form-control">
                     </div>
                 </div>
                 <div style="display:flex; justify-content: space-between; gap: 12px;">
@@ -554,8 +574,23 @@
         vertical-align: middle;
     }
 
-    .product-cell {
-        min-width: 250px;
+    .product-cell { min-width: 320px; }
+    .product-name {
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 2px;
+        max-width: 520px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .product-sku {
+        font-size: 12px;
+        color: #6c757d;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 520px;
     }
 
     .pagination-arrow {

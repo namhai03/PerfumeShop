@@ -17,10 +17,19 @@
         <!-- Product Image -->
         <div class="card">
             <div style="text-align: center;">
-                @if($product->image)
-                    <img src="{{ $product->image }}" alt="{{ $product->name }}" style="width: 100%; max-width: 300px; height: auto; border-radius: 12px;">
+                @php
+                    $imgPath = null;
+                    if (!empty($product->image)) {
+                        $img = $product->image;
+                        $isAbsolute = \Illuminate\Support\Str::startsWith($img, ['http://','https://']);
+                        $isStorage = \Illuminate\Support\Str::startsWith($img, ['/storage/','storage/']);
+                        $imgPath = $isAbsolute ? $img : ($isStorage ? $img : Storage::url($img));
+                    }
+                @endphp
+                @if($imgPath)
+                    <img src="{{ $imgPath }}" alt="{{ $product->name }}" style="width: 100%; max-width: 300px; height: auto; border-radius: 12px; border:1px solid #e2e8f0;">
                 @else
-                    <div style="width: 300px; height: 300px; background-color: #f8f9fa; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #6c757d; margin: 0 auto;">
+                    <div style="width: 300px; height: 300px; background-color: #f8f9fa; border:1px solid #e2e8f0; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #6c757d; margin: 0 auto;">
                         <i class="fas fa-image" style="font-size: 64px;"></i>
                     </div>
                 @endif

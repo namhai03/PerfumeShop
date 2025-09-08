@@ -6,6 +6,7 @@ use App\Models\Category;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Validator;
 
 class CategoryController extends Controller
 {
@@ -16,15 +17,7 @@ class CategoryController extends Controller
         if ($request->filled('search')) {
             $q = $request->get('search');
             $query->where('name', 'like', "%{$q}%")
-                  ->orWhere('slug', 'like', "%{$q}%");
-        }
-
-        if ($request->filled('type')) {
-            $query->where('type', $request->get('type'));
-        }
-
-        if ($request->filled('sales_channel')) {
-            $query->where('sales_channel', $request->get('sales_channel'));
+                  ;
         }
 
         $categories = $query->orderBy('created_at', 'desc')->paginate($request->get('per_page', 20));
@@ -40,21 +33,23 @@ class CategoryController extends Controller
         return view('categories.create');
     }
 
+    public function show(Category $category)
+    {
+        $products = $category->products()->orderBy('created_at', 'desc')->paginate(request('per_page', 20));
+        $productCount = $category->products()->count();
+        return view('categories.show', compact('category', 'products', 'productCount'));
+    }
+
     public function store(Request $request)
     {
         $data = $request->validate([
             'name' => 'required|string|max:255',
-            'type' => 'nullable|in:manual,smart,system',
             'sales_channel' => 'nullable|in:online,offline',
-            'conditions' => 'nullable',
             'is_active' => 'sometimes|boolean',
         ]);
 
-        $data['slug'] = Str::slug($data['name']);
-        if ($request->filled('conditions') && is_string($request->conditions)) {
-            $decoded = json_decode($request->conditions, true);
-            $data['conditions'] = $decoded ?: null;
-        }
+        // Generate unique slug
+        $data['slug'] = $this->generateUniqueSlug(Str::slug($data['name']));
 
         $category = Category::create($data);
 
@@ -70,24 +65,38 @@ class CategoryController extends Controller
     {
         $data = $request->validate([
             'name' => 'required|string|max:255',
-            'type' => 'nullable|in:manual,smart,system',
             'sales_channel' => 'nullable|in:online,offline',
-            'conditions' => 'nullable',
             'is_active' => 'sometimes|boolean',
         ]);
-        $data['slug'] = Str::slug($data['name']);
-        if ($request->filled('conditions') && is_string($request->conditions)) {
-            $decoded = json_decode($request->conditions, true);
-            $data['conditions'] = $decoded ?: null;
-        }
+        // Keep current slug base from name but ensure uniqueness excluding current id
+        $baseSlug = Str::slug($data['name']);
+        $data['slug'] = $this->generateUniqueSlug($baseSlug, $category->id);
         $category->update($data);
         return redirect()->route('categories.index')->with('success', 'Đã cập nhật danh mục.');
     }
 
     public function destroy(Category $category)
     {
+        // Prevent delete if category still has products
+        if ($category->products()->exists()) {
+            return redirect()->route('categories.index')->with('error', 'Không thể xóa danh mục vì còn sản phẩm liên kết.');
+        }
+
         $category->delete();
         return redirect()->route('categories.index')->with('success', 'Đã xóa danh mục.');
+    }
+
+    private function generateUniqueSlug(string $baseSlug, ?int $ignoreId = null): string
+    {
+        $slug = $baseSlug ?: 'danh-muc';
+        $suffix = 1;
+        while (Category::where('slug', $slug)
+                ->when($ignoreId, fn($q) => $q->where('id', '!=', $ignoreId))
+                ->exists()) {
+            $suffix++;
+            $slug = $baseSlug . '-' . $suffix;
+        }
+        return $slug;
     }
 }
 
