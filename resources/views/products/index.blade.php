@@ -52,7 +52,7 @@
                         <i class="fas fa-search" style="color: #6c757d; margin-right: 12px;"></i>
                         <input type="text" 
                                name="search" 
-                               placeholder="Tìm kiếm theo mã sản phẩm, tên sản phẩm, barcode"
+                               placeholder="Tìm kiếm theo tên sản phẩm, SKU"
                                value="{{ request('search') }}"
                                style="border: none; outline: none; width: 100%; background: none; font-size: 14px;">
                     </div>
@@ -136,7 +136,7 @@
                             <td>
                             <span class="px-2 py-1 rounded-md text-xs font-medium
                                 {{ $product->is_active ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700' }}">
-                                {{ $product->is_active ? '1' : '0' }}
+                                {{ $product->is_active ? 'Đang bán' : 'Không bán' }}
                             </span>
                             </td>
                             <td>

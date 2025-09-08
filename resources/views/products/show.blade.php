@@ -45,7 +45,14 @@
 
                     <div style="margin-bottom: 16px;">
                         <label style="font-weight: 600; color: #495057; display: block; margin-bottom: 4px;">Danh mục</label>
-                        <div style="color: #2c3e50;">{{ $product->category }}</div>
+                        <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                            @php $cats = $product->categories()->get(); @endphp
+                            @forelse($cats as $cat)
+                                <span style="border:1px solid #e2e8f0; background:#f8fafc; padding:6px 10px; border-radius:999px; font-size:12px; color:#2c3e50;">{{ $cat->name }}</span>
+                            @empty
+                                <span style="color:#6c757d;">N/A</span>
+                            @endforelse
+                        </div>
                     </div>
 
                     <div style="margin-bottom: 16px;">
@@ -80,9 +87,16 @@
                     </div>
 
                     <div style="margin-bottom: 16px;">
-                        <label style="font-weight: 600; color: #495057; display: block; margin-bottom: 4px;">Dung tích</label>
-                        <div style="color: #2c3e50;">{{ $product->volume ?? 'N/A' }}</div>
+                        <label style="font-weight: 600; color: #495057; display: block; margin-bottom: 4px;">Ngưỡng cảnh báo</label>
+                        <div style="color: #2c3e50;">{{ $product->low_stock_threshold ?? 5 }}</div>
                     </div>
+
+                    @if(!empty($product->volume))
+                    <div style="margin-bottom: 16px;">
+                        <label style="font-weight: 600; color: #495057; display: block; margin-bottom: 4px;">Dung tích</label>
+                        <div style="color: #2c3e50;">{{ $product->volume }}</div>
+                    </div>
+                    @endif
 
                     <div style="margin-bottom: 16px;">
                         <label style="font-weight: 600; color: #495057; display: block; margin-bottom: 4px;">Nồng độ</label>
@@ -104,7 +118,7 @@
                         <div style="color: #2c3e50;">
                         <span class="px-3 py-1 rounded-full text-sm font-medium
                             {{ $product->is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
-                            {{ $product->is_active ? 'Hoạt động' : 'Không hoạt động' }}
+                            {{ $product->is_active ? 'Đang bán' : 'Không bán' }}
                         </span>
                         </div>
                     </div>
@@ -118,11 +132,76 @@
                 </div>
             @endif
 
+            <!-- Fragrance Details -->
+            <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e2e8f0;">
+                <label style="font-weight: 500; color: #4a5568; display: block; margin-bottom: 8px;">Đặc tính mùi hương</label>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
+                    <div>
+                        <div style="margin-bottom: 10px;"><strong>Nhóm hương:</strong> {{ $product->fragrance_family ?? 'N/A' }}</div>
+           
+                        <div style="margin-bottom: 10px;"><strong>Giới tính:</strong> {{ $product->gender ?? 'N/A' }}</div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Tags -->
+            <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e2e8f0;">
+                <label style="font-weight: 500; color: #4a5568; display: block; margin-bottom: 8px;">Tags</label>
+                <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                    @php $tagList = collect(explode(',', (string)($product->tags ?? '')))->map(fn($t)=>trim($t))->filter(); @endphp
+                    @forelse($tagList as $tag)
+                        <span style="border:1px solid #e2e8f0; background:#f8fafc; padding:6px 10px; border-radius:999px; font-size:12px; color:#2c3e50;">{{ $tag }}</span>
+                    @empty
+                        <span style="color:#6c757d;">Không có</span>
+                    @endforelse
+                </div>
+            </div>
+
+            <!-- Variants List -->
+            <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e2e8f0;">
+                <label style="font-weight: 500; color: #4a5568; display: block; margin-bottom: 8px;">Sản phẩm chiết</label>
+                @php $variants = $product->variants()->orderBy('volume_ml')->get(); @endphp
+                @if($variants->count())
+                    <div style="overflow-x:auto;">
+                        <table style="width:100%; border-collapse:collapse;">
+                            <thead>
+                                <tr style="background:#f8fafc; text-align:left;">
+                                    <th style="padding:10px; border-bottom:1px solid #e2e8f0;">Dung tích</th>
+                                    <th style="padding:10px; border-bottom:1px solid #e2e8f0;">SKU</th>
+                                    <th style="padding:10px; border-bottom:1px solid #e2e8f0;">Giá nhập</th>
+                                    <th style="padding:10px; border-bottom:1px solid #e2e8f0;">Giá bán</th>
+                                    <th style="padding:10px; border-bottom:1px solid #e2e8f0;">Tồn kho</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($variants as $v)
+                                    <tr>
+                                        <td style="padding:10px; border-bottom:1px solid #eef2f7;">{{ $v->volume_ml }} ml</td>
+                                        <td style="padding:10px; border-bottom:1px solid #eef2f7; font-family:monospace;">{{ $v->sku }}</td>
+                                        <td style="padding:10px; border-bottom:1px solid #eef2f7;">{{ $v->import_price ? number_format($v->import_price,0,',','.') : '—' }}</td>
+                                        <td style="padding:10px; border-bottom:1px solid #eef2f7;">{{ $v->selling_price ? number_format($v->selling_price,0,',','.') : '—' }}</td>
+                                        <td style="padding:10px; border-bottom:1px solid #eef2f7;">{{ $v->stock }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @else
+                    <div style="color:#6c757d;">Chưa có biến thể.</div>
+                @endif
+            </div>
             <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e2e8f0;">
                 <label style="font-weight: 500; color: #4a5568; display: block; margin-bottom: 8px;">Thông tin bổ sung</label>
                 <div style="color: #718096; font-size: 13px;">
-                    <div>Ngày tạo: {{ $product->created_at->format('d/m/Y H:i') }}</div>
-                    <div>Cập nhật lần cuối: {{ $product->updated_at->format('d/m/Y H:i') }}</div>
+                    <div>
+                        Ngày tạo: 
+                        {{ optional($product->created_at)->timezone(config('app.timezone'))->format('d/m/Y H:i') ?? '-' }}
+                    </div>
+                    <div>
+                        Cập nhật lần cuối: 
+                        {{ optional($product->updated_at)->timezone(config('app.timezone'))->format('d/m/Y H:i') ?? '-' }}
+                    </div>
                 </div>
             </div>
         </div>

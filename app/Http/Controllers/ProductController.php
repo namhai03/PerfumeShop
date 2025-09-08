@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Product;
 use App\Models\Category;
+use App\Models\ProductVariant;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
 use Maatwebsite\Excel\Concerns\ToModel;
@@ -118,6 +119,8 @@ class ProductController extends Controller
         $categories = Category::orderBy('name')->get();
         $brands = Product::distinct()->pluck('brand')->filter()->values();
         $salesChannels = Product::distinct()->pluck('sales_channel')->filter()->values();
+        $fragranceFamilies = Product::distinct()->pluck('fragrance_family')->filter()->values();
+        $genders = Product::distinct()->pluck('gender')->filter()->values();
         // Tách các tag duy nhất từ chuỗi CSV 'tags'
         $tags = collect(Product::pluck('tags')->filter()->all())
             ->flatMap(function ($csv) {
@@ -137,18 +140,34 @@ class ProductController extends Controller
             'salesChannels', 
             'tags',
             'productTypes',
-            'productForms'
+            'productForms',
+            'fragranceFamilies',
+            'genders'
         ));
     }
 
     public function create()
     {
         $categories = Category::orderBy('name')->get();
-        return view('products.create', compact('categories'));
+        $allTags = collect(Product::pluck('tags')->filter()->all())
+            ->flatMap(function ($csv) {
+                return collect(explode(',', $csv))
+                    ->map(fn ($t) => trim($t))
+                    ->filter();
+            })
+            ->unique()
+            ->values();
+        return view('products.create', compact('categories', 'allTags'));
     }
 
     public function store(Request $request)
     {
+        // Parse categories (CSV -> array of ids) trước validate
+        if ($request->filled('categories') && is_string($request->categories)) {
+            $ids = collect(explode(',', $request->categories))->map(fn($v)=> (int)trim($v))->filter()->values()->all();
+            $request->merge(['categories' => $ids]);
+        }
+
         $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
@@ -166,19 +185,43 @@ class ProductController extends Controller
             'origin' => 'nullable|string|max:255',
             'import_date' => 'nullable|date',
             'is_active' => 'boolean',
-            'tags' => 'nullable|string',
+            'tags' => 'nullable',
             'categories' => 'nullable|array',
-            'categories.*' => 'exists:categories,id'
+            'categories.*' => 'exists:categories,id',
+            // Thuộc tính mùi hương
+            'fragrance_family' => 'nullable|string|max:255',
+            'top_notes' => 'nullable|string',
+            'heart_notes' => 'nullable|string',
+            'base_notes' => 'nullable|string',
+            'gender' => 'nullable|string|max:50',
+            'style' => 'nullable|string|max:255',
+            'season' => 'nullable|string|max:255',
+            // Biến thể (nếu gửi kèm)
+            'variants' => 'nullable|array',
+            'variants.*.volume_ml' => 'required_with:variants|integer|min:1',
+            'variants.*.sku' => 'nullable|string|max:255',
+            'variants.*.import_price' => 'nullable|numeric|min:0',
+            'variants.*.selling_price' => 'nullable|numeric|min:0',
+            'variants.*.stock' => 'nullable|integer|min:0',
         ]);
 
         $data = $request->all();
+        // Giữ tương thích cột category (NOT NULL) bằng chuỗi rỗng nếu không dùng
+        if (!array_key_exists('category', $data) || $data['category'] === null) {
+            $data['category'] = '';
+        }
         // Upload ảnh nếu có
         if ($request->hasFile('image')) {
             $path = $request->file('image')->store('products', 'public');
             $data['image'] = '/storage/' . $path;
         }
         if ($request->has('tags')) {
-            $data['tags'] = $this->normalizeTags($request->input('tags'));
+            $tagsValue = $request->input('tags');
+            if (is_array($tagsValue)) {
+                $data['tags'] = $this->normalizeTags(implode(',', $tagsValue));
+            } else {
+                $data['tags'] = $this->normalizeTags($tagsValue);
+            }
         }
         if (!isset($data['low_stock_threshold'])) {
             $data['low_stock_threshold'] = 5;
@@ -188,6 +231,22 @@ class ProductController extends Controller
         // Gán danh mục (nhiều) nếu có
         if ($request->filled('categories')) {
             $product->categories()->sync($request->input('categories'));
+        }
+
+        // Tạo biến thể nếu có
+        if ($request->filled('variants') && is_array($request->variants)) {
+            foreach ($request->variants as $v) {
+                if (!isset($v['volume_ml'])) continue;
+                $variantData = [
+                    'product_id' => $product->id,
+                    'volume_ml' => (int) $v['volume_ml'],
+                    'sku' => $v['sku'] ?? ($product->sku . '-' . (int)$v['volume_ml'] . 'ml'),
+                    'import_price' => $v['import_price'] ?? null,
+                    'selling_price' => $v['selling_price'] ?? null,
+                    'stock' => $v['stock'] ?? 0,
+                ];
+                ProductVariant::create($variantData);
+            }
         }
 
         return redirect()->route('products.index')
@@ -202,12 +261,21 @@ class ProductController extends Controller
     public function edit(Product $product)
     {
         $categories = Category::orderBy('name')->get();
+        $allTags = collect(Product::pluck('tags')->filter()->all())
+            ->flatMap(function ($csv) { return collect(explode(',', $csv))->map(fn($t)=>trim($t))->filter(); })
+            ->unique()->values();
         $selectedCategoryIds = $product->categories()->pluck('categories.id')->toArray();
-        return view('products.edit', compact('product', 'categories', 'selectedCategoryIds'));
+        return view('products.edit', compact('product', 'categories', 'selectedCategoryIds', 'allTags'));
     }
 
     public function update(Request $request, Product $product)
     {
+        // Parse categories (CSV -> array of ids) trước validate
+        if ($request->filled('categories') && is_string($request->categories)) {
+            $ids = collect(explode(',', $request->categories))->map(fn($v)=> (int)trim($v))->filter()->values()->all();
+            $request->merge(['categories' => $ids]);
+        }
+
         $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
@@ -225,18 +293,42 @@ class ProductController extends Controller
             'origin' => 'nullable|string|max:255',
             'import_date' => 'nullable|date',
             'is_active' => 'boolean',
-            'tags' => 'nullable|string',
+            'tags' => 'nullable',
             'categories' => 'nullable|array',
-            'categories.*' => 'exists:categories,id'
+            'categories.*' => 'exists:categories,id',
+            // Thuộc tính mùi hương
+            'fragrance_family' => 'nullable|string|max:255',
+            'top_notes' => 'nullable|string',
+            'heart_notes' => 'nullable|string',
+            'base_notes' => 'nullable|string',
+            'gender' => 'nullable|string|max:50',
+            'style' => 'nullable|string|max:255',
+            'season' => 'nullable|string|max:255',
+            // Biến thể
+            'variants' => 'nullable|array',
+            'variants.*.id' => 'nullable|integer|exists:product_variants,id',
+            'variants.*.volume_ml' => 'required_with:variants|integer|min:1',
+            'variants.*.sku' => 'nullable|string|max:255',
+            'variants.*.import_price' => 'nullable|numeric|min:0',
+            'variants.*.selling_price' => 'nullable|numeric|min:0',
+            'variants.*.stock' => 'nullable|integer|min:0',
         ]);
 
         $data = $request->all();
+        if (!array_key_exists('category', $data) || $data['category'] === null) {
+            $data['category'] = $product->category ?? '';
+        }
         if ($request->hasFile('image')) {
             $path = $request->file('image')->store('products', 'public');
             $data['image'] = '/storage/' . $path;
         }
         if ($request->has('tags')) {
-            $data['tags'] = $this->normalizeTags($request->input('tags'));
+            $tagsValue = $request->input('tags');
+            if (is_array($tagsValue)) {
+                $data['tags'] = $this->normalizeTags(implode(',', $tagsValue));
+            } else {
+                $data['tags'] = $this->normalizeTags($tagsValue);
+            }
         }
         if (!isset($data['low_stock_threshold'])) {
             $data['low_stock_threshold'] = $product->low_stock_threshold ?? 5;
@@ -245,6 +337,43 @@ class ProductController extends Controller
 
         // Cập nhật gán danh mục
         $product->categories()->sync($request->input('categories', []));
+
+        // Đồng bộ biến thể
+        if ($request->has('variants') && is_array($request->variants)) {
+            $handledIds = [];
+            foreach ($request->variants as $v) {
+                if (!isset($v['volume_ml'])) continue;
+                if (!empty($v['id'])) {
+                    $variant = ProductVariant::where('id', $v['id'])->where('product_id', $product->id)->first();
+                    if ($variant) {
+                        $variant->update([
+                            'volume_ml' => (int)$v['volume_ml'],
+                            'sku' => $v['sku'] ?? ($product->sku . '-' . (int)$v['volume_ml'] . 'ml'),
+                            'import_price' => $v['import_price'] ?? null,
+                            'selling_price' => $v['selling_price'] ?? null,
+                            'stock' => $v['stock'] ?? 0,
+                        ]);
+                        $handledIds[] = $variant->id;
+                    }
+                } else {
+                    $new = ProductVariant::create([
+                        'product_id' => $product->id,
+                        'volume_ml' => (int)$v['volume_ml'],
+                        'sku' => $v['sku'] ?? ($product->sku . '-' . (int)$v['volume_ml'] . 'ml'),
+                        'import_price' => $v['import_price'] ?? null,
+                        'selling_price' => $v['selling_price'] ?? null,
+                        'stock' => $v['stock'] ?? 0,
+                    ]);
+                    $handledIds[] = $new->id;
+                }
+            }
+            // Xóa biến thể không còn trong payload
+            if (!empty($handledIds)) {
+                ProductVariant::where('product_id', $product->id)
+                    ->whereNotIn('id', $handledIds)
+                    ->delete();
+            }
+        }
 
         // Điều hướng theo ngữ cảnh (ví dụ: từ trang tồn kho)
         $redirectTo = $request->input('redirect_to');

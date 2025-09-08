@@ -11,7 +11,9 @@ class Product extends Model
         'name', 'description', 'import_price', 'selling_price', 'category', 'brand', 'sku',
         'barcode', 'stock', 'low_stock_threshold', 'image', 'volume', 'concentration', 'origin', 'import_date', 
         'sales_channel', 'tags', 'is_active', 'product_type', 'product_form', 'expiry_date',
-        'branch_price', 'customer_group_price', 'created_date'
+        'branch_price', 'customer_group_price', 'created_date',
+        // Thuộc tính mùi hương
+        'fragrance_family', 'top_notes', 'heart_notes', 'base_notes', 'gender', 'style', 'season'
     ];
 
     protected $casts = [
@@ -42,5 +44,10 @@ class Product extends Model
     public function categories()
     {
         return $this->belongsToMany(Category::class, 'category_product');
+    }
+
+    public function variants()
+    {
+        return $this->hasMany(ProductVariant::class);
     }
 }
