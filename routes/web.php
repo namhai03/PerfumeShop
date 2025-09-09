@@ -32,6 +32,8 @@ Route::resource('products', ProductController::class)->whereNumber('product');
 
 // Categories
 Route::resource('categories', CategoryController::class)->whereNumber('category');
+Route::post('categories/{category}/add-product', [CategoryController::class, 'addProduct'])->name('categories.add-product')->whereNumber('category');
+Route::delete('categories/{category}/remove-product', [CategoryController::class, 'removeProduct'])->name('categories.remove-product')->whereNumber('category');
 
 // Inventory
 Route::get('inventory', [InventoryController::class, 'index'])->name('inventory.index');

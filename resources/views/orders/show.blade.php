@@ -195,7 +195,7 @@
                                         <div style="font-weight: 600; color: #2c3e50; margin-bottom: 4px;">
                                             {{ $item->product->name }}
                                         </div>
-                                        <div style="font-size: 12px; color: #6c757d;">{{ $item->product->sku }}</div>
+                                        <div style="font-size: 12px; color: #6c757d;">{{ $item->variant->sku ?? $item->product->sku }}</div>
                                     </div>
                                 </div>
                             </td>

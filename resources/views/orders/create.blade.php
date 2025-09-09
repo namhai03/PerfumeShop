@@ -27,6 +27,23 @@
         </div>
     @endif
 
+    @php
+        $productsData = $products->map(function($p){
+            return [
+                'id' => $p->id,
+                'variants' => $p->variants->map(function($v){
+                    return [
+                        'id' => $v->id,
+                        'sku' => $v->sku,
+                        'volume_ml' => $v->volume_ml,
+                        'selling_price' => $v->selling_price,
+                        'stock' => $v->stock,
+                    ];
+                })->toArray(),
+            ];
+        })->values();
+    @endphp
+
     <form action="{{ route('orders.store') }}" method="POST" id="orderForm">
         @csrf
         
@@ -43,26 +60,23 @@
                            value="{{ old('customer_name') }}" placeholder="Nhập tên khách hàng" required>
                 </div>
 
-                <div class="form-group">
-                    <label class="form-label">Loại đơn hàng <span style="color: #e53e3e;">*</span></label>
-                    <select name="type" id="type" class="form-control" required>
-                        <option value="">-- Chọn loại --</option>
-                        <option value="sale" {{ old('type') == 'sale' ? 'selected' : '' }}>Bán hàng</option>
-                        <option value="return" {{ old('type') == 'return' ? 'selected' : '' }}>Trả hàng</option>
-                        <option value="draft" {{ old('type') == 'draft' ? 'selected' : '' }}>Đơn nháp</option>
-                    </select>
-                </div>
+                
 
                 <div class="form-group">
                     <label class="form-label">Trạng thái <span style="color: #e53e3e;">*</span></label>
                     <select name="status" id="status" class="form-control" required>
-                        <option value="unpaid" {{ old('status', 'unpaid') == 'unpaid' ? 'selected' : '' }}>Chưa thanh toán</option>
-                        <option value="paid" {{ old('status') == 'paid' ? 'selected' : '' }}>Đã thanh toán</option>
+                        <option value="draft" {{ old('status', 'draft') == 'draft' ? 'selected' : '' }}>Đơn nháp</option>
+                        <option value="confirmed" {{ old('status') == 'confirmed' ? 'selected' : '' }}>Đơn hàng đã xác nhận</option>
+                        <option value="processing" {{ old('status') == 'processing' ? 'selected' : '' }}>Đơn hàng đang xử lý</option>
+                        <option value="shipping" {{ old('status') == 'shipping' ? 'selected' : '' }}>Đơn hàng đang giao</option>
+                        <option value="delivered" {{ old('status') == 'delivered' ? 'selected' : '' }}>Đơn hàng đã giao thành công</option>
+                        <option value="failed" {{ old('status') == 'failed' ? 'selected' : '' }}>Đơn hàng thất bại</option>
+                        <option value="returned" {{ old('status') == 'returned' ? 'selected' : '' }}>Đơn hàng hoàn trả</option>
                     </select>
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label">Ngày đơn hàng <span style="color: #e53e3e;">*</span></label>
+                    <label class="form-label">Ngày giao hàng <span style="color: #e53e3e;">*</span></label>
                     <input type="date" name="order_date" id="order_date" class="form-control" 
                            value="{{ old('order_date', date('Y-m-d')) }}" required>
                 </div>
@@ -118,16 +132,22 @@
             </div>
             
             <div id="products-container">
-                <div class="product-item" style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr auto; gap: 12px; align-items: end; padding: 16px; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 12px;">
+                <div class="product-item" style="display: grid; grid-template-columns: 2fr 2fr 1fr 1fr 1fr auto; gap: 12px; align-items: end; padding: 16px; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 12px;">
                     <div class="form-group" style="margin-bottom: 0;">
                         <label class="form-label">Sản phẩm <span style="color: #e53e3e;">*</span></label>
                         <select name="items[0][product_id]" class="form-control product-select" required>
                             <option value="">-- Chọn sản phẩm --</option>
                             @foreach($products as $product)
-                                <option value="{{ $product->id }}" data-price="{{ $product->selling_price ?? 0 }}">
-                                    {{ $product->name }} - {{ number_format($product->selling_price ?? 0, 0, ',', '.') }} ₫
+                                <option value="{{ $product->id }}" data-price="{{ $product->selling_price ?? 0 }}" data-stock="{{ $product->stock ?? 0 }}" data-sku="{{ $product->sku ?? '' }}">
+                                    {{ $product->name }} - {{ $product->sku ?? 'N/A' }}
                                 </option>
                             @endforeach
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label">Phiên bản</label>
+                        <select name="items[0][product_variant_id]" class="form-control variant-select">
+                            <option value="">-- Chọn phiên bản --</option>
                         </select>
                     </div>
                     
@@ -149,13 +169,7 @@
                                style="background-color: #f7fafc;">
                     </div>
                     
-                    <div class="form-group" style="margin-bottom: 0;">
-                        <label class="form-label">Ghi chú</label>
-                        <input type="text" name="items[0][custom_notes]" class="form-control" 
-                               placeholder="Ghi chú riêng">
-                    </div>
-                    
-                    <div class="form-group" style="margin-bottom: 0;">
+                    <div class="form-group" style="margin-bottom: 0; align-self: end;">
                         <button type="button" class="btn btn-danger remove-product" style="padding: 8px 12px;">
                             <i class="fas fa-trash"></i>
                         </button>
@@ -241,7 +255,14 @@
         newProduct.querySelector('.price-input').readOnly = true;
         newProduct.querySelector('.price-input').style.backgroundColor = '#f7fafc';
         newProduct.querySelector('.total-price').value = '';
-        newProduct.querySelector('input[name*="custom_notes"]').value = '';
+        const variantSelectNew = newProduct.querySelector('.variant-select');
+        if (variantSelectNew) {
+            variantSelectNew.innerHTML = '<option value="">-- Chọn phiên bản --</option>';
+        }
+        const qtyInputNew = newProduct.querySelector('.quantity-input');
+        if (qtyInputNew) {
+            qtyInputNew.removeAttribute('max');
+        }
         
         container.appendChild(newProduct);
         productIndex++;
@@ -269,16 +290,83 @@
         const quantityInput = productItem.querySelector('.quantity-input');
         const priceInput = productItem.querySelector('.price-input');
         
-        productSelect.addEventListener('change', function() {
+        productSelect.addEventListener('change', async function() {
             const selectedOption = this.options[this.selectedIndex];
             const price = selectedOption.getAttribute('data-price') || 0;
+            const stock = parseInt(selectedOption.getAttribute('data-stock') || '0', 10);
             priceInput.value = price;
+            if (stock > 0) {
+                const qty = parseInt(quantityInput.value || '1', 10);
+                if (qty > stock) {
+                    quantityInput.value = stock;
+                }
+                quantityInput.setAttribute('max', String(stock));
+            } else {
+                quantityInput.removeAttribute('max');
+            }
+            // Load and populate versions (full + available decants) from embedded data to ensure reliability
+            const variantSelect = productItem.querySelector('.variant-select');
+            if (variantSelect) {
+                variantSelect.innerHTML = '';
+                // Full version option (label by product SKU only)
+                const fullOpt = document.createElement('option');
+                fullOpt.value = '';
+                const productSku = selectedOption.getAttribute('data-sku') || 'Bản đầy đủ';
+                fullOpt.textContent = productSku;
+                fullOpt.setAttribute('data-price', price);
+                fullOpt.setAttribute('data-stock', String(stock));
+                variantSelect.appendChild(fullOpt);
+
+                // Decant variants with stock > 0 from embedded $products
+                const productId = parseInt(this.value, 10);
+                const productsData = @json($productsData);
+                const productData = productsData.find(p => p.id === productId);
+                if (productData && productData.variants) {
+                    productData.variants.filter(v => (v.stock ?? 0) > 0).forEach(v => {
+                        const opt = document.createElement('option');
+                        opt.value = v.id;
+                        opt.textContent = `${v.sku ?? ''}`;
+                        opt.setAttribute('data-price', v.selling_price ?? 0);
+                        opt.setAttribute('data-stock', v.stock ?? 0);
+                        variantSelect.appendChild(opt);
+                    });
+                }
+            }
             calculateItemTotal(productItem);
         });
         
         quantityInput.addEventListener('input', function() {
+            const variantSelect = productItem.querySelector('.variant-select');
+            const selected = variantSelect ? variantSelect.options[variantSelect.selectedIndex] : null;
+            const maxStock = selected ? parseInt(selected.getAttribute('data-stock') || '0', 10) : null;
+            if (maxStock && parseInt(this.value||'0',10) > maxStock) {
+                this.value = maxStock;
+            }
             calculateItemTotal(productItem);
         });
+
+        // Handle version selection change
+        const variantSelect = productItem.querySelector('.variant-select');
+        if (variantSelect) {
+            variantSelect.addEventListener('change', function(){
+                const opt = this.options[this.selectedIndex];
+                const vPrice = opt.getAttribute('data-price');
+                const vStock = parseInt(opt.getAttribute('data-stock') || '0', 10);
+                if (vPrice) {
+                    priceInput.value = vPrice;
+                }
+                if (vStock > 0) {
+                    const qty = parseInt(quantityInput.value || '1', 10);
+                    if (qty > vStock) {
+                        quantityInput.value = vStock;
+                    }
+                    quantityInput.setAttribute('max', String(vStock));
+                } else {
+                    quantityInput.removeAttribute('max');
+                }
+                calculateItemTotal(productItem);
+            });
+        }
         
         priceInput.addEventListener('input', function() {
             calculateItemTotal(productItem);

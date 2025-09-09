@@ -67,12 +67,7 @@
 
                 <!-- Filters -->
                 <div class="filters-container" style="display: flex; gap: 12px; flex-wrap: wrap;">
-                    <select name="status" class="filter-select">
-                        <option value="">Trạng thái</option>
-                        <option value="new" {{ request('status') == 'new' ? 'selected' : '' }}>Mới</option>
-                        <option value="processing" {{ request('status') == 'processing' ? 'selected' : '' }}>Đang xử lý</option>
-                        <option value="completed" {{ request('status') == 'completed' ? 'selected' : '' }}>Hoàn thành</option>
-                    </select>
+                    
 
                     <input type="date" name="date_from" value="{{ request('date_from') }}" class="filter-select" placeholder="Từ ngày">
                     <input type="date" name="date_to" value="{{ request('date_to') }}" class="filter-select" placeholder="Đến ngày">

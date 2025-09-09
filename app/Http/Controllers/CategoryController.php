@@ -37,7 +37,13 @@ class CategoryController extends Controller
     {
         $products = $category->products()->orderBy('created_at', 'desc')->paginate(request('per_page', 20));
         $productCount = $category->products()->count();
-        return view('categories.show', compact('category', 'products', 'productCount'));
+        
+        // Lấy danh sách sản phẩm chưa có trong danh mục này để hiển thị trong modal
+        $availableProducts = Product::whereDoesntHave('categories', function($query) use ($category) {
+            $query->where('category_id', $category->id);
+        })->where('is_active', true)->orderBy('name')->get();
+        
+        return view('categories.show', compact('category', 'products', 'productCount', 'availableProducts'));
     }
 
     public function store(Request $request)
@@ -84,6 +90,43 @@ class CategoryController extends Controller
 
         $category->delete();
         return redirect()->route('categories.index')->with('success', 'Đã xóa danh mục.');
+    }
+
+    public function addProduct(Request $request, Category $category)
+    {
+        $request->validate([
+            'product_id' => 'required|exists:products,id',
+            'note' => 'nullable|string|max:500'
+        ]);
+
+        $product = Product::findOrFail($request->product_id);
+        
+        // Kiểm tra xem sản phẩm đã có trong danh mục chưa
+        if ($category->products()->where('product_id', $product->id)->exists()) {
+            return redirect()->back()->with('error', 'Sản phẩm đã có trong danh mục này.');
+        }
+
+        // Thêm sản phẩm vào danh mục
+        $category->products()->attach($product->id, [
+            'created_at' => now(),
+            'updated_at' => now()
+        ]);
+
+        return redirect()->back()->with('success', "Đã thêm sản phẩm '{$product->name}' vào danh mục.");
+    }
+
+    public function removeProduct(Request $request, Category $category)
+    {
+        $request->validate([
+            'product_id' => 'required|exists:products,id'
+        ]);
+
+        $product = Product::findOrFail($request->product_id);
+        
+        // Xóa sản phẩm khỏi danh mục
+        $category->products()->detach($product->id);
+
+        return redirect()->back()->with('success', "Đã xóa sản phẩm '{$product->name}' khỏi danh mục.");
     }
 
     private function generateUniqueSlug(string $baseSlug, ?int $ignoreId = null): string

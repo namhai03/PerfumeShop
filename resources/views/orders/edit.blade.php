@@ -49,21 +49,18 @@
                            value="{{ old('customer_name', $order->customer_name) }}" placeholder="Nhập tên khách hàng" required>
                 </div>
 
-                <div class="form-group">
-                    <label class="form-label">Loại đơn hàng <span style="color: #e53e3e;">*</span></label>
-                    <select name="type" id="type" class="form-control" required>
-                        <option value="">-- Chọn loại --</option>
-                        <option value="sale" {{ old('type', $order->type) == 'sale' ? 'selected' : '' }}>Bán hàng</option>
-                        <option value="return" {{ old('type', $order->type) == 'return' ? 'selected' : '' }}>Trả hàng</option>
-                        <option value="draft" {{ old('type', $order->type) == 'draft' ? 'selected' : '' }}>Đơn nháp</option>
-                    </select>
-                </div>
+                
 
                 <div class="form-group">
                     <label class="form-label">Trạng thái <span style="color: #e53e3e;">*</span></label>
                     <select name="status" id="status" class="form-control" required>
-                        <option value="unpaid" {{ old('status', $order->status) == 'unpaid' ? 'selected' : '' }}>Chưa thanh toán</option>
-                        <option value="paid" {{ old('status', $order->status) == 'paid' ? 'selected' : '' }}>Đã thanh toán</option>
+                        <option value="draft" {{ old('status', $order->status) == 'draft' ? 'selected' : '' }}>Đơn nháp</option>
+                        <option value="confirmed" {{ old('status', $order->status) == 'confirmed' ? 'selected' : '' }}>Đơn hàng đã xác nhận</option>
+                        <option value="processing" {{ old('status', $order->status) == 'processing' ? 'selected' : '' }}>Đơn hàng đang xử lý</option>
+                        <option value="shipping" {{ old('status', $order->status) == 'shipping' ? 'selected' : '' }}>Đơn hàng đang giao</option>
+                        <option value="delivered" {{ old('status', $order->status) == 'delivered' ? 'selected' : '' }}>Đơn hàng đã giao thành công</option>
+                        <option value="failed" {{ old('status', $order->status) == 'failed' ? 'selected' : '' }}>Đơn hàng thất bại</option>
+                        <option value="returned" {{ old('status', $order->status) == 'returned' ? 'selected' : '' }}>Đơn hàng hoàn trả</option>
                     </select>
                 </div>
 
@@ -131,9 +128,9 @@
                         <select name="items[{{ $index }}][product_id]" class="form-control product-select" required>
                             <option value="">-- Chọn sản phẩm --</option>
                             @foreach($products as $product)
-                                <option value="{{ $product->id }}" data-price="{{ $product->selling_price ?? 0 }}" 
+                                <option value="{{ $product->id }}" data-price="{{ $product->selling_price ?? 0 }}" data-stock="{{ $product->stock ?? 0 }}" 
                                         {{ $item->product_id == $product->id ? 'selected' : '' }}>
-                                    {{ $product->name }} - {{ number_format($product->selling_price ?? 0, 0, ',', '.') }} ₫
+                                    {{ $product->sku ? ($product->sku . ' - ') : '' }}{{ $product->name }} - {{ number_format($product->selling_price ?? 0, 0, ',', '.') }} ₫ (Tồn: {{ $product->stock ?? 0 }})
                                 </option>
                             @endforeach
                         </select>
@@ -157,13 +154,7 @@
                                style="background-color: #f7fafc;" value="{{ number_format($item->total_price, 0, ',', '.') }}">
                     </div>
                     
-                    <div class="form-group" style="margin-bottom: 0;">
-                        <label class="form-label">Ghi chú</label>
-                        <input type="text" name="items[{{ $index }}][custom_notes]" class="form-control" 
-                               placeholder="Ghi chú riêng" value="{{ $item->custom_notes }}">
-                    </div>
-                    
-                    <div class="form-group" style="margin-bottom: 0;">
+                    <div class="form-group" style="margin-bottom: 0; align-self: end;">
                         <button type="button" class="btn btn-danger remove-product" style="padding: 8px 12px;">
                             <i class="fas fa-trash"></i>
                         </button>
@@ -283,11 +274,26 @@
         productSelect.addEventListener('change', function() {
             const selectedOption = this.options[this.selectedIndex];
             const price = selectedOption.getAttribute('data-price') || 0;
+            const stock = parseInt(selectedOption.getAttribute('data-stock') || '0', 10);
             priceInput.value = price;
+            if (stock > 0) {
+                const qty = parseInt(quantityInput.value || '1', 10);
+                if (qty > stock) {
+                    quantityInput.value = stock;
+                }
+                quantityInput.setAttribute('max', String(stock));
+            } else {
+                quantityInput.removeAttribute('max');
+            }
             calculateItemTotal(productItem);
         });
         
         quantityInput.addEventListener('input', function() {
+            const selectedOption = productItem.querySelector('.product-select').options[productItem.querySelector('.product-select').selectedIndex];
+            const maxStock = selectedOption ? parseInt(selectedOption.getAttribute('data-stock') || '0', 10) : null;
+            if (maxStock && parseInt(this.value||'0',10) > maxStock) {
+                this.value = maxStock;
+            }
             calculateItemTotal(productItem);
         });
         

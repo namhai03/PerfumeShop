@@ -1,5 +1,17 @@
 <?php
 
+use Illuminate\Support\Facades\Route;
+use App\Models\Product;
+
+Route::get('/products/{product}/variants', function (Product $product) {
+    return $product->variants()
+        ->select('id','sku','volume_ml','selling_price','stock')
+        ->orderBy('volume_ml')
+        ->get();
+});
+
+<?php
+
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\InventoryApiController;

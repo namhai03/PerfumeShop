@@ -65,23 +65,37 @@
                     </div>
                 </div>
 
-                <!-- Filters -->
-                <div class="filters-container" style="display: flex; gap: 12px; flex-wrap: wrap;">
-                    <select name="status" class="filter-select">
-                        <option value="">Trạng thái</option>
-                        <option value="unpaid" {{ request('status') == 'unpaid' ? 'selected' : '' }}>Chưa thanh toán</option>
-                        <option value="paid" {{ request('status') == 'paid' ? 'selected' : '' }}>Đã thanh toán</option>
-                    </select>
-
-                    <select name="type" class="filter-select">
-                        <option value="">Loại đơn hàng</option>
-                        <option value="sale" {{ request('type') == 'sale' ? 'selected' : '' }}>Bán hàng</option>
-                        <option value="return" {{ request('type') == 'return' ? 'selected' : '' }}>Trả hàng</option>
-                        <option value="draft" {{ request('type') == 'draft' ? 'selected' : '' }}>Đơn nháp</option>
-                    </select>
-
-                    <input type="date" name="date_from" value="{{ request('date_from') }}" class="filter-select" placeholder="Từ ngày">
-                    <input type="date" name="date_to" value="{{ request('date_to') }}" class="filter-select" placeholder="Đến ngày">
+                <!-- Date Filters -->
+                <div class="filters-container" style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <label style="font-size: 13px; color: #4a5568; font-weight: 500; white-space: nowrap;">Từ ngày:</label>
+                        <input type="date" 
+                               name="date_from" 
+                               value="{{ request('date_from') }}" 
+                               class="filter-select" 
+                               style="min-width: 150px;">
+                    </div>
+                    
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <label style="font-size: 13px; color: #4a5568; font-weight: 500; white-space: nowrap;">Đến ngày:</label>
+                        <input type="date" 
+                               name="date_to" 
+                               value="{{ request('date_to') }}" 
+                               class="filter-select" 
+                               style="min-width: 150px;">
+                    </div>
+                    
+                    <button type="submit" class="btn btn-outline" style="font-size: 13px; padding: 8px 16px;">
+                        <i class="fas fa-filter"></i>
+                        Lọc
+                    </button>
+                    
+                    @if(request('date_from') || request('date_to'))
+                        <a href="{{ route('orders.index') }}" class="btn btn-outline" style="font-size: 13px; padding: 8px 16px; color: #e53e3e;">
+                            <i class="fas fa-times"></i>
+                            Xóa bộ lọc
+                        </a>
+                    @endif
                 </div>
             </div>
         </div>
@@ -142,9 +156,6 @@
                             </td>
                             <td>
                                 <div class="order-actions">
-                                    <a href="{{ route('orders.show', $order->id) }}" class="btn btn-outline" title="Xem chi tiết">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
                                     <a href="{{ route('orders.edit', $order->id) }}" class="btn btn-outline" title="Chỉnh sửa">
                                         <i class="fas fa-edit"></i>
                                     </a>
@@ -226,10 +237,9 @@
 
 @push('scripts')
 <script>
-    // Search and filter functionality
+    // Search functionality
     document.addEventListener('DOMContentLoaded', function() {
         const searchInput = document.querySelector('input[name="search"]');
-        const filterSelects = document.querySelectorAll('.filter-select');
         const filterForm = document.getElementById('filterForm');
         
         // Debounce search
@@ -239,13 +249,6 @@
             searchTimeout = setTimeout(() => {
                 filterForm.submit();
             }, 500);
-        });
-        
-        // Filter change
-        filterSelects.forEach(select => {
-            select.addEventListener('change', function() {
-                filterForm.submit();
-            });
         });
     });
 </script>

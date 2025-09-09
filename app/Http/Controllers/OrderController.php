@@ -19,7 +19,7 @@ class OrderController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Order::with(['customer', 'items.product'])
+        $query = Order::with(['customer', 'items.product', 'latestShipment'])
             ->orderBy('created_at', 'desc');
 
         // Filter by type
@@ -45,7 +45,16 @@ class OrderController extends Controller
             });
         }
 
-        $orders = $query->paginate(15);
+        // Filter by date range
+        if ($request->has('date_from') && $request->date_from !== '') {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+
+        if ($request->has('date_to') && $request->date_to !== '') {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
+
+        $orders = $query->paginate($request->get('per_page', 15))->appends($request->query());
 
         return view('orders.index', compact('orders'));
     }
@@ -55,7 +64,9 @@ class OrderController extends Controller
      */
     public function create()
     {
-        $products = Product::orderBy('name')->get();
+        $products = Product::with(['variants' => function($q){
+            $q->orderBy('volume_ml');
+        }])->orderBy('name')->get();
         
         return view('orders.create', compact('products'));
     }
@@ -67,8 +78,8 @@ class OrderController extends Controller
     {
         $request->validate([
             'customer_name' => 'required|string|max:255',
-            'type' => 'required|in:sale,return,draft',
-            'status' => 'required|in:unpaid,paid',
+            'type' => 'nullable|in:sale,return,draft',
+            'status' => 'required|in:draft,confirmed,processing,shipping,delivered,failed,returned',
             'order_date' => 'required|date',
             'delivery_date' => 'nullable|date|after_or_equal:order_date',
             'payment_method' => 'nullable|string|max:255',
@@ -76,13 +87,21 @@ class OrderController extends Controller
             'phone' => 'nullable|string|max:20',
             'notes' => 'nullable|string|max:1000',
             'items' => 'required|array|min:1',
-            'items.*.product_id' => 'required|exists:products,id',
+            'items.*.product_id' => 'required_without:items.*.product_variant_id|exists:products,id',
+            'items.*.product_variant_id' => 'nullable|exists:product_variants,id',
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.unit_price' => 'required|numeric|min:0',
         ]);
 
-        // Validate stock availability for sale orders
-        if ($request->type === 'sale') {
+        // Map type từ status trước khi xử lý tồn kho
+        $mappedType = match($request->status) {
+            'draft' => 'draft',
+            'failed', 'returned' => 'return',
+            default => 'sale',
+        };
+
+        // Validate stock availability cho đơn thuộc nhóm sale
+        if ($mappedType === 'sale') {
             $this->validateStockAvailability($request->items);
         }
 
@@ -136,7 +155,8 @@ class OrderController extends Controller
                 'customer_id' => $customer->id,
                 'customer_name' => $request->customer_name,
                 'status' => $request->status,
-                'type' => $request->type,
+                // Map type theo status: nhóm đơn đi (confirmed, processing, shipping, delivered) => sale; đơn nháp => draft; thất bại/hoàn trả => return
+                'type' => $mappedType,
                 'total_amount' => $totalAmount,
                 'discount_amount' => $discountAmount,
                 'final_amount' => $finalAmount,
@@ -151,7 +171,8 @@ class OrderController extends Controller
             // Create order items and update inventory
             foreach ($request->items as $item) {
                 $orderItem = $order->items()->create([
-                    'product_id' => $item['product_id'],
+                    'product_id' => $item['product_id'] ?? null,
+                    'product_variant_id' => $item['product_variant_id'] ?? null,
                     'quantity' => $item['quantity'],
                     'unit_price' => $item['unit_price'],
                     'total_price' => $item['quantity'] * $item['unit_price'],
@@ -209,7 +230,7 @@ class OrderController extends Controller
      */
     public function show(Order $order)
     {
-        $order->load(['customer', 'items.product']);
+        $order->load(['customer', 'items.product', 'items.variant', 'latestShipment']);
         return view('orders.show', compact('order'));
     }
 
@@ -218,7 +239,9 @@ class OrderController extends Controller
      */
     public function edit(Order $order)
     {
-        $products = Product::orderBy('name')->get();
+        $products = Product::with(['variants' => function($q){
+            $q->orderBy('volume_ml');
+        }])->orderBy('name')->get();
         $order->load(['customer', 'items.product']);
         
         return view('orders.edit', compact('order', 'products'));
@@ -231,8 +254,8 @@ class OrderController extends Controller
     {
         $request->validate([
             'customer_name' => 'required|string|max:255',
-            'type' => 'required|in:sale,return,draft',
-            'status' => 'required|in:unpaid,paid',
+            'type' => 'nullable|in:sale,return,draft',
+            'status' => 'required|in:draft,confirmed,processing,shipping,delivered,failed,returned',
             'order_date' => 'required|date',
             'delivery_date' => 'nullable|date|after_or_equal:order_date',
             'payment_method' => 'nullable|string|max:255',
@@ -240,10 +263,23 @@ class OrderController extends Controller
             'phone' => 'nullable|string|max:20',
             'notes' => 'nullable|string|max:1000',
             'items' => 'required|array|min:1',
-            'items.*.product_id' => 'required|exists:products,id',
+            'items.*.product_id' => 'required_without:items.*.product_variant_id|exists:products,id',
+            'items.*.product_variant_id' => 'nullable|exists:product_variants,id',
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.unit_price' => 'required|numeric|min:0',
         ]);
+
+        // Map type từ status trước khi xử lý tồn kho
+        $mappedType = match($request->status) {
+            'draft' => 'draft',
+            'failed', 'returned' => 'return',
+            default => 'sale',
+        };
+
+        // Validate stock availability cho đơn thuộc nhóm sale
+        if ($mappedType === 'sale') {
+            $this->validateStockAvailability($request->items);
+        }
 
         // Calculate totals
         $totalAmount = 0;
@@ -287,7 +323,11 @@ class OrderController extends Controller
             'customer_id' => $customer->id,
             'customer_name' => $request->customer_name,
             'status' => $request->status,
-            'type' => $request->type,
+            'type' => match($request->status) {
+                'draft' => 'draft',
+                'failed', 'returned' => 'return',
+                default => 'sale',
+            },
             'total_amount' => $totalAmount,
             'discount_amount' => $discountAmount,
             'final_amount' => $finalAmount,
@@ -303,7 +343,8 @@ class OrderController extends Controller
         $order->items()->delete();
         foreach ($request->items as $item) {
             $order->items()->create([
-                'product_id' => $item['product_id'],
+                'product_id' => $item['product_id'] ?? null,
+                'product_variant_id' => $item['product_variant_id'] ?? null,
                 'quantity' => $item['quantity'],
                 'unit_price' => $item['unit_price'],
                 'total_price' => $item['quantity'] * $item['unit_price'],
@@ -409,7 +450,7 @@ class OrderController extends Controller
      */
     public function sales(Request $request)
     {
-        $query = Order::with(['customer', 'items.product'])
+        $query = Order::with(['customer', 'items.product', 'latestShipment'])
             ->sales()
             ->orderBy('created_at', 'desc');
 
@@ -425,7 +466,16 @@ class OrderController extends Controller
             });
         }
 
-        $orders = $query->paginate(15);
+        // Filter by date range
+        if ($request->has('date_from') && $request->date_from !== '') {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+
+        if ($request->has('date_to') && $request->date_to !== '') {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
+
+        $orders = $query->paginate($request->get('per_page', 15))->appends($request->query());
         return view('orders.sales', compact('orders'));
     }
 
@@ -434,7 +484,7 @@ class OrderController extends Controller
      */
     public function returns(Request $request)
     {
-        $query = Order::with(['customer', 'items.product'])
+        $query = Order::with(['customer', 'items.product', 'latestShipment'])
             ->returns()
             ->orderBy('created_at', 'desc');
 
@@ -450,7 +500,16 @@ class OrderController extends Controller
             });
         }
 
-        $orders = $query->paginate(15);
+        // Filter by date range
+        if ($request->has('date_from') && $request->date_from !== '') {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+
+        if ($request->has('date_to') && $request->date_to !== '') {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
+
+        $orders = $query->paginate($request->get('per_page', 15))->appends($request->query());
         return view('orders.returns', compact('orders'));
     }
 
@@ -459,7 +518,7 @@ class OrderController extends Controller
      */
     public function drafts(Request $request)
     {
-        $query = Order::with(['customer', 'items.product'])
+        $query = Order::with(['customer', 'items.product', 'latestShipment'])
             ->drafts()
             ->orderBy('created_at', 'desc');
 
@@ -475,7 +534,16 @@ class OrderController extends Controller
             });
         }
 
-        $orders = $query->paginate(15);
+        // Filter by date range
+        if ($request->has('date_from') && $request->date_from !== '') {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+
+        if ($request->has('date_to') && $request->date_to !== '') {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
+
+        $orders = $query->paginate($request->get('per_page', 15))->appends($request->query());
         return view('orders.drafts', compact('orders'));
     }
 
@@ -485,7 +553,21 @@ class OrderController extends Controller
     private function validateStockAvailability(array $items)
     {
         foreach ($items as $item) {
-            $product = Product::find($item['product_id']);
+            if (!empty($item['product_variant_id'])) {
+                $variant = \App\Models\ProductVariant::find($item['product_variant_id']);
+                if (!$variant) {
+                    throw new \Exception("Chiết không tồn tại.");
+                }
+                if (!$variant->is_active) {
+                    throw new \Exception("Chiết '{$variant->sku}' đã ngừng bán.");
+                }
+                if ($variant->stock < $item['quantity']) {
+                    throw new \Exception("Chiết '{$variant->sku}' chỉ còn {$variant->stock}, không đủ để bán {$item['quantity']}.");
+                }
+                continue;
+            }
+
+            $product = Product::find($item['product_id'] ?? null);
             
             if (!$product) {
                 throw new \Exception("Sản phẩm không tồn tại.");
@@ -511,7 +593,8 @@ class OrderController extends Controller
      */
     private function updateInventoryForOrder(Order $order, $orderItem)
     {
-        $product = $orderItem->product;
+        // Nếu là chiết thì trừ kho từ variant, ngược lại trừ từ product
+        $product = $orderItem->variant ? $orderItem->variant : $orderItem->product;
         $quantity = $orderItem->quantity;
         
         // Determine inventory change based on order type

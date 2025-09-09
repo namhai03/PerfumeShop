@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Order extends Model
 {
@@ -36,9 +37,14 @@ class Order extends Model
         'final_amount' => 'decimal:2',
     ];
 
-    // Constants for status
-    const STATUS_UNPAID = 'unpaid';
-    const STATUS_PAID = 'paid';
+    // Constants for status (7-state workflow)
+    const STATUS_DRAFT = 'draft';
+    const STATUS_CONFIRMED = 'confirmed';
+    const STATUS_PROCESSING = 'processing';
+    const STATUS_SHIPPING = 'shipping';
+    const STATUS_DELIVERED = 'delivered';
+    const STATUS_FAILED = 'failed';
+    const STATUS_RETURNED = 'returned';
 
     // Constants for type
     const TYPE_SALE = 'sale';
@@ -56,12 +62,33 @@ class Order extends Model
         return $this->hasMany(OrderItem::class);
     }
 
+    /**
+     * Shipments linked by order_number -> shipments.order_code
+     */
+    public function shipments(): HasMany
+    {
+        return $this->hasMany(Shipment::class, 'order_code', 'order_number');
+    }
+
+    /**
+     * Latest shipment by created_at
+     */
+    public function latestShipment(): HasOne
+    {
+        return $this->hasOne(Shipment::class, 'order_code', 'order_number')->latestOfMany('created_at');
+    }
+
     // Accessors
     public function getStatusTextAttribute(): string
     {
         return match($this->status) {
-            self::STATUS_UNPAID => 'Chưa thanh toán',
-            self::STATUS_PAID => 'Đã thanh toán',
+            self::STATUS_DRAFT => 'Đơn nháp',
+            self::STATUS_CONFIRMED => 'Đã xác nhận',
+            self::STATUS_PROCESSING => 'Đang xử lý',
+            self::STATUS_SHIPPING => 'Đang giao',
+            self::STATUS_DELIVERED => 'Đã nhận',
+            self::STATUS_FAILED => 'Thất bại',
+            self::STATUS_RETURNED => 'Trả hàng',
             default => 'Không xác định'
         };
     }
@@ -79,8 +106,13 @@ class Order extends Model
     public function getStatusBadgeClassAttribute(): string
     {
         return match($this->status) {
-            self::STATUS_UNPAID => 'badge-unpaid',
-            self::STATUS_PAID => 'badge-paid',
+            self::STATUS_DRAFT => 'badge-secondary',
+            self::STATUS_CONFIRMED => 'badge-primary',
+            self::STATUS_PROCESSING => 'badge-warning',
+            self::STATUS_SHIPPING => 'badge-info',
+            self::STATUS_DELIVERED => 'badge-success',
+            self::STATUS_FAILED => 'badge-dark',
+            self::STATUS_RETURNED => 'badge-danger',
             default => 'badge-default'
         };
     }
@@ -92,6 +124,48 @@ class Order extends Model
             self::TYPE_RETURN => 'badge-return',
             self::TYPE_DRAFT => 'badge-draft',
             default => 'badge-default'
+        };
+    }
+
+    /**
+     * Compute normalized shipping phase based on latest shipment status
+     * Phases: preparing, shipping, delivered, returned
+     */
+    public function getShippingPhaseAttribute(): ?string
+    {
+        $shipment = $this->relationLoaded('latestShipment') ? $this->latestShipment : $this->latestShipment()->first();
+        if (!$shipment) {
+            return null;
+        }
+
+        return match($shipment->status) {
+            'pending_pickup' => 'preparing',
+            'picked_up', 'in_transit', 'retry' => 'shipping',
+            'returning', 'returned', 'failed' => 'returned',
+            'delivered' => 'delivered',
+            default => null,
+        };
+    }
+
+    public function getShippingPhaseTextAttribute(): ?string
+    {
+        return match($this->shipping_phase) {
+            'preparing' => 'Đang chuẩn bị',
+            'shipping' => 'Đã vận chuyển',
+            'delivered' => 'Đã nhận',
+            'returned' => 'Trả hàng',
+            default => null,
+        };
+    }
+
+    public function getShippingPhaseBadgeClassAttribute(): ?string
+    {
+        return match($this->shipping_phase) {
+            'preparing' => 'badge-warning',
+            'shipping' => 'badge-info',
+            'delivered' => 'badge-success',
+            'returned' => 'badge-danger',
+            default => null,
         };
     }
 
