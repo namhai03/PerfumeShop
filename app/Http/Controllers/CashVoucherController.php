@@ -3,16 +3,17 @@
 namespace App\Http\Controllers;
 
 use App\Models\CashVoucher;
-use App\Models\CashAccount;
-use App\Models\Customer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class CashVoucherController extends Controller
 {
     public function index(Request $request)
     {
-        $query = CashVoucher::query()->with(['fromAccount', 'toAccount']);
+        $query = CashVoucher::query();
 
         if ($request->filled('type')) {
             $query->where('type', $request->type);
@@ -20,6 +21,7 @@ class CashVoucherController extends Controller
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
+        // account filters removed
         if ($request->filled('from_date')) {
             $query->whereDate('transaction_date', '>=', $request->from_date);
         }
@@ -42,74 +44,31 @@ class CashVoucherController extends Controller
         $perPage = $request->get('per_page', 20);
         $vouchers = $query->paginate($perPage)->appends($request->query());
 
-        // Lấy tài khoản và khách hàng một cách an toàn
-        try {
-            $accounts = CashAccount::where('is_active', true)->get();
-        } catch (\Exception $e) {
-            $accounts = collect();
-        }
-
-        try {
-            $customers = Customer::where('is_active', true)->get();
-        } catch (\Exception $e) {
-            $customers = collect();
-        }
-
-        return view('cashbook.index', compact('vouchers', 'accounts', 'customers'));
+        return view('cashbook.index', compact('vouchers'));
     }
 
     public function create(Request $request)
     {
         $type = $request->get('type', 'receipt');
-        
-        // Lấy tài khoản và khách hàng một cách an toàn
-        try {
-            $accounts = CashAccount::where('is_active', true)->get();
-        } catch (\Exception $e) {
-            $accounts = collect();
-        }
-
-        try {
-            $customers = Customer::where('is_active', true)->get();
-        } catch (\Exception $e) {
-            $customers = collect();
-        }
-
-        return view('cashbook.create', compact('type', 'accounts', 'customers'));
+        return view('cashbook.create', compact('type'));
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'type' => 'required|in:receipt,payment,transfer',
+            'type' => 'required|in:receipt,payment',
             'amount' => 'required|numeric|min:0.01',
             'description' => 'required|string',
             'reason' => 'nullable|string',
-            'payer_group' => 'nullable|string',
             'payer_name' => 'nullable|string',
-            'payer_id' => 'nullable|integer',
-            'payer_type' => 'nullable|string',
-            // Ràng buộc theo nghiệp vụ
-            'from_account_id' => 'nullable|exists:cash_accounts,id|required_if:type,payment,transfer',
-            'to_account_id' => 'nullable|exists:cash_accounts,id|required_if:type,receipt,transfer|different:from_account_id',
-            'branch_id' => 'nullable|integer',
             'transaction_date' => 'required|date',
-            'reference' => 'nullable|string',
             'note' => 'nullable|string',
         ]);
 
         $validated['voucher_code'] = $this->generateVoucherCode($validated['type']);
         $validated['status'] = 'pending';
 
-        // Kiểm tra bổ sung cho chuyển quỹ: bắt buộc khác tài khoản và có đủ 2 phía
-        if ($validated['type'] === 'transfer') {
-            if (empty($validated['from_account_id']) || empty($validated['to_account_id'])) {
-                return back()->withInput()->with('error', 'Chuyển quỹ cần chọn đủ tài khoản nguồn và đích.');
-            }
-            if ((int)$validated['from_account_id'] === (int)$validated['to_account_id']) {
-                return back()->withInput()->with('error', 'Tài khoản nguồn và đích không được trùng nhau.');
-            }
-        }
+        // no transfer logic
 
         $voucher = CashVoucher::create($validated);
 
@@ -131,26 +90,13 @@ class CashVoucherController extends Controller
 
     public function show(CashVoucher $voucher)
     {
-        $voucher->load(['fromAccount', 'toAccount', 'attachments']);
+        $voucher->load(['attachments']);
         return view('cashbook.show', compact('voucher'));
     }
 
     public function edit(CashVoucher $voucher)
     {
-        // Lấy tài khoản và khách hàng một cách an toàn
-        try {
-            $accounts = CashAccount::where('is_active', true)->get();
-        } catch (\Exception $e) {
-            $accounts = collect();
-        }
-
-        try {
-            $customers = Customer::where('is_active', true)->get();
-        } catch (\Exception $e) {
-            $customers = collect();
-        }
-
-        return view('cashbook.edit', compact('voucher', 'accounts', 'customers'));
+        return view('cashbook.edit', compact('voucher'));
     }
 
     public function update(Request $request, CashVoucher $voucher)
@@ -159,27 +105,10 @@ class CashVoucherController extends Controller
             'amount' => 'required|numeric|min:0.01',
             'description' => 'required|string',
             'reason' => 'nullable|string',
-            'payer_group' => 'nullable|string',
             'payer_name' => 'nullable|string',
-            'payer_id' => 'nullable|integer',
-            'payer_type' => 'nullable|string',
-            // Cho phép cập nhật account theo nghiệp vụ hiện tại của phiếu
-            'from_account_id' => 'nullable|exists:cash_accounts,id' . ($voucher->type !== 'receipt' ? '|required' : ''),
-            'to_account_id' => 'nullable|exists:cash_accounts,id' . ($voucher->type !== 'payment' ? '|required' : ''),
-            'branch_id' => 'nullable|integer',
             'transaction_date' => 'required|date',
-            'reference' => 'nullable|string',
             'note' => 'nullable|string',
         ]);
-
-        if ($voucher->type === 'transfer') {
-            if (empty($validated['from_account_id']) || empty($validated['to_account_id'])) {
-                return back()->withInput()->with('error', 'Chuyển quỹ cần chọn đủ tài khoản nguồn và đích.');
-            }
-            if ((int)($validated['from_account_id'] ?? 0) === (int)($validated['to_account_id'] ?? -1)) {
-                return back()->withInput()->with('error', 'Tài khoản nguồn và đích không được trùng nhau.');
-            }
-        }
 
         $voucher->update($validated);
 
@@ -192,12 +121,78 @@ class CashVoucherController extends Controller
         return redirect()->route('cashbook.index')->with('success', 'Đã xóa phiếu thành công.');
     }
 
+    public function approve(Request $request, CashVoucher $voucher)
+    {
+        if ($voucher->status !== 'pending') {
+            return back()->with('error', 'Chỉ có thể duyệt phiếu ở trạng thái Chờ duyệt.');
+        }
+
+        $voucher->status = 'approved';
+        $voucher->approved_by = Auth::id();
+        $voucher->approved_at = now();
+        $voucher->save();
+        return back()->with('success', 'Đã duyệt phiếu thành công.');
+    }
+
+    public function cancel(Request $request, CashVoucher $voucher)
+    {
+        if ($voucher->status === 'cancelled') {
+            return back()->with('error', 'Phiếu đã ở trạng thái Hủy.');
+        }
+
+        $voucher->status = 'cancelled';
+        $voucher->save();
+        return back()->with('success', 'Đã hủy phiếu thành công.');
+    }
+
+    public function export(Request $request): StreamedResponse
+    {
+        $query = CashVoucher::query();
+
+        if ($request->filled('type')) { $query->where('type', $request->type); }
+        if ($request->filled('status')) { $query->where('status', $request->status); }
+        if ($request->filled('from_date')) { $query->whereDate('transaction_date', '>=', $request->from_date); }
+        if ($request->filled('to_date')) { $query->whereDate('transaction_date', '<=', $request->to_date); }
+        // account filters removed
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('voucher_code', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%")
+                  ->orWhere('payer_name', 'like', "%{$search}%");
+            });
+        }
+
+        $filename = 'cashbook_' . now()->format('Ymd_His') . '.csv';
+
+        return response()->streamDownload(function() use ($query) {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, ['Mã phiếu', 'Loại', 'Số tiền', 'Ngày giao dịch', 'Trạng thái', 'Tên người gửi', 'Mô tả']);
+            $query->orderBy('transaction_date', 'desc')->chunk(500, function($rows) use ($handle) {
+                foreach ($rows as $v) {
+                    fputcsv($handle, [
+                        $v->voucher_code,
+                        $v->type,
+                        (float)$v->amount,
+                        optional($v->transaction_date)->format('Y-m-d'),
+                        $v->status,
+                        $v->payer_name,
+                        $v->description,
+                    ]);
+                }
+            });
+            fclose($handle);
+        }, $filename, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Cache-Control' => 'no-store, no-cache',
+        ]);
+    }
+
     private function generateVoucherCode($type)
     {
         $prefix = match($type) {
             'receipt' => 'PT',
             'payment' => 'PC',
-            'transfer' => 'CQ',
             default => 'PH'
         };
 

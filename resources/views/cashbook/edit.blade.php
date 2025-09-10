@@ -37,33 +37,10 @@
                 </div>
             </div>
 
-            @if($voucher->type == 'receipt' || $voucher->type == 'payment')
                 <div style="display: flex; gap: 12px;">
                     <div class="form-group" style="flex: 1;">
-                        <label class="form-label">Nhóm đối tượng*</label>
-                        <select name="payer_group" class="form-control" required>
-                            <option value="">Chọn nhóm</option>
-                            <option value="customer" {{ $voucher->payer_group == 'customer' ? 'selected' : '' }}>Khách hàng</option>
-                            <option value="supplier" {{ $voucher->payer_group == 'supplier' ? 'selected' : '' }}>Nhà cung cấp</option>
-                            <option value="employee" {{ $voucher->payer_group == 'employee' ? 'selected' : '' }}>Nhân viên</option>
-                            <option value="other" {{ $voucher->payer_group == 'other' ? 'selected' : '' }}>Khác</option>
-                        </select>
-                    </div>
-                    <div class="form-group" style="flex: 1;">
-                        <label class="form-label">Đối tượng</label>
-                        <select name="payer_id" class="form-control">
-                            <option value="">Chọn đối tượng</option>
-                            @foreach($customers as $customer)
-                                <option value="{{ $customer->id }}" {{ $voucher->payer_id == $customer->id ? 'selected' : '' }}>{{ $customer->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                </div>
-
-                <div style="display: flex; gap: 12px;">
-                    <div class="form-group" style="flex: 1;">
-                        <label class="form-label">Lý do*</label>
-                        <select name="reason" class="form-control" required>
+                        <label class="form-label">Lý do</label>
+                        <select name="reason" class="form-control">
                             <option value="">Chọn lý do</option>
                             @if($voucher->type == 'receipt')
                                 <option value="thanh_toan_hang" {{ $voucher->reason == 'thanh_toan_hang' ? 'selected' : '' }}>Thanh toán hàng</option>
@@ -82,42 +59,6 @@
                         <input type="number" name="amount" class="form-control" placeholder="Nhập giá trị" value="{{ $voucher->amount }}" required>
                     </div>
                 </div>
-            @else
-                <div style="display: flex; gap: 12px;">
-                    <div class="form-group" style="flex: 1;">
-                        <label class="form-label">Chuyển từ*</label>
-                        <select name="from_account_id" class="form-control" required>
-                            <option value="">Chọn tài khoản</option>
-                            @foreach($accounts as $account)
-                                <option value="{{ $account->id }}" {{ $voucher->from_account_id == $account->id ? 'selected' : '' }}>{{ $account->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="form-group" style="flex: 1;">
-                        <label class="form-label">Chuyển đến*</label>
-                        <select name="to_account_id" class="form-control" required>
-                            <option value="">Chọn tài khoản</option>
-                            @foreach($accounts as $account)
-                                <option value="{{ $account->id }}" {{ $voucher->to_account_id == $account->id ? 'selected' : '' }}>{{ $account->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                </div>
-
-                <div style="display: flex; gap: 12px;">
-                    <div class="form-group" style="flex: 1;">
-                        <label class="form-label">Chi nhánh*</label>
-                        <select name="branch_id" class="form-control" required>
-                            <option value="">Chọn chi nhánh</option>
-                            <option value="1" {{ $voucher->branch_id == 1 ? 'selected' : '' }}>Chi nhánh chính</option>
-                        </select>
-                    </div>
-                    <div class="form-group" style="flex: 1;">
-                        <label class="form-label">Giá trị*</label>
-                        <input type="number" name="amount" class="form-control" placeholder="Nhập giá trị" value="{{ $voucher->amount }}" required>
-                    </div>
-                </div>
-            @endif
 
             <div class="form-group">
                 <label class="form-label">Diễn giải*</label>
@@ -142,9 +83,15 @@
                 </div>
             </div>
 
-            <div class="form-group">
-                <label class="form-label">Ghi chú</label>
-                <textarea name="note" rows="3" class="form-control" placeholder="Nhập ghi chú">{{ $voucher->note }}</textarea>
+            <div style="display: flex; gap: 12px;">
+                <div class="form-group" style="flex: 1;">
+                    <label class="form-label">Tên người gửi</label>
+                    <input type="text" name="payer_name" class="form-control" value="{{ $voucher->payer_name }}" placeholder="Nhập tên người gửi">
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label class="form-label">Ghi chú</label>
+                    <input type="text" name="note" class="form-control" value="{{ $voucher->note }}" placeholder="Nhập ghi chú">
+                </div>
             </div>
         </div>
     </form>

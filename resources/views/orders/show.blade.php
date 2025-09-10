@@ -9,11 +9,11 @@
             <p style="color: #718096; margin-top: 8px;">{{ $order->order_number }}</p>
         </div>
         <div style="display: flex; gap: 12px;">
-            <a href="{{ route('orders.edit', $order->id) }}" class="btn btn-outline" style="font-size: 13px; padding: 8px 16px;">
+            <a href="{{ route('orders.edit', ['order' => $order->id, 'return' => request('return') ?? url()->previous()]) }}" class="btn btn-outline" style="font-size: 13px; padding: 8px 16px;">
                 <i class="fas fa-edit"></i>
                 Chỉnh sửa
             </a>
-            <a href="{{ route('orders.index') }}" class="btn btn-outline" style="font-size: 13px; padding: 8px 16px;">
+            <a href="{{ request('return') ?: route('orders.index') }}" class="btn btn-outline" style="font-size: 13px; padding: 8px 16px;">
                 <i class="fas fa-arrow-left"></i>
                 Quay lại
             </a>

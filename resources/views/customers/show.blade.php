@@ -70,12 +70,12 @@
                 <tbody>
                     @forelse($customer->orders()->orderByDesc('created_at')->limit(10)->get() as $order)
                         <tr>
-                            <td><a href="{{ route('orders.show', $order->id) }}" style="text-decoration:none; color:#2b6cb0;">{{ $order->order_number }}</a></td>
+                            <td><a href="{{ route('orders.show', ['order' => $order->id, 'return' => request()->fullUrl()]) }}" style="text-decoration:none; color:#2b6cb0;">{{ $order->order_number }}</a></td>
                             <td>{{ $order->created_at?->format('d/m/Y H:i') }}</td>
                             <td><span class="px-2 py-1 rounded-md text-xs font-medium {{ $order->status_badge_class }}">{{ $order->status_text }}</span></td>
                             <td>{{ number_format((float)$order->total_amount, 0, ',', '.') }} đ</td>
                             <td style="font-weight:600; color:#2d3748;">{{ number_format((float)$order->final_amount, 0, ',', '.') }} đ</td>
-                            <td><a class="btn btn-outline" href="{{ route('orders.show', $order->id) }}" style="padding:6px 10px; font-size:12px;">Xem</a></td>
+                           
                         </tr>
                     @empty
                         <tr>

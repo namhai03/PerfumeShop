@@ -12,6 +12,10 @@
                 <i class="fas fa-plus"></i>
                 Tạo phiếu
             </a>
+            <a href="{{ route('cashbook.export', request()->query()) }}" class="btn btn-outline" style="font-size: 13px; padding: 8px 16px;">
+                <i class="fas fa-file-export"></i>
+                Xuất CSV
+            </a>
             <a href="{{ route('cashbook.accounts.index') }}" class="btn btn-outline" style="font-size: 13px; padding: 8px 16px;">
                 <i class="fas fa-university"></i>
                 Tài khoản
@@ -38,23 +42,55 @@
     <!-- Search and Filter -->
     <form method="GET" action="{{ route('cashbook.index') }}" id="filterForm">
         <div class="card">
-            <div class="search-filter-section" style="display: flex; gap: 16px; align-items: center; flex-wrap: wrap;">
+            <div class="search-filter-section">
+                <!-- Search Bar -->
                 <div class="search-container" style="flex: 1; min-width: 300px;">
                     <div class="search-bar">
                         <i class="fas fa-search" style="color: #6c757d; margin-right: 12px;"></i>
-                        <input type="text" name="search" placeholder="Tìm theo mã phiếu, mô tả, người nộp" value="{{ request('search') }}" style="border: none; outline: none; width: 100%; background: none; font-size: 14px;">
+                        <input type="text"
+                               name="search"
+                               placeholder="Tìm theo mã phiếu, mô tả, người nộp"
+                               value="{{ request('search') }}"
+                               style="border: none; outline: none; width: 100%; background: none; font-size: 14px;">
                     </div>
                 </div>
 
-                <div class="filters-container" style="display: flex; gap: 12px; flex-wrap: wrap;">
+                <!-- Filters -->
+                <div class="filters-container" style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
+                    <select name="type" class="filter-select">
+                        <option value="">Loại phiếu</option>
+                        <option value="receipt" {{ request('type') == 'receipt' ? 'selected' : '' }}>Phiếu thu</option>
+                        <option value="payment" {{ request('type') == 'payment' ? 'selected' : '' }}>Phiếu chi</option>
+                    </select>
                     <select name="status" class="filter-select">
                         <option value="">Trạng thái</option>
                         <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Chờ duyệt</option>
                         <option value="approved" {{ request('status') == 'approved' ? 'selected' : '' }}>Đã duyệt</option>
                         <option value="cancelled" {{ request('status') == 'cancelled' ? 'selected' : '' }}>Đã hủy</option>
                     </select>
-                    <input type="date" name="from_date" value="{{ request('from_date') }}" class="filter-select" placeholder="Từ ngày">
-                    <input type="date" name="to_date" value="{{ request('to_date') }}" class="filter-select" placeholder="Đến ngày">
+                    
+
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <label style="font-size: 13px; color: #4a5568; font-weight: 500; white-space: nowrap;">Từ ngày:</label>
+                        <input type="date" name="from_date" value="{{ request('from_date') }}" class="filter-select" style="min-width: 150px;">
+                    </div>
+
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <label style="font-size: 13px; color: #4a5568; font-weight: 500; white-space: nowrap;">Đến ngày:</label>
+                        <input type="date" name="to_date" value="{{ request('to_date') }}" class="filter-select" style="min-width: 150px;">
+                    </div>
+
+                    <button type="submit" class="btn btn-outline" style="font-size: 13px; padding: 8px 16px;">
+                        <i class="fas fa-filter"></i>
+                        Lọc
+                    </button>
+
+                    @if(request('type') || request('status') || request('account_id') || request('from_date') || request('to_date') || request('search'))
+                        <a href="{{ route('cashbook.index') }}" class="btn btn-outline" style="font-size: 13px; padding: 8px 16px; color: #e53e3e;">
+                            <i class="fas fa-times"></i>
+                            Xóa bộ lọc
+                        </a>
+                    @endif
                 </div>
             </div>
         </div>
@@ -70,8 +106,7 @@
                         <th>Loại</th>
                         <th>Số tiền</th>
                         <th>Mô tả</th>
-                        <th>Người nộp</th>
-                        <th>Tài khoản</th>
+                        <th>Người gửi</th>
                         <th>Ngày</th>
                         <th>Trạng thái</th>
                         <th></th>
@@ -90,9 +125,15 @@
                                 </span>
                             </td>
                             <td>
-                                <div style="font-weight: 600; color: #2c3e50; {{ $voucher->type == 'receipt' ? 'color: #16a34a' : 'color: #dc2626' }}">
-                                    {{ $voucher->type == 'receipt' ? '+' : '-' }}{{ number_format((float)$voucher->amount, 0, ',', '.') }} đ
-                                </div>
+                                @if($voucher->type == 'receipt')
+                                    <div style="font-weight: 600; color: #16a34a;">
+                                        +{{ number_format((float)$voucher->amount, 0, ',', '.') }} đ
+                                    </div>
+                                @else
+                                    <div style="font-weight: 600; color: #dc2626;">
+                                        -{{ number_format((float)$voucher->amount, 0, ',', '.') }} đ
+                                    </div>
+                                @endif
                             </td>
                             <td class="product-name">
                                 <div style="font-weight: 500; color: #4a5568;">{{ $voucher->description }}</div>
@@ -102,15 +143,6 @@
                             </td>
                             <td>
                                 <div style="font-size: 14px; color: #4a5568;">{{ $voucher->payer_name ?? '-' }}</div>
-                                <div style="font-size: 12px; color: #718096;">{{ $voucher->payer_group ?? '-' }}</div>
-                            </td>
-                            <td>
-                                @if($voucher->type == 'transfer')
-                                    <div style="font-size: 12px; color: #718096;">Từ: {{ $voucher->fromAccount?->name ?? '-' }}</div>
-                                    <div style="font-size: 12px; color: #718096;">Đến: {{ $voucher->toAccount?->name ?? '-' }}</div>
-                                @else
-                                    <div style="font-size: 14px; color: #4a5568;">{{ $voucher->fromAccount?->name ?? $voucher->toAccount?->name ?? '-' }}</div>
-                                @endif
                             </td>
                             <td>
                                 <div style="font-size: 14px; color: #4a5568;">{{ $voucher->transaction_date?->format('d/m/Y') }}</div>
@@ -185,4 +217,83 @@
         });
     });
 </script>
+@endpush
+
+@push('styles')
+<style>
+    .search-filter-section {
+        padding: 20px;
+        display: flex;
+        gap: 16px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .search-bar {
+        display: flex;
+        align-items: center;
+        background: #f7fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 12px 16px;
+        transition: all 0.2s ease;
+    }
+
+    .search-bar:focus-within {
+        border-color: #4299e1;
+        box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+        background: #fff;
+    }
+
+    .filter-select {
+        padding: 8px 12px;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        background: #fff;
+        font-size: 13px;
+        color: #4a5568;
+        min-width: 140px;
+    }
+
+    .filter-select:focus {
+        outline: none;
+        border-color: #4299e1;
+        box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+    }
+
+    .per-page-select {
+        padding: 6px 12px;
+        border: 1px solid #e2e8f0;
+        border-radius: 4px;
+        background: #fff;
+        font-size: 13px;
+        color: #4a5568;
+    }
+
+    .per-page-select:focus {
+        outline: none;
+        border-color: #4299e1;
+    }
+
+    .pagination-arrow {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 6px;
+        color: #4a5568;
+        text-decoration: none;
+        transition: all 0.2s ease;
+    }
+
+    .pagination-arrow:hover:not(.disabled) {
+        background-color: #f7fafc;
+        color: #4299e1;
+    }
+
+    .pagination-arrow.disabled {
+        cursor: not-allowed;
+    }
+</style>
 @endpush

@@ -230,7 +230,7 @@
                                         {{ $m->note }}
                                         @if($m->order)
                                             <div style="font-size:11px; color:#3b82f6;">
-                                                <a href="{{ route('orders.show', $m->order->id) }}" style="text-decoration:none;">
+                                                <a href="{{ route('orders.show', ['order' => $m->order->id, 'return' => request()->fullUrl()]) }}" style="text-decoration:none;">
                                                     Đơn hàng: {{ $m->order->order_number }}
                                                 </a>
                                             </div>

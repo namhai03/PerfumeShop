@@ -11,8 +11,23 @@
             <h1 class="page-title">Chi tiết phiếu</h1>
         </div>
         <div style="display: flex; gap: 12px;">
+            @if($voucher->status === 'pending')
+                <form action="{{ route('cashbook.approve', $voucher->id) }}" method="POST" style="display:inline;">
+                    @csrf
+                    <button class="btn btn-primary" onclick="return confirm('Duyệt phiếu này?');">Duyệt</button>
+                </form>
+                <form action="{{ route('cashbook.cancel', $voucher->id) }}" method="POST" style="display:inline;">
+                    @csrf
+                    <button class="btn btn-danger" onclick="return confirm('Hủy phiếu này?');">Hủy</button>
+                </form>
+            @elseif($voucher->status === 'approved')
+                <form action="{{ route('cashbook.cancel', $voucher->id) }}" method="POST" style="display:inline;">
+                    @csrf
+                    <button class="btn btn-danger" onclick="return confirm('Hủy phiếu đã duyệt? Sẽ hoàn tác số dư.');">Hủy</button>
+                </form>
+            @endif
             <a href="{{ route('cashbook.edit', $voucher->id) }}" class="btn btn-outline">Sửa</a>
-            <a href="{{ route('cashbook.index') }}" class="btn btn-primary">Quay lại</a>
+            <a href="{{ route('cashbook.index') }}" class="btn btn-outline">Quay lại</a>
         </div>
     </div>
 
@@ -39,9 +54,11 @@
         <div style="display: flex; gap: 12px; margin-bottom: 16px;">
             <div style="flex: 1;">
                 <label style="font-weight: 600; color: #4a5568;">Số tiền:</label>
-                <div style="font-size: 18px; font-weight: 600; color: {{ $voucher->type == 'receipt' ? '#16a34a' : '#dc2626' }};">
-                    {{ $voucher->type == 'receipt' ? '+' : '-' }}{{ number_format((float)$voucher->amount, 0, ',', '.') }} đ
-                </div>
+                @if($voucher->type == 'receipt')
+                    <div style="font-size: 18px; font-weight: 600; color: #16a34a;">+{{ number_format((float)$voucher->amount, 0, ',', '.') }} đ</div>
+                @else
+                    <div style="font-size: 18px; font-weight: 600; color: #dc2626;">-{{ number_format((float)$voucher->amount, 0, ',', '.') }} đ</div>
+                @endif
             </div>
             <div style="flex: 1;">
                 <label style="font-weight: 600; color: #4a5568;">Ngày giao dịch:</label>
@@ -67,26 +84,14 @@
 
         @if($voucher->payer_name)
         <div style="margin-bottom: 16px;">
-            <label style="font-weight: 600; color: #4a5568;">Người nộp/nhận:</label>
+            <label style="font-weight: 600; color: #4a5568;">Tên người gửi:</label>
             <div style="font-size: 16px; color: #2c3e50;">{{ $voucher->payer_name }}</div>
         </div>
         @endif
 
-        @if($voucher->type == 'transfer')
-        <div style="margin-bottom: 16px;">
-            <label style="font-weight: 600; color: #4a5568;">Tài khoản:</label>
-            <div style="font-size: 16px; color: #2c3e50;">
-                Từ: {{ $voucher->fromAccount?->name ?? '-' }} → Đến: {{ $voucher->toAccount?->name ?? '-' }}
-            </div>
-        </div>
-        @endif
+        
 
-        @if($voucher->reference)
-        <div style="margin-bottom: 16px;">
-            <label style="font-weight: 600; color: #4a5568;">Tham chiếu:</label>
-            <div style="font-size: 16px; color: #2c3e50;">{{ $voucher->reference }}</div>
-        </div>
-        @endif
+        
 
         @if($voucher->note)
         <div style="margin-bottom: 16px;">

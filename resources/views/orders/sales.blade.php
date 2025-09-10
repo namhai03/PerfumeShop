@@ -94,7 +94,7 @@
                     @forelse($orders as $order)
                         <tr>
                             <td>
-                                <a href="{{ route('orders.show', $order->id) }}" class="order-number">
+                                <a href="{{ route('orders.show', ['order' => $order->id, 'return' => request()->fullUrl()]) }}" class="order-number">
                                     {{ $order->order_number }}
                                 </a>
                             </td>
@@ -125,10 +125,10 @@
                             </td>
                             <td>
                                 <div class="order-actions">
-                                    <a href="{{ route('orders.show', $order->id) }}" class="btn btn-outline" title="Xem chi tiết">
+                                    <a href="{{ route('orders.show', ['order' => $order->id, 'return' => request()->fullUrl()]) }}" class="btn btn-outline" title="Xem chi tiết">
                                         <i class="fas fa-eye"></i>
                                     </a>
-                                    <a href="{{ route('orders.edit', $order->id) }}" class="btn btn-outline" title="Chỉnh sửa">
+                                    <a href="{{ route('orders.edit', ['order' => $order->id, 'return' => request()->fullUrl()]) }}" class="btn btn-outline" title="Chỉnh sửa">
                                         <i class="fas fa-edit"></i>
                                     </a>
                                     <form action="{{ route('orders.destroy', $order->id) }}" method="POST" style="display: inline;" onsubmit="return confirm('Bạn có chắc muốn xóa đơn hàng này?')">

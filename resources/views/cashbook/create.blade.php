@@ -24,7 +24,7 @@
             </div>
             <div class="form-group" style="max-width: 360px;">
                 <label class="form-label">Chọn loại phiếu*</label>
-                <select class="form-control" name="type" required>
+                <select class="form-control" name="type" id="voucherType" required>
                     <option value="">-- Chọn --</option>
                     <option value="receipt" {{ ($type ?? request('type')) == 'receipt' ? 'selected' : '' }}>Phiếu thu</option>
                     <option value="payment" {{ ($type ?? request('type')) == 'payment' ? 'selected' : '' }}>Phiếu chi</option>
@@ -49,6 +49,21 @@
                 </div>
             </div>
 
+            <div style="display: flex; gap: 12px;">
+                <div class="form-group" style="flex: 1;">
+                    <label class="form-label">Tên người gửi</label>
+                    <input type="text" name="payer_name" class="form-control" placeholder="Nhập tên người gửi">
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label class="form-label">Lý do</label>
+                    <select name="reason" id="reason" class="form-control">
+                        <option value="">Chọn lý do</option>
+                    </select>
+                </div>
+            </div>
+
+            
+
             <div class="form-group">
                 <label class="form-label">Diễn giải*</label>
                 <textarea name="description" rows="3" class="form-control" placeholder="Nhập diễn giải" required></textarea>
@@ -58,34 +73,11 @@
                 <label class="form-label">Ghi chú</label>
                 <textarea name="note" rows="2" class="form-control" placeholder="Nhập ghi chú"></textarea>
             </div>
+
+            
         </div>
 
-        <!-- Tài khoản theo loại phiếu -->
-        <div class="card">
-            <div class="card-header">
-                <h3>Tài khoản</h3>
-            </div>
-            <div style="display: flex; gap: 12px;">
-                <div class="form-group" style="flex: 1;">
-                    <label class="form-label">Từ tài khoản</label>
-                    <select name="from_account_id" class="form-control">
-                        <option value="">Chọn tài khoản nguồn</option>
-                        @foreach($accounts as $account)
-                            <option value="{{ $account->id }}">{{ $account->name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="form-group" style="flex: 1;">
-                    <label class="form-label">Đến tài khoản</label>
-                    <select name="to_account_id" class="form-control">
-                        <option value="">Chọn tài khoản đích</option>
-                        @foreach($accounts as $account)
-                            <option value="{{ $account->id }}">{{ $account->name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-            </div>
-        </div>
+        <!-- Bỏ hạch toán tài khoản theo yêu cầu -->
 
         <div class="card">
             <div class="card-header">
@@ -98,3 +90,39 @@
         </div>
     </form>
 @endsection
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+    const typeSelect = document.getElementById('voucherType');
+    const reasonSelect = document.getElementById('reason');
+
+    function populateReasons(type){
+        const map = {
+            receipt: [
+                {v:'thanh_toan_hang', t:'Thanh toán hàng'},
+                {v:'hoan_tien', t:'Hoàn tiền'},
+                {v:'thu_no', t:'Thu nợ'},
+                {v:'khac', t:'Khác'}
+            ],
+            payment: [
+                {v:'mua_hang', t:'Mua hàng'},
+                {v:'luong', t:'Lương'},
+                {v:'chi_phi', t:'Chi phí'},
+                {v:'khac', t:'Khác'}
+            ]
+        };
+        reasonSelect.innerHTML = '<option value="">Chọn lý do</option>' + (map[type]||[]).map(o=>`<option value="${o.v}">${o.t}</option>`).join('');
+    }
+
+    function applyTypeUI(){
+        const type = typeSelect.value;
+        // chỉ còn receipt/payment
+        populateReasons(type || 'receipt');
+    }
+
+    typeSelect.addEventListener('change', applyTypeUI);
+    applyTypeUI();
+});
+</script>
+@endpush

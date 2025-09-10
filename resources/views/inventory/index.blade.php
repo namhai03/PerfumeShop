@@ -6,7 +6,7 @@
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
         <div>
             <h1 class="page-title">Quản lý kho</h1>
-            <p style="color: #6c757d; margin: 4px 0 0 0; font-size: 14px;">Theo dõi tồn kho và quản lý nhập xuất hàng</p>
+            
         </div>
         <div style="display: flex; gap: 12px;">
             <button onclick="openExportModal()" class="btn btn-outline" style="font-size: 13px; padding: 8px 16px;">
@@ -66,7 +66,7 @@
                 <i class="fas fa-search" style="color: #6c757d; margin-right: 12px;"></i>
                         <input type="text" 
                                name="search" 
-                               placeholder="Tìm kiếm theo tên sản phẩm, SKU, barcode"
+                               placeholder="Tìm kiếm theo tên sản phẩm, SKU"
                                value="{{ request('search') }}"
                                style="border: none; outline: none; width: 100%; background: none; font-size: 14px;">
                     </div>

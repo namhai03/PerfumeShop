@@ -58,10 +58,13 @@ Route::resource('customer-groups', CustomerGroupController::class)->whereNumber(
 Route::get('cashbook', [CashVoucherController::class, 'index'])->name('cashbook.index');
 Route::get('cashbook/create', [CashVoucherController::class, 'create'])->name('cashbook.create');
 Route::post('cashbook', [CashVoucherController::class, 'store'])->name('cashbook.store');
+Route::get('cashbook/export', [CashVoucherController::class, 'export'])->name('cashbook.export');
 Route::get('cashbook/{voucher}', [CashVoucherController::class, 'show'])->name('cashbook.show')->whereNumber('voucher');
 Route::get('cashbook/{voucher}/edit', [CashVoucherController::class, 'edit'])->name('cashbook.edit')->whereNumber('voucher');
 Route::put('cashbook/{voucher}', [CashVoucherController::class, 'update'])->name('cashbook.update')->whereNumber('voucher');
 Route::delete('cashbook/{voucher}', [CashVoucherController::class, 'destroy'])->name('cashbook.destroy')->whereNumber('voucher');
+Route::post('cashbook/{voucher}/approve', [CashVoucherController::class, 'approve'])->name('cashbook.approve')->whereNumber('voucher');
+Route::post('cashbook/{voucher}/cancel', [CashVoucherController::class, 'cancel'])->name('cashbook.cancel')->whereNumber('voucher');
 
 // Cash Accounts - Sửa để không bị nested resource
 Route::get('cashbook/accounts', [CashAccountController::class, 'index'])->name('cashbook.accounts.index');
