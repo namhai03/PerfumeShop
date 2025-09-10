@@ -38,6 +38,10 @@ Route::delete('categories/{category}/remove-product', [CategoryController::class
 // Inventory
 Route::get('inventory', [InventoryController::class, 'index'])->name('inventory.index');
 Route::get('inventory/history', [InventoryController::class, 'history'])->name('inventory.history');
+Route::get('inventory/export', [InventoryController::class, 'export'])->name('inventory.export');
+Route::post('inventory/import', [InventoryController::class, 'import'])->name('inventory.import');
+Route::get('inventory/import/template', [InventoryController::class, 'downloadImportTemplate'])->name('inventory.import.template');
+Route::get('inventory/{product}/export-history', [InventoryController::class, 'exportHistory'])->name('inventory.export-history')->whereNumber('product');
 Route::post('inventory/{product}/adjust', [InventoryController::class, 'adjust'])->name('inventory.adjust');
 Route::get('inventory/{product}', [InventoryController::class, 'show'])->name('inventory.show')->whereNumber('product');
 

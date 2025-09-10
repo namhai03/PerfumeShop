@@ -60,7 +60,18 @@
                            value="{{ old('customer_name') }}" placeholder="Nhập tên khách hàng" required>
                 </div>
 
-                
+                <div class="form-group">
+                    <label class="form-label">Nhóm khách hàng</label>
+                    <select name="customer_group_id" id="customer_group_id" class="form-control">
+                        <option value="">-- Không --</option>
+                        @isset($groups)
+                            @foreach($groups as $g)
+                                <option value="{{ $g->id }}" data-rate="{{ $g->discount_rate ?? 0 }}" data-min="{{ $g->min_order_amount ?? 0 }}" data-max="{{ $g->max_discount_amount ?? '' }}">{{ $g->name }}</option>
+                            @endforeach
+                        @endisset
+                    </select>
+                </div>
+
 
                 <div class="form-group">
                     <label class="form-label">Trạng thái <span style="color: #e53e3e;">*</span></label>
@@ -205,6 +216,28 @@
                                min="0" step="0.01" value="{{ old('discount_amount', 0) }}" 
                                onchange="calculateTotal()">
                     </div>
+
+                    <div class="form-group" style="margin-top:12px;">
+                        <div style="border:1px dashed #cbd5e0; border-radius:8px; padding:12px; background:#f9fafb;">
+                            <div style="font-weight:600; margin-bottom:8px; color:#2d3748;">Chi tiết chiết khấu theo nhóm</div>
+                            <div style="font-size:13px; color:#4a5568; display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
+                                <div>Nhóm KH:</div>
+                                <div id="group_summary_name">-</div>
+                                <div>Tỷ lệ (%):</div>
+                                <div id="group_summary_rate">-</div>
+                                <div>Ngưỡng tối thiểu:</div>
+                                <div id="group_summary_min">-</div>
+                                <div>Giảm tối đa:</div>
+                                <div id="group_summary_cap">-</div>
+                                <div>Chiết khấu nhóm:</div>
+                                <div id="group_discount_value">0</div>
+                                <div>Giảm thủ công:</div>
+                                <div id="manual_discount_value">0</div>
+                                <div style="font-weight:600;">Tổng giảm:</div>
+                                <div id="total_discount_value" style="font-weight:600;">0</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 
                 <div>
@@ -319,15 +352,15 @@
 
                 // Decant variants with stock > 0 from embedded $products
                 const productId = parseInt(this.value, 10);
-                const productsData = @json($productsData);
+                const productsData = {!! json_encode($productsData) !!};
                 const productData = productsData.find(p => p.id === productId);
                 if (productData && productData.variants) {
-                    productData.variants.filter(v => (v.stock ?? 0) > 0).forEach(v => {
+                    productData.variants.filter(v => ((v.stock !== undefined && v.stock !== null) ? v.stock : 0) > 0).forEach(v => {
                         const opt = document.createElement('option');
                         opt.value = v.id;
-                        opt.textContent = `${v.sku ?? ''}`;
-                        opt.setAttribute('data-price', v.selling_price ?? 0);
-                        opt.setAttribute('data-stock', v.stock ?? 0);
+                        opt.textContent = (v.sku !== undefined && v.sku !== null) ? String(v.sku) : '';
+                        opt.setAttribute('data-price', (v.selling_price !== undefined && v.selling_price !== null) ? String(v.selling_price) : '0');
+                        opt.setAttribute('data-stock', (v.stock !== undefined && v.stock !== null) ? String(v.stock) : '0');
                         variantSelect.appendChild(opt);
                     });
                 }
@@ -392,18 +425,56 @@
             const price = parseFloat(item.querySelector('.price-input').value) || 0;
             totalAmount += quantity * price;
         });
-        
-        const discountAmount = parseFloat(document.getElementById('discount_amount').value) || 0;
+        // Tính chiết khấu nhóm
+        let groupDiscount = 0;
+        const groupSelect = document.getElementById('customer_group_id');
+        let groupName = '-';
+        let groupRate = '-';
+        let groupMinText = '-';
+        let groupCapText = '-';
+        if (groupSelect && groupSelect.value) {
+            const selected = groupSelect.options[groupSelect.selectedIndex];
+            groupName = selected.textContent || '-';
+            const rate = parseFloat(selected.getAttribute('data-rate') || '0');
+            const minOrder = parseFloat(selected.getAttribute('data-min') || '0');
+            const maxDiscount = parseFloat(selected.getAttribute('data-max') || '0');
+            groupRate = isNaN(rate) ? '-' : new Intl.NumberFormat('vi-VN').format(rate);
+            groupMinText = isNaN(minOrder) || !minOrder ? '-' : new Intl.NumberFormat('vi-VN').format(minOrder);
+            groupCapText = isNaN(maxDiscount) || !maxDiscount ? '-' : new Intl.NumberFormat('vi-VN').format(maxDiscount);
+            if (totalAmount >= (minOrder || 0) && rate > 0) {
+                groupDiscount = totalAmount * rate / 100;
+                if (!isNaN(maxDiscount) && maxDiscount > 0) {
+                    groupDiscount = Math.min(groupDiscount, maxDiscount);
+                }
+            }
+        }
+
+        const manualDiscount = parseFloat(document.getElementById('discount_amount').value) || 0;
+        const discountAmount = groupDiscount + manualDiscount;
         const finalAmount = totalAmount - discountAmount;
         
         document.getElementById('total_amount').value = new Intl.NumberFormat('vi-VN').format(totalAmount);
         document.getElementById('final_amount').value = new Intl.NumberFormat('vi-VN').format(finalAmount);
+        // Cập nhật hiển thị chi tiết nhóm
+        const nf = new Intl.NumberFormat('vi-VN');
+        const setText = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+        setText('group_summary_name', groupName);
+        setText('group_summary_rate', typeof groupRate === 'string' ? groupRate : nf.format(groupRate));
+        setText('group_summary_min', groupMinText);
+        setText('group_summary_cap', groupCapText);
+        setText('group_discount_value', nf.format(groupDiscount));
+        setText('manual_discount_value', nf.format(manualDiscount));
+        setText('total_discount_value', nf.format(discountAmount));
     }
 
     // Thêm event listeners cho sản phẩm đầu tiên
     document.addEventListener('DOMContentLoaded', function() {
         addProductEventListeners(document.querySelector('.product-item'));
         calculateTotal();
+        const groupSelect = document.getElementById('customer_group_id');
+        if (groupSelect) {
+            groupSelect.addEventListener('change', calculateTotal);
+        }
     });
 
     // Validation form

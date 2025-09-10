@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Order;
 use App\Models\Customer;
 use App\Models\Product;
+use App\Models\CustomerGroup;
 use App\Models\InventoryMovement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -67,8 +68,9 @@ class OrderController extends Controller
         $products = Product::with(['variants' => function($q){
             $q->orderBy('volume_ml');
         }])->orderBy('name')->get();
+        $groups = CustomerGroup::orderBy('name')->where('is_active', true)->get(['id','name','discount_rate','min_order_amount','max_discount_amount']);
         
-        return view('orders.create', compact('products'));
+        return view('orders.create', compact('products','groups'));
     }
 
     /**
@@ -114,7 +116,29 @@ class OrderController extends Controller
             $totalAmount += $item['quantity'] * $item['unit_price'];
         }
 
-        $discountAmount = $request->discount_amount ?? 0;
+        // Áp dụng chiết khấu nhóm khách hàng nếu chọn
+        $groupDiscount = 0;
+        $appliedGroupId = null;
+        if ($request->filled('customer_group_id')) {
+            $group = CustomerGroup::find($request->customer_group_id);
+            if ($group && $group->is_active) {
+                $appliedGroupId = $group->id;
+                // Điều kiện: min_order_amount
+                if (!$group->min_order_amount || $totalAmount >= $group->min_order_amount) {
+                    $rate = (float)($group->discount_rate ?? 0);
+                    if ($rate > 0) {
+                        $groupDiscount = round($totalAmount * ($rate / 100), 2);
+                        if ($group->max_discount_amount) {
+                            $groupDiscount = min($groupDiscount, (float)$group->max_discount_amount);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Cho phép nhập thêm giảm giá thủ công, nhưng không vượt quá tổng - groupDiscount
+        $manualDiscount = (float)($request->discount_amount ?? 0);
+        $discountAmount = $groupDiscount + $manualDiscount;
         $finalAmount = $totalAmount - $discountAmount;
 
         // Use database transaction to ensure data consistency
@@ -160,6 +184,7 @@ class OrderController extends Controller
                 'total_amount' => $totalAmount,
                 'discount_amount' => $discountAmount,
                 'final_amount' => $finalAmount,
+                'customer_group_id' => $appliedGroupId,
                 'notes' => $request->notes,
                 'order_date' => $request->order_date,
                 'delivery_date' => $request->delivery_date,

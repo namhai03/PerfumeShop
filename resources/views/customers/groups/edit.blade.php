@@ -22,9 +22,23 @@
                     <input type="number" min="0" name="priority" class="form-control" value="{{ $group->priority }}">
                 </div>
             </div>
+            <div style="display:flex; gap:12px;">
+                <div class="form-group" style="flex:1;">
+                    <label class="form-label">Đơn tối thiểu áp dụng</label>
+                    <input type="number" step="0.01" min="0" name="min_order_amount" class="form-control" value="{{ $group->min_order_amount }}" placeholder="VD: 500000">
+                </div>
+                <div class="form-group" style="flex:1;">
+                    <label class="form-label">Giới hạn mức giảm tối đa</label>
+                    <input type="number" step="0.01" min="0" name="max_discount_amount" class="form-control" value="{{ $group->max_discount_amount }}" placeholder="VD: 100000">
+                </div>
+            </div>
             <div class="form-group">
                 <label class="form-label">Mô tả</label>
                 <textarea name="description" rows="3" class="form-control">{{ $group->description }}</textarea>
+            </div>
+            <div style="display:flex; gap:16px;">
+                <label><input type="checkbox" name="is_active" value="1" {{ $group->is_active ? 'checked' : '' }}> Kích hoạt</label>
+                <label><input type="checkbox" name="is_default" value="1" {{ $group->is_default ? 'checked' : '' }}> Đặt làm nhóm mặc định</label>
             </div>
             <div style="display:flex; justify-content:flex-end; gap:12px;">
                 <a href="{{ route('customer-groups.index') }}" class="btn btn-outline">Hủy</a>

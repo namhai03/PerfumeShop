@@ -4,8 +4,18 @@
 
 @section('content')
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-        <h1 class="page-title">Quản lý kho: Cửa hàng chính</h1>
-        
+        <div>
+            <h1 class="page-title">Quản lý kho</h1>
+            <p style="color: #6c757d; margin: 4px 0 0 0; font-size: 14px;">Theo dõi tồn kho và quản lý nhập xuất hàng</p>
+        </div>
+        <div style="display: flex; gap: 12px;">
+            <button onclick="openExportModal()" class="btn btn-outline" style="font-size: 13px; padding: 8px 16px;">
+                <i class="fas fa-upload"></i>
+                Xuất file
+            </button>
+            
+            
+        </div>
     </div>
 
     @if(session('success'))
@@ -14,6 +24,7 @@
             {{ session('success') }}
         </div>
     @endif
+
     @if(session('error'))
         <div class="alert alert-danger">
             <i class="fas fa-exclamation-circle" style="margin-right: 8px;"></i>
@@ -21,140 +32,258 @@
         </div>
     @endif
 
-    <div class="card">
-        <div class="card-header inv-header">
-            <div class="tab-navigation" style="border-bottom:none;">
-                <div class="tab-list inv-tabs">
-                    <a href="{{ route('inventory.index', array_merge(request()->except('page'), ['tab' => 'tat_ca'])) }}" class="tab-item tab-all {{ $tab==='tat_ca' ? 'active' : '' }}">Tất cả</a>
-                    <a href="{{ route('inventory.index', array_merge(request()->except('page'), ['tab' => 'con_hang'])) }}" class="tab-item tab-in {{ $tab==='con_hang' ? 'active' : '' }}">Còn hàng</a>
-                    <a href="{{ route('inventory.index', array_merge(request()->except('page'), ['tab' => 'low_stock'])) }}" class="tab-item tab-low {{ $tab==='low_stock' ? 'active' : '' }}">Sắp hết</a>
-                    <a href="{{ route('inventory.index', array_merge(request()->except('page'), ['tab' => 'het_hang'])) }}" class="tab-item tab-out {{ $tab==='het_hang' ? 'active' : '' }}">Hết hàng</a>
-                </div>
-                
+    <!-- Tab Navigation -->
+    <div class="card" style="margin-bottom: 20px;">
+        <div class="tab-navigation">
+            <div class="tab-list">
+                <a href="{{ route('inventory.index', array_merge(request()->except('page'), ['tab' => 'tat_ca'])) }}" class="tab-item {{ $tab==='tat_ca' ? 'active' : '' }}">
+                    <i class="fas fa-list" style="margin-right: 6px;"></i>
+                    Tất cả
+                </a>
+                <a href="{{ route('inventory.index', array_merge(request()->except('page'), ['tab' => 'con_hang'])) }}" class="tab-item {{ $tab==='con_hang' ? 'active' : '' }}">
+                    <i class="fas fa-check-circle" style="margin-right: 6px;"></i>
+                    Còn hàng
+                </a>
+                <a href="{{ route('inventory.index', array_merge(request()->except('page'), ['tab' => 'low_stock'])) }}" class="tab-item {{ $tab==='low_stock' ? 'active' : '' }}">
+                    <i class="fas fa-exclamation-triangle" style="margin-right: 6px;"></i>
+                    Sắp hết
+                </a>
+                <a href="{{ route('inventory.index', array_merge(request()->except('page'), ['tab' => 'het_hang'])) }}" class="tab-item {{ $tab==='het_hang' ? 'active' : '' }}">
+                    <i class="fas fa-times-circle" style="margin-right: 6px;"></i>
+                    Hết hàng
+                </a>
+            </div>
             </div>
         </div>
 
-        <form method="GET" action="{{ route('inventory.index') }}" id="inventoryFilterForm" class="inv-toolbar">
-            <div class="search-bar inv-search">
+    <!-- Search and Filter Section -->
+    <form method="GET" action="{{ route('inventory.index') }}" id="filterForm">
+        <div class="card">
+            <div class="search-filter-section" style="display: flex; gap: 16px; align-items: center; flex-wrap: wrap;">
+                <!-- Search Bar -->
+                <div class="search-container" style="flex: 1; min-width: 300px;">
+                    <div class="search-bar">
                 <i class="fas fa-search" style="color: #6c757d; margin-right: 12px;"></i>
-                <input type="text" name="search" placeholder="Tìm kiếm theo tên sản phẩm, SKU" value="{{ request('search') }}" />
+                        <input type="text" 
+                               name="search" 
+                               placeholder="Tìm kiếm theo tên sản phẩm, SKU, barcode"
+                               value="{{ request('search') }}"
+                               style="border: none; outline: none; width: 100%; background: none; font-size: 14px;">
+                    </div>
             </div>
-            <div class="inv-controls">
-                <label>Danh mục</label>
-                <select name="category" class="form-control" onchange="this.form.submit()">
-                    <option value="">Tất cả</option>
-                    @foreach(($categories ?? []) as $cat)
-                        <option value="{{ $cat->id }}" {{ request('category')==$cat->id ? 'selected' : '' }}>{{ $cat->name }}</option>
+
+                <!-- Filters -->
+                <div class="filters-container" style="display: flex; gap: 12px; flex-wrap: wrap;">
+                    <select name="category" class="filter-select">
+                        <option value="">Danh mục</option>
+                        @foreach($categories as $category)
+                            <option value="{{ $category->id }}" {{ request('category') == $category->id ? 'selected' : '' }}>
+                                {{ $category->name }}
+                            </option>
                     @endforeach
                 </select>
+
+                    <select name="sort_by" class="filter-select">
+                        <option value="sku" {{ request('sort_by', 'sku') == 'sku' ? 'selected' : '' }}>Sắp xếp theo SKU</option>
+                        <option value="name" {{ request('sort_by') == 'name' ? 'selected' : '' }}>Sắp xếp theo tên</option>
+                        <option value="stock" {{ request('sort_by') == 'stock' ? 'selected' : '' }}>Sắp xếp theo tồn kho</option>
+                        <option value="selling_price" {{ request('sort_by') == 'selling_price' ? 'selected' : '' }}>Sắp xếp theo giá bán</option>
+                        <option value="import_price" {{ request('sort_by') == 'import_price' ? 'selected' : '' }}>Sắp xếp theo giá vốn</option>
+                </select>
+
+                    <select name="sort_order" class="filter-select">
+                        <option value="asc" {{ request('sort_order', 'asc') == 'asc' ? 'selected' : '' }}>Tăng dần</option>
+                        <option value="desc" {{ request('sort_order') == 'desc' ? 'selected' : '' }}>Giảm dần</option>
+                </select>
+
+                    <button type="button" class="btn btn-outline" style="padding: 8px 16px; font-size: 13px;" onclick="openAdvancedFilter()">
+                        <i class="fas fa-filter"></i>
+                        Bộ lọc khác
+                    </button>
+                </div>
             </div>
-            <div class="sort-group inv-controls">
-                <label>Sắp xếp</label>
-                <select name="sort_by" class="form-control" onchange="this.form.submit()">
-                    <option value="sku" {{ ($sortBy ?? '')==='sku' ? 'selected' : '' }}>SKU</option>
-                    <option value="name" {{ ($sortBy ?? '')==='name' ? 'selected' : '' }}>Tên</option>
-                    <option value="stock" {{ ($sortBy ?? '')==='stock' ? 'selected' : '' }}>Tồn kho</option>
-                    <option value="selling_price" {{ ($sortBy ?? '')==='selling_price' ? 'selected' : '' }}>Giá bán</option>
-                    <option value="import_price" {{ ($sortBy ?? '')==='import_price' ? 'selected' : '' }}>Giá vốn</option>
-                </select>
-                <select name="sort_order" class="form-control" onchange="this.form.submit()">
-                    <option value="asc" {{ ($sortOrder ?? '')==='asc' ? 'selected' : '' }}>Tăng dần</option>
-                    <option value="desc" {{ ($sortOrder ?? '')==='desc' ? 'selected' : '' }}>Giảm dần</option>
-                </select>
-            </div>
-            <div class="per-page inv-controls">
-                <label>Hiển thị</label>
-                <select name="per_page" class="form-control" onchange="this.form.submit()">
-                    <option value="20" {{ ($perPage ?? 20)==20 ? 'selected' : '' }}>20</option>
-                    <option value="50" {{ ($perPage ?? 20)==50 ? 'selected' : '' }}>50</option>
-                    <option value="100" {{ ($perPage ?? 20)==100 ? 'selected' : '' }}>100</option>
-                </select>
             </div>
         </form>
 
+    <!-- Inventory Table -->
+    <div class="card">
         <div class="table-container">
-            <table class="table inv-table">
+            <table class="table">
                 <thead>
                     <tr>
-                        <th>Ảnh</th>
                         <th>Sản phẩm</th>
-                        <th class="number">Tồn kho</th>
-                        <th class="number">Ngưỡng</th>
-                        <th class="number">Có thể bán</th>
-                        <th class="number">Giá bán</th>
-                        <th class="number">Giá vốn</th>
-                        <th class="number">Tổng giá vốn</th>
-                        <th class="number">Tổng giá bán</th>
+                        <th>Thương hiệu</th>
+                        <th>Tồn kho</th>
+                        <th>Giá bán</th>
+                        <th>Giá vốn</th>
+                        <th>Tổng giá vốn</th>
+                        <th>Tổng giá bán</th>
+                        <th>Thao tác</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse($products as $product)
                         <tr>
-                            <td>
-                                @if($product->image)
-                                    <img src="{{ $product->image }}" alt="{{ $product->name }}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 6px;">
+                            <td class="product-cell">
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    @php
+                                        $imgPath = null;
+                                        if (!empty($product->image)) {
+                                            $img = $product->image;
+                                            $isAbsolute = \Illuminate\Support\Str::startsWith($img, ['http://','https://']);
+                                            $isStorage = \Illuminate\Support\Str::startsWith($img, ['/storage/','storage/']);
+                                            $imgPath = $isAbsolute ? $img : ($isStorage ? $img : Storage::url($img));
+                                        }
+                                    @endphp
+                                    @if($imgPath)
+                                        <img src="{{ $imgPath }}" alt="{{ $product->name }}" style="width: 64px; height: 64px; object-fit: cover; border-radius: 10px; border:1px solid #e2e8f0;">
                                 @else
-                                    <div style="width: 40px; height: 40px; background-color: #f8f9fa; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #6c757d;">
+                                        <div style="width: 64px; height: 64px; background-color: #f8f9fa; border:1px solid #e2e8f0; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #6c757d;">
                                         <i class="fas fa-image"></i>
                                     </div>
                                 @endif
+                                    <div style="min-width: 0;">
+                                        <div class="product-name">
+                                            <a href="{{ route('inventory.show', $product->id) }}" style="color: inherit; text-decoration: none;">{{ $product->name }}</a>
+                                        </div>
+                                        <div class="product-sku">{{ $product->sku }}</div>
+                                        @if($product->barcode)
+                                            <div class="product-barcode" style="font-size: 12px; color: #6c757d; margin-top: 2px;">Barcode: {{ $product->barcode }}</div>
+                                        @endif
+                                        @if($product->categories->count() > 0)
+                                            <div class="product-category" style="font-size: 12px; color: #4299e1; margin-top: 2px;">
+                                                <i class="fas fa-tag" style="margin-right: 4px;"></i>
+                                                {{ $product->categories->pluck('name')->join(', ') }}
+                                            </div>
+                                        @endif
+                                        @if($product->concentration)
+                                            <div class="product-concentration" style="font-size: 12px; color: #6c757d; margin-top: 2px;">
+                                                <i class="fas fa-flask" style="margin-right: 4px;"></i>
+                                                {{ $product->concentration }}
+                                            </div>
+                                        @endif
+                                    </div>
+                                </div>
                             </td>
-                            <td class="product-name">
-                                <a href="{{ route('inventory.show', $product->id) }}" style="text-decoration:none; color:inherit; font-weight:600;">{{ $product->name }}</a>
-                                <div class="subtitle">SKU: {{ $product->sku }}</div>
+                            <td>
+                                <span style="font-size: 14px; color: #4a5568;">{{ $product->brand ?? '-' }}</span>
                             </td>
-                            <td class="number">
+                            <td>
                                 @php
                                     $isLow = ($product->low_stock_threshold ?? 5) > 0 && $product->stock > 0 && $product->stock <= ($product->low_stock_threshold ?? 5);
                                 @endphp
-                                <span class="chip {{ $product->stock > 0 ? ($isLow ? 'chip-warning' : 'chip-success') : 'chip-danger' }}">
-                                    {{ $product->stock }}
-                                </span>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span class="px-2 py-1 rounded-md text-xs font-medium {{ $product->stock > 0 ? ($isLow ? 'bg-yellow-50 text-yellow-700' : 'bg-green-50 text-green-700') : 'bg-red-50 text-red-700' }}">
+                                        {{ $product->stock }}
+                                    </span>
+                                    @if($isLow)
+                                        <i class="fas fa-exclamation-triangle" style="color: #f59e0b; font-size: 12px;" title="Sắp hết hàng (ngưỡng: {{ $product->low_stock_threshold ?? 5 }})"></i>
+                                    @elseif($product->stock <= 0)
+                                        <i class="fas fa-times-circle" style="color: #ef4444; font-size: 12px;" title="Hết hàng"></i>
+                                    @endif
+                                </div>
                             </td>
-                            <td class="number">{{ $product->low_stock_threshold ?? 5 }}</td>
-                            <td class="number">{{ $product->stock }}</td>
-                            <td class="number">{{ number_format((float)$product->selling_price, 0, ',', '.') }}₫</td>
-                            <td class="number">{{ number_format((float)$product->import_price, 0, ',', '.') }}₫</td>
+                            <td>
+                                <span style="font-weight:600; color:#2c7a7b;">{{ number_format($product->selling_price, 0, ',', '.') }} đ</span>
+                            </td>
+                            <td>
+                                <span style="font-weight:600; color:#4a5568;">{{ number_format($product->import_price, 0, ',', '.') }} đ</span>
+                            </td>
                             @php
                                 $rowCost = (float)($product->import_price ?? 0) * (int)($product->stock ?? 0);
                                 $rowRetail = (float)($product->selling_price ?? 0) * (int)($product->stock ?? 0);
                             @endphp
-                            <td class="number">{{ number_format($rowCost, 0, ',', '.') }}₫</td>
-                            <td class="number">{{ number_format($rowRetail, 0, ',', '.') }}₫</td>
+                            <td>
+                                <span style="font-weight:600; color:#4a5568;">{{ number_format($rowCost, 0, ',', '.') }} đ</span>
+                            </td>
+                            <td>
+                                <span style="font-weight:600; color:#2c7a7b;">{{ number_format($rowRetail, 0, ',', '.') }} đ</span>
+                            </td>
+                            <td>
+                                <div style="display: flex; gap: 4px;">
+                                    <button onclick="openAdjustModal({{ $product->id }}, '{{ str_replace("'", "\\'", $product->name) }}', 'import')" class="btn btn-sm btn-outline" title="Nhập kho">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                    <button onclick="openAdjustModal({{ $product->id }}, '{{ str_replace("'", "\\'", $product->name) }}', 'export')" class="btn btn-sm btn-outline" title="Xuất kho">
+                                        <i class="fas fa-minus"></i>
+                                    </button>
+                                    <button onclick="openAdjustModal({{ $product->id }}, '{{ str_replace("'", "\\'", $product->name) }}', 'adjust')" class="btn btn-sm btn-outline" title="Điều chỉnh">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                </div>
+                            </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="9" style="text-align:center; padding: 40px; color:#6c757d;">Chưa có sản phẩm</td>
+                            <td colspan="9" style="text-align: center; padding: 40px; color: #6c757d;">
+                                <div style="margin-bottom: 16px;">
+                                    <i class="fas fa-boxes" style="font-size: 32px; color: #dee2e6;"></i>
+                                </div>
+                                <div style="font-size: 16px; font-weight: 500; margin-bottom: 8px;">Chưa có sản phẩm nào</div>
+                                <div style="font-size: 14px;">Bắt đầu bằng cách thêm sản phẩm mới hoặc nhập danh sách từ file Excel.</div>
+                            </td>
                         </tr>
                     @endforelse
                 </tbody>
-                <tfoot>
-                    <tr>
-                        <td colspan="2"></td>
-                        <td class="number"><strong>{{ number_format($pageTotals['total_qty'] ?? 0, 0, ',', '.') }}</strong></td>
-                        <td></td>
-                        <td class="number"><strong>{{ number_format($pageTotals['total_qty'] ?? 0, 0, ',', '.') }}</strong></td>
-                        <td></td>
-                        <td></td>
-                        <td class="number"><strong>{{ number_format($pageTotals['total_cost'] ?? 0, 0, ',', '.') }}₫</strong></td>
-                        <td class="number"><strong>{{ number_format($pageTotals['total_retail'] ?? 0, 0, ',', '.') }}₫</strong></td>
-                    </tr>
-                </tfoot>
             </table>
         </div>
 
-        <div class="table-footer inv-footer">
-            <div class="inv-count">Từ {{ $products->firstItem() ?? 0 }} đến {{ $products->lastItem() ?? 0 }} trên tổng {{ $products->total() }}</div>
-            <div class="inv-summary">
-                <span>Toàn bộ kết quả: SL {{ number_format($overallTotals->total_qty ?? 0, 0, ',', '.') }}</span>
-                <span>• Tổng giá vốn {{ number_format($overallTotals->total_cost ?? 0, 0, ',', '.') }}₫</span>
-                <span>• Tổng giá bán {{ number_format($overallTotals->total_retail ?? 0, 0, ',', '.') }}₫</span>
+        <!-- Pagination and Display Options -->
+        <div class="table-footer" style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding-top: 20px; border-top: 1px solid #e2e8f0;">
+            <div class="pagination-info" style="color: #6c757d; font-size: 14px;">
+                Từ {{ $products->firstItem() ?? 0 }} đến {{ $products->lastItem() ?? 0 }} trên tổng {{ $products->total() }}
             </div>
-            <div class="pagination-controls">{{ $products->links('vendor.pagination.perfume') }}</div>
+            
+            <div class="display-options" style="display: flex; align-items: center; gap: 16px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 14px; color: #4a5568;">Hiển thị</span>
+                    <select name="per_page" class="per-page-select" onchange="this.form.submit()">
+                        <option value="20" {{ request('per_page', 20) == 20 ? 'selected' : '' }}>20</option>
+                        <option value="50" {{ request('per_page', 20) == 50 ? 'selected' : '' }}>50</option>
+                        <option value="100" {{ request('per_page', 20) == 100 ? 'selected' : '' }}>100</option>
+                    </select>
+                    <span style="font-size: 14px; color: #4a5568;">Kết quả</span>
+                </div>
+                
+                <div class="pagination-controls">
+                    @if($products->hasPages())
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            @if($products->onFirstPage())
+                                <span class="pagination-arrow disabled" style="color: #cbd5e0; cursor: not-allowed;">
+                                    <i class="fas fa-chevron-left"></i>
+                                </span>
+                            @else
+                                <a href="{{ $products->previousPageUrl() }}" class="pagination-arrow">
+                                    <i class="fas fa-chevron-left"></i>
+                                </a>
+                            @endif
+                            
+                            <span class="current-page" style="background-color: #4299e1; color: white; padding: 6px 12px; border-radius: 6px; font-weight: 500;">
+                                {{ $products->currentPage() }}
+                            </span>
+                            
+                            @if($products->hasMorePages())
+                                <a href="{{ $products->nextPageUrl() }}" class="pagination-arrow">
+                                    <i class="fas fa-chevron-right"></i>
+                                </a>
+                            @else
+                                <span class="pagination-arrow disabled" style="color: #cbd5e0; cursor: not-allowed;">
+                                    <i class="fas fa-chevron-right"></i>
+                                </span>
+                            @endif
+                        </div>
+                    @endif
+                </div>
+            </div>
         </div>
     </div>
 
-    <div class="modal" id="adjustModal" style="display:none;">
+    </div>
+
+
+
+    <!-- Adjust Modal -->
+    <div class="modal" id="adjustModal" style="display: none;">
         <div class="modal-content">
             <div class="modal-header">
                 <h3 id="adjustModalTitle">Cập nhật tồn kho</h3>
@@ -181,15 +310,17 @@
                     <label class="form-label">Ghi chú</label>
                     <textarea name="note" class="form-control" rows="3" placeholder="Ví dụ: Nhập bổ sung, kiểm kê, hàng hỏng..."></textarea>
                 </div>
-                <div style="display:flex; gap:12px; justify-content:flex-end;">
+                <div style="display: flex; gap: 12px; justify-content: flex-end;">
                     <button type="button" class="btn btn-outline" onclick="closeAdjustModal()">Đóng</button>
                     <button type="submit" class="btn btn-primary">Xác nhận</button>
                 </div>
             </form>
         </div>
     </div>
-    <div class="modal" id="globalModal" style="display:none;">
-        <div class="modal-content" style="max-width:560px;">
+
+    <!-- Global Modal -->
+    <div class="modal" id="globalModal" style="display: none;">
+        <div class="modal-content" style="max-width: 560px;">
             <div class="modal-header">
                 <h3 id="globalModalTitle">Giao dịch tồn kho</h3>
                 <span class="close" onclick="closeGlobalModal()">&times;</span>
@@ -217,11 +348,11 @@
                     <label class="form-label" id="globalQuantityLabel">Số lượng</label>
                     <input type="number" name="quantity" id="globalQuantity" class="form-control" required />
                 </div>
-                <div class="form-group" id="globalCostGroup" style="display:none;">
+                <div class="form-group" id="globalCostGroup" style="display: none;">
                     <label class="form-label">Giá nhập (đơn vị)</label>
                     <input type="number" step="0.01" name="unit_cost" class="form-control" />
                 </div>
-                <div class="form-group" id="globalSupplierGroup" style="display:none;">
+                <div class="form-group" id="globalSupplierGroup" style="display: none;">
                     <label class="form-label">Nhà cung cấp</label>
                     <input type="text" name="supplier" class="form-control" />
                 </div>
@@ -233,9 +364,140 @@
                     <label class="form-label">Ghi chú/Lý do</label>
                     <input type="text" name="note" class="form-control" placeholder="VD: nhập NCC A, xuất hủy hết hạn..." />
                 </div>
-                <div style="display:flex; gap:12px; justify-content:flex-end;">
+                <div style="display: flex; gap: 12px; justify-content: flex-end;">
                     <button type="button" class="btn btn-outline" onclick="closeGlobalModal()">Đóng</button>
                     <button type="submit" class="btn btn-primary">Xác nhận</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Advanced Filter Modal -->
+    <div class="modal" id="advancedFilterModal" style="display: none;">
+        <div class="modal-content" style="max-width: 640px;">
+            <div class="modal-header">
+                <h3>Bộ lọc khác</h3>
+                <span class="close" onclick="closeAdvancedFilter()">&times;</span>
+            </div>
+            <form method="GET" action="{{ route('inventory.index') }}">
+                <div class="form-group" style="display: flex; gap: 12px;">
+                    <div style="flex: 1;">
+                        <label class="form-label">Thương hiệu</label>
+                        <select name="brand" class="form-control">
+                            <option value="">-- Tất cả --</option>
+                            @foreach($brands as $brand)
+                                <option value="{{ $brand }}" {{ request('brand') == $brand ? 'selected' : '' }}>{{ $brand }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div style="flex: 1;">
+                        <label class="form-label">Nồng độ</label>
+                        <select name="concentration" class="form-control">
+                            <option value="">-- Tất cả --</option>
+                            @foreach(['Parfum','EDP','EDT','EDC','Mist'] as $opt)
+                                <option value="{{ $opt }}" {{ request('concentration') == $opt ? 'selected' : '' }}>{{ $opt }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group" style="display: flex; gap: 12px;">
+                    <div style="flex: 1;">
+                        <label class="form-label">Nhóm hương</label>
+                        <select name="fragrance_family" class="form-control">
+                            <option value="">-- Tất cả --</option>
+                            @foreach($fragranceFamilies as $opt)
+                                <option value="{{ $opt }}" {{ request('fragrance_family') == $opt ? 'selected' : '' }}>{{ $opt }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div style="flex: 1;">
+                        <label class="form-label">Giới tính</label>
+                        <select name="gender" class="form-control">
+                            <option value="">-- Tất cả --</option>
+                            @foreach($genders as $opt)
+                                <option value="{{ $opt }}" {{ request('gender') == $opt ? 'selected' : '' }}>{{ $opt }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group" style="display: flex; gap: 12px;">
+                    <div style="flex: 1;">
+                        <label class="form-label">Từ ngày tạo</label>
+                        <input type="date" name="created_from" value="{{ request('created_from') }}" class="form-control">
+                    </div>
+                    <div style="flex: 1;">
+                        <label class="form-label">Đến ngày tạo</label>
+                        <input type="date" name="created_to" value="{{ request('created_to') }}" class="form-control">
+                    </div>
+                </div>
+                <div style="display: flex; justify-content: space-between; gap: 12px;">
+                    <a href="{{ route('inventory.index') }}" class="btn btn-outline">Xóa hết bộ lọc</a>
+                    <div>
+                        <button type="button" class="btn btn-outline" onclick="closeAdvancedFilter()">Đóng</button>
+                        <button type="submit" class="btn btn-primary" style="margin-left: 8px;">Lọc</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Import Modal -->
+    <div class="modal" id="importModal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Nhập file tồn kho</h3>
+                <span class="close" onclick="closeImportModal()">&times;</span>
+            </div>
+            
+            <div style="background-color: #ebf8ff; padding: 12px; border-radius: 6px; margin-bottom: 16px; border-left: 3px solid #4299e1;">
+                <p style="margin: 0; color: #2b6cb0; font-size: 13px;">
+                    <i class="fas fa-info-circle" style="margin-right: 6px;"></i>
+                    <strong>Lưu ý:</strong> Khuyến nghị dùng CSV (.csv). Hệ thống sẽ cập nhật tồn kho theo SKU nếu có, hoặc tạo mới nếu chưa có.
+                </p>
+            </div>
+            
+            <form action="{{ route('inventory.import') }}" method="POST" enctype="multipart/form-data">
+                @csrf
+                <div class="form-group">
+                    <label for="file" class="form-label">Chọn file CSV hoặc Excel (.csv, .xlsx, .xls)</label>
+                    <input type="file" id="file" name="file" class="form-control" accept=".csv,.xlsx,.xls,.txt" required>
+                </div>
+                <div class="form-group" style="display:flex; justify-content: space-between; align-items:center;">
+                    <small style="color:#6c757d;">Bạn có thể tải file mẫu CSV tại đây để điền đúng định dạng.</small>
+                    <a href="{{ route('inventory.import.template') }}" class="btn btn-outline">Tải file mẫu (.csv)</a>
+                </div>
+                
+                <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                    <button type="button" class="btn btn-outline" onclick="closeImportModal()">Hủy</button>
+                    <button type="submit" class="btn btn-primary">Nhập file</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Export Modal -->
+    <div class="modal" id="exportModal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Xuất file tồn kho</h3>
+                <span class="close" onclick="closeExportModal()">&times;</span>
+            </div>
+            
+            <form action="{{ route('inventory.export') }}" method="GET">
+                <div class="form-group">
+                    <label class="form-label">Chọn định dạng xuất file</label>
+                    <div style="display: flex; gap: 12px; margin-top: 8px;">
+                        
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="radio" name="format" value="csv">
+                            <span>CSV (.csv)</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                    <button type="button" class="btn btn-outline" onclick="closeExportModal()">Hủy</button>
+                    <button type="submit" class="btn btn-primary">Xuất file</button>
                 </div>
             </form>
         </div>
@@ -244,6 +506,34 @@
 
 @push('scripts')
 <script>
+    // Search and filter functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.querySelector('input[name="search"]');
+        const filterSelects = document.querySelectorAll('.filter-select');
+        const filterForm = document.getElementById('filterForm');
+        
+        // Debounce search
+        let searchTimeout;
+        if (searchInput) {
+            searchInput.addEventListener('input', function() {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    filterForm.submit();
+                }, 500);
+            });
+        }
+        
+        // Filter change
+        filterSelects.forEach(select => {
+            select.addEventListener('change', function() {
+                filterForm.submit();
+            });
+        });
+    });
+
+    // Select all functionality removed - no more checkboxes
+
+    // Adjust Modal functions
     let currentProductId = null;
     function openAdjustModal(productId, productName, defaultType){
         currentProductId = productId;
@@ -255,9 +545,11 @@
         document.getElementById('adjustModal').style.display = 'block';
         updateQuantityLabel();
     }
+    
     function closeAdjustModal(){
         document.getElementById('adjustModal').style.display = 'none';
     }
+    
     document.getElementById('adjustType').addEventListener('change', updateQuantityLabel);
     function updateQuantityLabel(){
         const type = document.getElementById('adjustType').value;
@@ -272,6 +564,8 @@
             label.innerText = 'Số lượng (+)';
         }
     }
+
+    // Global Modal functions
     function openGlobalModal(type){
         const modal = document.getElementById('globalModal');
         const form = document.getElementById('globalForm');
@@ -281,11 +575,16 @@
         toggleGlobalFields();
         modal.style.display = 'block';
     }
-    function closeGlobalModal(){ document.getElementById('globalModal').style.display='none'; }
+    
+    function closeGlobalModal(){ 
+        document.getElementById('globalModal').style.display='none'; 
+    }
+    
     document.getElementById('globalProduct')?.addEventListener('change', ()=>{
         const form = document.getElementById('globalForm');
         form.action = `/inventory/${document.getElementById('globalProduct').value}/adjust`;
     });
+    
     document.getElementById('globalType')?.addEventListener('change', toggleGlobalFields);
     function toggleGlobalFields(){
         const type = document.getElementById('globalType').value;
@@ -310,47 +609,372 @@
             supplier.style.display = 'none';
         }
     }
-    window.onclick = function(event){
-        const modal = document.getElementById('adjustModal');
-        if (event.target == modal) { modal.style.display = 'none'; }
+
+    // Advanced Filter Modal functions
+    function openAdvancedFilter() {
+        document.getElementById('advancedFilterModal').style.display = 'block';
+    }
+
+    function closeAdvancedFilter() {
+        document.getElementById('advancedFilterModal').style.display = 'none';
+    }
+
+    // Import/Export Modal functions
+    function openImportModal() {
+        document.getElementById('importModal').style.display = 'block';
+    }
+
+    function closeImportModal() {
+        document.getElementById('importModal').style.display = 'none';
+    }
+
+    function openExportModal() {
+        document.getElementById('exportModal').style.display = 'block';
+    }
+
+    function closeExportModal() {
+        document.getElementById('exportModal').style.display = 'none';
+    }
+
+    // Close modal when clicking outside
+    window.onclick = function(event) {
+        const adjustModal = document.getElementById('adjustModal');
+        const globalModal = document.getElementById('globalModal');
+        const advancedFilterModal = document.getElementById('advancedFilterModal');
+        const importModal = document.getElementById('importModal');
+        const exportModal = document.getElementById('exportModal');
+        
+        if (event.target == adjustModal) {
+            adjustModal.style.display = 'none';
+        }
+        if (event.target == globalModal) {
+            globalModal.style.display = 'none';
+        }
+        if (event.target == advancedFilterModal) {
+            advancedFilterModal.style.display = 'none';
+        }
+        if (event.target == importModal) {
+            importModal.style.display = 'none';
+        }
+        if (event.target == exportModal) {
+            exportModal.style.display = 'none';
+        }
     }
 </script>
 @endpush
 
 @push('styles')
 <style>
-    .inv-header{padding:12px 0 0 0;border:none}
-    .inv-tabs{gap:4px}
-    /* Tabs UI */
-    .tab-navigation{display:flex;align-items:center;justify-content:space-between}
-    .tab-list{display:flex;gap:8px;align-items:center}
-    .tab-item{display:inline-flex;align-items:center;padding:8px 12px;border:1px solid #e5e7eb;border-radius:9999px;background:#fff;color:#374151;text-decoration:none;font-weight:600;transition:all .15s ease}
-    .tab-item:hover{background:#f3f4f6;border-color:#d1d5db}
-    .tab-item.active{box-shadow:0 0 0 2px rgba(59,130,246,0.08) inset}
-    .tab-all.active{background:#e5e7eb;color:#111827;border-color:#d1d5db}
-    .tab-in.active{background:#ecfdf5;color:#065f46;border-color:#a7f3d0}
-    .tab-low.active{background:#fffbeb;color:#92400e;border-color:#fde68a}
-    .tab-out.active{background:#fee2e2;color:#991b1b;border-color:#fecaca}
+    .tab-navigation {
+        border-bottom: 1px solid #e2e8f0;
+    }
 
-    .btn-sm{padding:6px 10px;font-size:12px}
-    .inv-toolbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:12px 0}
-    .inv-toolbar .inv-search{flex:0 1 360px;max-width:360px;min-width:260px}
-    .inv-toolbar .inv-controls{display:flex;gap:8px;align-items:center;white-space:nowrap}
-    .inv-toolbar .inv-controls label{color:#6b7280;font-size:12px;white-space:nowrap;margin-right:2px}
-    .inv-toolbar select.form-control{height:36px;padding:6px 10px}
-    .inv-footer{display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:12px;border-top:1px solid #e2e8f0}
-    .inv-count{color:#6b7280}
-    .inv-summary{display:flex;gap:12px;color:#374151;font-weight:600}
-    .table td.product-name a{font-weight:600}
-    .table td.product-name .subtitle{color:#6b7280;font-size:12px;margin-top:4px}
+    .tab-list {
+        display: flex;
+        gap: 0;
+    }
 
-    .inv-table thead th{position:sticky;top:0;z-index:5;background:#f7fafc}
-    .inv-table th.number,.inv-table td.number{text-align:right}
-    .chip{padding:4px 8px;border-radius:14px;font-size:12px;font-weight:600;display:inline-block}
-    .chip-success{background:#ecfdf5;color:#065f46}
-    .chip-warning{background:#fffbeb;color:#92400e}
-    .chip-danger{background:#fee2e2;color:#991b1b}
-    .inv-table tfoot td{background:#f9fafb;border-top:1px solid #e5e7eb}
+    .tab-item {
+        padding: 12px 24px;
+        text-decoration: none;
+        color: #4a5568;
+        font-weight: 500;
+        border-bottom: 3px solid transparent;
+        transition: all 0.2s ease;
+    }
+
+    .tab-item.active {
+        color: #4299e1;
+        border-bottom-color: #4299e1;
+    }
+
+    .search-filter-section {
+        padding: 20px;
+    }
+
+    .search-bar {
+        display: flex;
+        align-items: center;
+        background: #f7fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 12px 16px;
+        transition: all 0.2s ease;
+    }
+
+    .search-bar:focus-within {
+        border-color: #4299e1;
+        box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+        background: white;
+    }
+
+    .filter-select {
+        padding: 8px 12px;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        background: white;
+        font-size: 13px;
+        color: #4a5568;
+        min-width: 140px;
+    }
+
+    .filter-select:focus {
+        outline: none;
+        border-color: #4299e1;
+        box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+    }
+
+    .table-container {
+        overflow-x: auto;
+    }
+
+    .table th {
+        background-color: #f7fafc;
+        color: #4a5568;
+        font-weight: 600;
+        font-size: 13px;
+        padding: 16px;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .table td {
+        padding: 16px;
+        border-bottom: 1px solid #e2e8f0;
+        vertical-align: middle;
+    }
+
+    .product-cell { 
+        min-width: 320px; 
+    }
+    
+    .product-name {
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 2px;
+        max-width: 520px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .product-sku {
+        font-size: 12px;
+        color: #6c757d;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 520px;
+    }
+
+    .product-barcode {
+        font-size: 12px;
+        color: #6c757d;
+        margin-top: 2px;
+    }
+
+    .pagination-arrow {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 6px;
+        color: #4a5568;
+        text-decoration: none;
+        transition: all 0.2s ease;
+    }
+
+    .pagination-arrow:hover:not(.disabled) {
+        background-color: #f7fafc;
+        color: #4299e1;
+    }
+
+    .pagination-arrow.disabled {
+        cursor: not-allowed;
+    }
+
+    .per-page-select {
+        padding: 6px 12px;
+        border: 1px solid #e2e8f0;
+        border-radius: 4px;
+        background: white;
+        font-size: 13px;
+        color: #4a5568;
+    }
+
+    .per-page-select:focus {
+        outline: none;
+        border-color: #4299e1;
+    }
+
+    .current-page {
+        font-size: 14px;
+        font-weight: 500;
+    }
+
+    .btn-sm {
+        padding: 6px 10px;
+        font-size: 12px;
+    }
+
+    /* Stock status chips */
+    .bg-green-50 { background-color: #f0fdf4; }
+    .text-green-700 { color: #15803d; }
+    .bg-yellow-50 { background-color: #fefce8; }
+    .text-yellow-700 { color: #a16207; }
+    .bg-red-50 { background-color: #fef2f2; }
+    .text-red-700 { color: #dc2626; }
+
+    /* Modal styles */
+    .modal {
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .modal-content {
+        background-color: white;
+        border-radius: 8px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        max-width: 500px;
+        width: 90%;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .modal-header h3 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 600;
+        color: #2c3e50;
+    }
+
+    .close {
+        color: #aaa;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+        line-height: 1;
+    }
+
+    .close:hover {
+        color: #000;
+    }
+
+    .form-group {
+        margin-bottom: 16px;
+    }
+
+    .form-label {
+        display: block;
+        margin-bottom: 6px;
+        font-weight: 500;
+        color: #374151;
+        font-size: 14px;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        font-size: 14px;
+        transition: border-color 0.2s ease;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: #4299e1;
+        box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+    }
+
+    /* Summary Card Styles */
+    .summary-container {
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+    }
+
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 24px;
+    }
+
+    .summary-item {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        transition: all 0.2s ease;
+    }
+
+    .summary-item:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        transform: translateY(-2px);
+    }
+
+    .summary-label {
+        font-size: 12px;
+        color: #6c757d;
+        margin-bottom: 6px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 600;
+    }
+
+    .summary-value {
+        font-size: 24px;
+        font-weight: 700;
+        line-height: 1.2;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .summary-grid {
+            grid-template-columns: 1fr;
+            gap: 16px;
+        }
+        
+        .summary-item {
+            padding: 16px;
+        }
+        
+        .summary-value {
+            font-size: 20px;
+        }
+    }
+
+    /* Product detail styles */
+    .product-category {
+        font-size: 12px;
+        color: #4299e1;
+        margin-top: 2px;
+        font-weight: 500;
+    }
+
+    .product-concentration {
+        font-size: 12px;
+        color: #6c757d;
+        margin-top: 2px;
+        font-weight: 500;
+    }
 </style>
 @endpush
 

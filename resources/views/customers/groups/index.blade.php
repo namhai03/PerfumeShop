@@ -22,7 +22,8 @@
             <thead>
                 <tr>
                     <th>Tên nhóm</th>
-                    <th>Ưu tiên</th>
+                    <th>Trạng thái</th>
+                    <th>Mặc định</th>
                     <th>Chiết khấu (%)</th>
                     <th>Mô tả</th>
                     <th></th>
@@ -31,16 +32,17 @@
             <tbody>
                 @forelse($groups as $g)
                     <tr>
-                        <td>{{ $g->name }}</td>
-                        <td>{{ $g->priority }}</td>
+                        <td><a href="{{ route('customer-groups.show', $g->id) }}" class="link" style="text-decoration:none;">{{ $g->name }}</a></td>
+                        <td>{!! $g->is_active ? '<span class="badge badge-success">Active</span>' : '<span class="badge">Inactive</span>' !!}</td>
+                        <td>{!! $g->is_default ? '<span class="badge badge-primary">Default</span>' : '-' !!}</td>
                         <td>{{ $g->discount_rate ?? '-' }}</td>
                         <td>{{ $g->description ?? '-' }}</td>
                         <td class="actions">
-                            <a href="{{ route('customer-groups.edit', $g->id) }}" class="btn btn-outline" style="padding:6px 10px; font-size:12px;">Sửa</a>
+                            <a href="{{ route('customer-groups.edit', $g->id) }}" class="btn btn-outline" style="padding:6px 10px; font-size:12px; height:28px;">Sửa</a>
                             <form action="{{ route('customer-groups.destroy', $g->id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Xóa nhóm khách hàng?');">
                                 @csrf
                                 @method('DELETE')
-                                <button class="btn btn-danger" style="padding:6px 10px; font-size:12px;">Xóa</button>
+                                <button class="btn btn-danger" style="padding:6px 10px; font-size:12px; height:28px;">Xóa</button>
                             </form>
                         </td>
                     </tr>

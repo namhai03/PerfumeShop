@@ -8,14 +8,7 @@
             <h1 class="page-title">Khách hàng</h1>
         </div>
         <div style="display: flex; gap: 12px;">
-            <button onclick="openExportModal()" class="btn btn-outline" style="font-size: 13px; padding: 8px 16px;">
-                <i class="fas fa-upload"></i>
-                Xuất file
-            </button>
-            <button onclick="openImportModal()" class="btn btn-outline" style="font-size: 13px; padding: 8px 16px;">
-                <i class="fas fa-download"></i>
-                Nhập file
-            </button>
+            
             <a href="{{ route('customers.create') }}" class="btn btn-primary" style="font-size: 13px; padding: 8px 16px;">
                 <i class="fas fa-plus"></i>
                 Thêm khách hàng
@@ -55,12 +48,7 @@
                             <option value="{{ $group->id }}" {{ request('group_id') == $group->id ? 'selected' : '' }}>{{ $group->name }}</option>
                         @endforeach
                     </select>
-                    <select name="customer_type" class="filter-select">
-                        <option value="">Loại KH</option>
-                        @foreach($types as $t)
-                            <option value="{{ $t }}" {{ request('customer_type') == $t ? 'selected' : '' }}>{{ $t }}</option>
-                        @endforeach
-                    </select>
+                    
                     <select name="is_active" class="filter-select">
                         <option value="">Trạng thái</option>
                         <option value="1" {{ request('is_active')==='1' ? 'selected' : '' }}>Đang hoạt động</option>
@@ -82,7 +70,6 @@
                             <th style="width: 50px;"><input type="checkbox" id="select-all" style="margin: 0;"></th>
                             <th>Khách hàng</th>
                             <th>Liên hệ</th>
-                            <th>Loại</th>
                             <th>Nhóm</th>
                             <th>Đơn/Chi tiêu</th>
                             <th>Trạng thái</th>
@@ -94,14 +81,12 @@
                             <tr>
                                 <td><input type="checkbox" name="ids[]" value="{{ $c->id }}" style="margin: 0;"></td>
                                 <td>
-                                    <div style="font-weight:600; color:#2c3e50;">{{ $c->name }}</div>
-                                    <div style="font-size:12px; color:#718096;">ID: {{ $c->id }}</div>
+                                    <div style="font-weight:600; color:#2c3e50;"><a href="{{ route('customers.show', $c->id) }}" style="color:#2c3e50; text-decoration:none;">{{ $c->name }}</a></div>
                                 </td>
                                 <td>
                                     <div style="font-size:14px; color:#4a5568;">{{ $c->phone ?? '-' }}</div>
                                     <div style="font-size:12px; color:#718096;">{{ $c->email ?? '-' }}</div>
                                 </td>
-                                <td><span style="padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: 500; background-color: #e3f2fd; color: #1976d2;">{{ $c->customer_type ?? '-' }}</span></td>
                                 <td>{{ $c->group?->name ?? '-' }}</td>
                                 <td>
                                     <div style="font-size:14px; color:#4a5568;">{{ $c->total_orders }} đơn</div>
@@ -110,17 +95,17 @@
                                 <td>
                                     <span class="px-2 py-1 rounded-md text-xs font-medium {{ $c->is_active ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700' }}">{{ $c->is_active ? 'Hoạt động' : 'Ngừng' }}</span>
                                 </td>
-                                <td class="actions">
-                                    <a href="{{ route('customers.show', $c->id) }}" class="btn btn-outline" style="padding:6px 10px; font-size:12px;">Xem</a>
+                                <td class="actions" style="display:flex; gap:8px; align-items:center;">
                                     <a href="{{ route('customers.edit', $c->id) }}" class="btn btn-outline" style="padding:6px 10px; font-size:12px;">Sửa</a>
+                                   
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="8" style="text-align:center; padding:40px; color:#6c757d;">
+                                <td colspan="7" style="text-align:center; padding:40px; color:#6c757d;">
                                     <div style="margin-bottom: 16px;"><i class="fas fa-user" style="font-size: 32px; color: #dee2e6;"></i></div>
                                     <div style="font-size: 16px; font-weight: 500; margin-bottom: 8px;">Chưa có khách hàng nào</div>
-                                    <div style="font-size: 14px;">Thêm mới hoặc nhập từ CSV.</div>
+                                    <div style="font-size: 14px;">Thêm mới.</div>
                                 </td>
                             </tr>
                         @endforelse
@@ -172,21 +157,54 @@
         </div>
     </div>
 
-    <!-- Export Modal -->
-    <div class="modal" id="exportModal" style="display: none;">
-        <div class="modal-content">
+    <!-- Hidden delete form for single delete -->
+    <form id="deleteCustomerForm" method="POST" action="" style="display:none;">
+        @csrf
+        @method('DELETE')
+    </form>
+
+    <!-- Delete Confirm Modal -->
+    <div class="modal" id="deleteConfirmModal" style="display: none;">
+        <div class="modal-content" style="max-width: 520px;">
             <div class="modal-header">
-                <h3>Xuất file khách hàng (CSV)</h3>
-                <span class="close" onclick="closeExportModal()">&times;</span>
+                <h3 id="deleteModalTitle">Xóa khách hàng</h3>
+                <span class="close" onclick="closeDeleteModal()">&times;</span>
             </div>
-            <form action="{{ route('customers.export') }}" method="GET">
-                <div style="display: flex; gap: 12px; justify-content: flex-end;">
-                    <button type="button" class="btn btn-outline" onclick="closeExportModal()">Đóng</button>
-                    <button type="submit" class="btn btn-primary">Xuất file</button>
+            <div style="padding: 4px 0 12px 0; color:#4a5568;">
+                <div style="background-color:#FFF5F5; color:#C53030; padding:12px; border-radius:8px; border-left:3px solid #F56565; margin-bottom:12px;">
+                    <i class="fas fa-exclamation-triangle" style="margin-right:6px;"></i>
+                    <span id="deleteModalMessage">Hành động này sẽ xóa khách hàng và có thể xóa các dữ liệu liên quan như đơn hàng, giao vận,... Bạn có chắc chắn muốn tiếp tục?</span>
                 </div>
-            </form>
+                <div style="font-size:13px; color:#718096;">Bạn không thể hoàn tác sau khi xóa.</div>
+            </div>
+            <div style="display:flex; justify-content:flex-end; gap:8px;">
+                <button type="button" class="btn btn-outline" onclick="closeDeleteModal()">Hủy</button>
+                <button type="button" class="btn btn-danger" onclick="confirmDeleteModal()">Xóa</button>
+            </div>
         </div>
     </div>
+
+    <!-- Delete Confirm Modal -->
+    <div class="modal" id="deleteConfirmModal" style="display: none;">
+        <div class="modal-content" style="max-width: 520px;">
+            <div class="modal-header">
+                <h3>Xóa khách hàng</h3>
+                <span class="close" onclick="closeDeleteModal()">&times;</span>
+            </div>
+            <div style="padding: 4px 0 12px 0; color:#4a5568;">
+                <div style="background-color:#FFF5F5; color:#C53030; padding:12px; border-radius:8px; border-left:3px solid #F56565; margin-bottom:12px;">
+                    <i class="fas fa-exclamation-triangle" style="margin-right:6px;"></i>
+                    Hành động này sẽ xóa khách hàng và có thể xóa các dữ liệu liên quan như đơn hàng, giao vận,... Bạn có chắc chắn muốn tiếp tục?
+                </div>
+                <div style="font-size:13px; color:#718096;">Bạn không thể hoàn tác sau khi xóa.</div>
+            </div>
+            <div style="display:flex; justify-content:flex-end; gap:8px;">
+                <button type="button" class="btn btn-outline" onclick="closeDeleteModal()">Hủy</button>
+                <button type="button" class="btn btn-danger" onclick="confirmDeleteModal()">Xóa</button>
+            </div>
+        </div>
+    </div>
+
 @endsection
 
 @push('scripts')
@@ -224,9 +242,11 @@
     function submitBulkDelete(){
         const checked = document.querySelectorAll('input[name="ids[]"]:checked');
         if (checked.length === 0) { alert('Vui lòng chọn ít nhất 1 khách hàng.'); return; }
-        if (confirm('Bạn có chắc muốn xóa ' + checked.length + ' khách hàng đã chọn?')) {
-            document.getElementById('bulkDeleteForm').submit();
-        }
+        // mở modal xác nhận xóa nhiều
+        pendingBulkDelete = true;
+        document.getElementById('deleteModalTitle').textContent = 'Xóa khách hàng đã chọn';
+        document.getElementById('deleteModalMessage').textContent = 'Bạn sắp xóa ' + checked.length + ' khách hàng đã chọn. Hành động này có thể xóa dữ liệu liên quan (đơn hàng, giao vận,...). Bạn chắc chắn?';
+        document.getElementById('deleteConfirmModal').style.display = 'block';
     }
     function openImportModal(){ document.getElementById('importModal').style.display = 'block'; }
     function closeImportModal(){ document.getElementById('importModal').style.display = 'none'; }
@@ -235,10 +255,86 @@
     window.onclick = function(event) {
         const importModal = document.getElementById('importModal');
         const exportModal = document.getElementById('exportModal');
+        const deleteModal = document.getElementById('deleteConfirmModal');
         if (event.target == importModal) { importModal.style.display = 'none'; }
         if (event.target == exportModal) { exportModal.style.display = 'none'; }
+        if (event.target == deleteModal) { deleteModal.style.display = 'none'; }
+    }
+
+    let pendingDeleteForm = null;
+    let pendingBulkDelete = false;
+    const deleteUrlBase = "{{ url('customers') }}";
+    function openDeleteModalSingle(id, name){
+        pendingBulkDelete = false;
+        const form = document.getElementById('deleteCustomerForm');
+        form.action = deleteUrlBase + '/' + id;
+        pendingDeleteForm = form;
+        document.getElementById('deleteModalTitle').textContent = 'Xóa khách hàng';
+        document.getElementById('deleteModalMessage').textContent = 'Bạn sắp xóa khách hàng \'' + name + '\'. Hành động này có thể xóa các dữ liệu liên quan như đơn hàng, giao vận,... Bạn có chắc chắn muốn tiếp tục?';
+        document.getElementById('deleteConfirmModal').style.display = 'block';
+    }
+    function closeDeleteModal(){
+        const modal = document.getElementById('deleteConfirmModal');
+        if (modal) modal.style.display = 'none';
+        pendingDeleteForm = null;
+    }
+    function confirmDeleteModal(){
+        if (pendingBulkDelete) {
+            document.getElementById('bulkDeleteForm').submit();
+            pendingBulkDelete = false;
+            const modal = document.getElementById('deleteConfirmModal');
+            if (modal) modal.style.display = 'none';
+            return;
+        }
+        if (pendingDeleteForm) {
+            const modal = document.getElementById('deleteConfirmModal');
+            if (modal) modal.style.display = 'none';
+            const form = pendingDeleteForm;
+            pendingDeleteForm = null;
+            form.submit();
+        }
     }
 </script>
+@endpush
+
+@push('styles')
+<style>
+    .search-filter-section {
+        padding: 20px;
+    }
+
+    .search-bar {
+        display: flex;
+        align-items: center;
+        background: #f7fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 12px 16px;
+        transition: all 0.2s ease;
+    }
+
+    .search-bar:focus-within {
+        border-color: #4299e1;
+        box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+        background: white;
+    }
+
+    .filter-select {
+        padding: 8px 12px;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        background: white;
+        font-size: 13px;
+        color: #4a5568;
+        min-width: 140px;
+    }
+
+    .filter-select:focus {
+        outline: none;
+        border-color: #4299e1;
+        box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+    }
+</style>
 @endpush
 
 

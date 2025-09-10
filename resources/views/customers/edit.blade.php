@@ -57,35 +57,19 @@
                 </div>
             </div>
 
-            <div style="display:flex; gap:12px;">
-                <div class="form-group" style="flex:1;">
-                    <label class="form-label">Loại khách hàng</label>
-                    <input type="text" name="customer_type" class="form-control" value="{{ $customer->customer_type }}">
-                </div>
-                <div class="form-group" style="flex:1;">
-                    <label class="form-label">Nhóm khách hàng</label>
-                    <select name="customer_group_id" class="form-control">
-                        <option value="">-- Không chọn --</option>
-                        @foreach($groups as $g)
-                            <option value="{{ $g->id }}" {{ $customer->customer_group_id == $g->id ? 'selected' : '' }}>{{ $g->name }}</option>
-                        @endforeach
-                    </select>
-                </div>
+            <div class="form-group">
+                <label class="form-label">Nhóm khách hàng</label>
+                <select name="customer_group_id" class="form-control">
+                    <option value="">-- Không chọn --</option>
+                    @foreach($groups as $g)
+                        <option value="{{ $g->id }}" {{ $customer->customer_group_id == $g->id ? 'selected' : '' }}>{{ $g->name }}</option>
+                    @endforeach
+                </select>
             </div>
 
-            <div style="display:flex; gap:12px;">
-                <div class="form-group" style="flex:1;">
-                    <label class="form-label">Nguồn</label>
-                    <input type="text" name="source" class="form-control" value="{{ $customer->source }}">
-                </div>
-                <div class="form-group" style="flex:1;">
-                    <label class="form-label">MST</label>
-                    <input type="text" name="tax_number" class="form-control" value="{{ $customer->tax_number }}">
-                </div>
-                <div class="form-group" style="flex:1;">
-                    <label class="form-label">Công ty</label>
-                    <input type="text" name="company" class="form-control" value="{{ $customer->company }}">
-                </div>
+            <div class="form-group">
+                <label class="form-label">Công ty</label>
+                <input type="text" name="company" class="form-control" value="{{ $customer->company }}">
             </div>
 
             <div class="form-group">

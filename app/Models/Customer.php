@@ -26,6 +26,11 @@ class Customer extends Model
         return $this->belongsTo(CustomerGroup::class, 'customer_group_id');
     }
 
+    public function orders()
+    {
+        return $this->hasMany(Order::class);
+    }
+
     public function scopeActive($query)
     {
         return $query->where('is_active', true);

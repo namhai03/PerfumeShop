@@ -56,35 +56,19 @@
                 </div>
             </div>
 
-            <div style="display:flex; gap:12px;">
-                <div class="form-group" style="flex:1;">
-                    <label class="form-label">Loại khách hàng</label>
-                    <input type="text" name="customer_type" class="form-control" placeholder="VD: VIP, thường xuyên, vãng lai">
-                </div>
-                <div class="form-group" style="flex:1;">
-                    <label class="form-label">Nhóm khách hàng</label>
-                    <select name="customer_group_id" class="form-control">
-                        <option value="">-- Không chọn --</option>
-                        @foreach($groups as $g)
-                            <option value="{{ $g->id }}">{{ $g->name }}</option>
-                        @endforeach
-                    </select>
-                </div>
+            <div class="form-group">
+                <label class="form-label">Nhóm khách hàng</label>
+                <select name="customer_group_id" class="form-control">
+                    <option value="">-- Không chọn --</option>
+                    @foreach($groups as $g)
+                        <option value="{{ $g->id }}">{{ $g->name }}</option>
+                    @endforeach
+                </select>
             </div>
 
-            <div style="display:flex; gap:12px;">
-                <div class="form-group" style="flex:1;">
-                    <label class="form-label">Nguồn</label>
-                    <input type="text" name="source" class="form-control" placeholder="online, offline, shopee, tiktok ...">
-                </div>
-                <div class="form-group" style="flex:1;">
-                    <label class="form-label">MST</label>
-                    <input type="text" name="tax_number" class="form-control">
-                </div>
-                <div class="form-group" style="flex:1;">
-                    <label class="form-label">Công ty</label>
-                    <input type="text" name="company" class="form-control">
-                </div>
+            <div class="form-group">
+                <label class="form-label">Công ty</label>
+                <input type="text" name="company" class="form-control">
             </div>
 
             <div class="form-group">

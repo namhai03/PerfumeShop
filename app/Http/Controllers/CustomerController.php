@@ -38,9 +38,9 @@ class CustomerController extends Controller
         $perPage = $request->get('per_page', 20);
         $customers = $query->paginate($perPage)->appends($request->query());
 
-        $groups = CustomerGroup::orderBy('priority', 'desc')->orderBy('name')->get();
-        $types = Customer::query()->distinct()->pluck('customer_type')->filter()->values();
-
+        $groups = CustomerGroup::orderBy('name')->get();
+        // bỏ filter theo loại khách hàng
+        $types = collect();
         return view('customers.index', compact('customers', 'groups', 'types'));
     }
 
@@ -62,10 +62,11 @@ class CustomerController extends Controller
             'city' => 'nullable|string|max:100',
             'district' => 'nullable|string|max:100',
             'ward' => 'nullable|string|max:100',
-            'customer_type' => 'nullable|string|max:100',
+            // removed from create form
             'customer_group_id' => 'nullable|exists:customer_groups,id',
-            'source' => 'nullable|string|max:100',
-            'tax_number' => 'nullable|string|max:100',
+            // removed from create form
+            // 'source' => 'nullable|string|max:100',
+            // 'tax_number' => 'nullable|string|max:100',
             'company' => 'nullable|string|max:255',
             'note' => 'nullable|string',
             'is_active' => 'boolean',
@@ -100,10 +101,11 @@ class CustomerController extends Controller
             'city' => 'nullable|string|max:100',
             'district' => 'nullable|string|max:100',
             'ward' => 'nullable|string|max:100',
-            'customer_type' => 'nullable|string|max:100',
+            // removed from edit form
             'customer_group_id' => 'nullable|exists:customer_groups,id',
-            'source' => 'nullable|string|max:100',
-            'tax_number' => 'nullable|string|max:100',
+            // removed from edit form
+            // 'source' => 'nullable|string|max:100',
+            // 'tax_number' => 'nullable|string|max:100',
             'company' => 'nullable|string|max:255',
             'note' => 'nullable|string',
             'is_active' => 'boolean',
@@ -210,7 +212,7 @@ class CustomerController extends Controller
     {
         $filename = 'customers.csv';
         $columns = [
-            'name','phone','email','gender','birthday','address','city','district','ward','customer_type','group','source','tax_number','company','note','is_active','total_spent','total_orders','created_at'
+            'name','phone','email','gender','birthday','address','city','district','ward','group','company','note','is_active','total_spent','total_orders','created_at'
         ];
 
         $callback = function() use ($columns) {
@@ -229,10 +231,7 @@ class CustomerController extends Controller
                         'city' => $row->city,
                         'district' => $row->district,
                         'ward' => $row->ward,
-                        'customer_type' => $row->customer_type,
                         'group' => $row->group?->name,
-                        'source' => $row->source,
-                        'tax_number' => $row->tax_number,
                         'company' => $row->company,
                         'note' => $row->note,
                         'is_active' => (int) ($row->is_active ?? 0),

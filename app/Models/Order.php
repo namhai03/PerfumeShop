@@ -15,6 +15,7 @@ class Order extends Model
     protected $fillable = [
         'order_number',
         'customer_id',
+        'customer_group_id',
         'customer_name',
         'status',
         'type',
@@ -55,6 +56,11 @@ class Order extends Model
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
+    }
+
+    public function group(): BelongsTo
+    {
+        return $this->belongsTo(CustomerGroup::class, 'customer_group_id');
     }
 
     public function items(): HasMany
