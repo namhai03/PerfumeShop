@@ -72,7 +72,7 @@
                 <tbody>
                     @forelse($products as $product)
                         <tr>
-                            <td><a href="{{ route('products.show', $product->id) }}">{{ $product->name }}</a></td>
+                            <td><a href="{{ route('products.show', $product->id) }}" style="text-decoration: none;">{{ $product->name }}</a></td>
                             <td>{{ $product->sku }}</td>
                             <td>{{ number_format($product->selling_price, 0, ',', '.') }} đ</td>
                             <td>{{ $product->stock }}</td>
@@ -96,8 +96,16 @@
                             </td>
                         </tr>
                     @empty
-                        <tr>
-                            <td colspan="6" style="text-align:center; padding:24px; color:#6c757d;">Chưa có sản phẩm nào.</td>
+                        <tr style="height: 400px;">
+                            <td colspan="6" style="text-align: center; vertical-align: middle; padding: 0; color: #6c757d;">
+                                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; min-height: 300px;">
+                                    <div style="margin-bottom: 16px;">
+                                        <i class="fas fa-box" style="font-size: 48px; color: #dee2e6;"></i>
+                                    </div>
+                                    <div style="font-size: 18px; font-weight: 500; margin-bottom: 8px;">Chưa có sản phẩm nào</div>
+                                    <div style="font-size: 14px; color: #6c757d;">Thêm sản phẩm vào danh mục này.</div>
+                                </div>
+                            </td>
                         </tr>
                     @endforelse
                 </tbody>

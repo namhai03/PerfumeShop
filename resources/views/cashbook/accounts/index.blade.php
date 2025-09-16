@@ -86,13 +86,15 @@
                             </td>
                         </tr>
                     @empty
-                        <tr>
-                            <td colspan="7" style="text-align:center; padding:40px; color:#6c757d;">
-                                <div style="margin-bottom: 16px;">
-                                    <i class="fas fa-university" style="font-size: 32px; color: #dee2e6;"></i>
+                        <tr style="height: 400px;">
+                            <td colspan="7" style="text-align: center; vertical-align: middle; padding: 0; color: #6c757d;">
+                                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; min-height: 300px;">
+                                    <div style="margin-bottom: 16px;">
+                                        <i class="fas fa-university" style="font-size: 48px; color: #dee2e6;"></i>
+                                    </div>
+                                    <div style="font-size: 18px; font-weight: 500; margin-bottom: 8px;">Chưa có tài khoản nào</div>
+                                    <div style="font-size: 14px; color: #6c757d;">Thêm tài khoản tiền mặt hoặc ngân hàng để bắt đầu.</div>
                                 </div>
-                                <div style="font-size: 16px; font-weight: 500; margin-bottom: 8px;">Chưa có tài khoản nào</div>
-                                <div style="font-size: 14px;">Thêm tài khoản tiền mặt hoặc ngân hàng để bắt đầu.</div>
                             </td>
                         </tr>
                     @endforelse

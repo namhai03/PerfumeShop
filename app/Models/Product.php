@@ -10,7 +10,7 @@ class Product extends Model
     protected $fillable = [
         'name', 'description', 'import_price', 'selling_price', 'category', 'brand', 'sku',
         'barcode', 'stock', 'low_stock_threshold', 'image', 'volume', 'concentration', 'origin', 'import_date', 
-        'sales_channel', 'tags', 'is_active', 'product_type', 'product_form', 'expiry_date',
+        'sales_channel', 'tags', 'ingredients', 'is_active', 'product_type', 'product_form', 'expiry_date',
         'branch_price', 'customer_group_price', 'created_date',
         // Thuộc tính mùi hương
         'fragrance_family', 'top_notes', 'heart_notes', 'base_notes', 'gender', 'style', 'season'

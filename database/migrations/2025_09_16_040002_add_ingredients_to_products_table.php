@@ -11,8 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('category_product', function (Blueprint $table) {
-            $table->timestamps();
+        Schema::table('products', function (Blueprint $table) {
+            $table->text('ingredients')->nullable()->after('tags')->comment('Thành phần nước hoa, lưu dạng CSV');
         });
     }
 
@@ -21,8 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('category_product', function (Blueprint $table) {
-            $table->dropTimestamps();
+        Schema::table('products', function (Blueprint $table) {
+            $table->dropColumn('ingredients');
         });
     }
 };

@@ -95,6 +95,19 @@
                               rows="3" placeholder="Nhập địa chỉ giao hàng">{{ old('delivery_address', $order->delivery_address) }}</textarea>
                 </div>
 
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div class="form-group">
+                        <label class="form-label">Phường/Xã</label>
+                        <input type="text" name="ward" id="ward" class="form-control" 
+                               value="{{ old('ward', $order->ward) }}" placeholder="VD: Phường 1">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Thành phố/Tỉnh</label>
+                        <input type="text" name="city" id="city" class="form-control" 
+                               value="{{ old('city', $order->city) }}" placeholder="VD: TP.HCM">
+                    </div>
+                </div>
+
                 <div class="form-group">
                     <label class="form-label">Phương thức thanh toán</label>
                     <select name="payment_method" id="payment_method" class="form-control">
@@ -188,9 +201,8 @@
                     
                     <div class="form-group">
                         <label class="form-label">Giảm giá</label>
-                        <input type="number" name="discount_amount" id="discount_amount" class="form-control" 
-                               min="0" step="0.01" value="{{ old('discount_amount', $order->discount_amount) }}" 
-                               onchange="calculateTotal()">
+                        <input type="text" inputmode="numeric" name="discount_amount" id="discount_amount" data-money class="form-control" 
+                               value="{{ old('discount_amount', $order->discount_amount) }}" onchange="calculateTotal()">
                     </div>
                 </div>
                 
@@ -322,7 +334,12 @@
             totalAmount += quantity * price;
         });
         
-        const discountAmount = parseFloat(document.getElementById('discount_amount').value) || 0;
+        const discountAmount = (function(){
+            const el = document.getElementById('discount_amount');
+            if(!el) return 0;
+            const digits = String(el.value||'').replace(/\D+/g,'');
+            return digits ? parseInt(digits,10) : 0;
+        })();
         const finalAmount = totalAmount - discountAmount;
         
         document.getElementById('total_amount').value = new Intl.NumberFormat('vi-VN').format(totalAmount);
@@ -335,6 +352,14 @@
             addProductEventListeners(item);
         });
         calculateTotal();
+        // init money inputs
+        (function(){
+            function fmt(v){ const d=String(v||'').replace(/\D+/g,''); return d? new Intl.NumberFormat('vi-VN').format(parseInt(d,10)) : ''; }
+            const dm = document.querySelectorAll('input[data-money]');
+            dm.forEach(inp=>{ inp.value = fmt(inp.value); inp.addEventListener('input', function(){ const c=inp.selectionStart; const b=inp.value.length; inp.value = fmt(inp.value); const a=inp.value.length; const k=(c||0)+(a-b); try{ inp.setSelectionRange(k,k);}catch(e){}; calculateTotal(); });});
+            const form = document.getElementById('orderForm');
+            form && form.addEventListener('submit', function(){ dm.forEach(inp=>{ const d=String(inp.value||'').replace(/\D+/g,''); inp.value = d? String(parseInt(d,10)) : ''; }); });
+        })();
     });
 
     // Validation form

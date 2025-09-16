@@ -86,6 +86,8 @@ class OrderController extends Controller
             'delivery_date' => 'nullable|date|after_or_equal:order_date',
             'payment_method' => 'nullable|string|max:255',
             'delivery_address' => 'nullable|string|max:500',
+            'ward' => 'nullable|string|max:255',
+            'city' => 'nullable|string|max:255',
             'phone' => 'nullable|string|max:20',
             'notes' => 'nullable|string|max:1000',
             'items' => 'required|array|min:1',
@@ -190,6 +192,8 @@ class OrderController extends Controller
                 'delivery_date' => $request->delivery_date,
                 'payment_method' => $request->payment_method,
                 'delivery_address' => $request->delivery_address,
+                'ward' => $request->ward,
+                'city' => $request->city,
                 'phone' => $request->phone,
             ]);
 
@@ -285,6 +289,8 @@ class OrderController extends Controller
             'delivery_date' => 'nullable|date|after_or_equal:order_date',
             'payment_method' => 'nullable|string|max:255',
             'delivery_address' => 'nullable|string|max:500',
+            'ward' => 'nullable|string|max:255',
+            'city' => 'nullable|string|max:255',
             'phone' => 'nullable|string|max:20',
             'notes' => 'nullable|string|max:1000',
             'items' => 'required|array|min:1',
@@ -361,6 +367,8 @@ class OrderController extends Controller
             'delivery_date' => $request->delivery_date,
             'payment_method' => $request->payment_method,
             'delivery_address' => $request->delivery_address,
+            'ward' => $request->ward,
+            'city' => $request->city,
             'phone' => $request->phone,
         ]);
 
@@ -648,7 +656,8 @@ class OrderController extends Controller
 
         // Create inventory movement record
         InventoryMovement::create([
-            'product_id' => $product->id,
+            // Luôn ghi nhận theo product cha để không vi phạm FK khi item là variant
+            'product_id' => $orderItem->product_id,
             'type' => $movementType,
             'quantity_change' => $quantityChange,
             'before_stock' => $beforeStock,

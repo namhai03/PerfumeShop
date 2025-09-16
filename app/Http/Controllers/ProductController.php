@@ -69,6 +69,9 @@ class ProductController extends Controller
         if ($request->filled('gender')) {
             $query->where('gender', $request->gender);
         }
+        if ($request->filled('ingredients')) {
+            $query->whereRaw('FIND_IN_SET(?, ingredients)', [$request->input('ingredients')]);
+        }
 
         // Lọc tồn kho thấp
         if ($request->filled('low_stock') && $request->low_stock == '1') {
@@ -112,6 +115,15 @@ class ProductController extends Controller
             })
             ->unique()
             ->values();
+        // Tách các ingredients duy nhất từ chuỗi CSV 'ingredients'
+        $ingredients = collect(Product::pluck('ingredients')->filter()->all())
+            ->flatMap(function ($csv) {
+                return collect(explode(',', $csv))
+                    ->map(fn ($i) => trim($i))
+                    ->filter();
+            })
+            ->unique()
+            ->values();
         // Không dùng productTypes/productForms nữa
 
         return view('products.index', compact(
@@ -119,6 +131,7 @@ class ProductController extends Controller
             'categories', 
             'brands', 
             'tags',
+            'ingredients',
             'fragranceFamilies',
             'genders'
         ));
@@ -135,7 +148,15 @@ class ProductController extends Controller
             })
             ->unique()
             ->values();
-        return view('products.create', compact('categories', 'allTags'));
+        $allIngredients = collect(Product::pluck('ingredients')->filter()->all())
+            ->flatMap(function ($csv) {
+                return collect(explode(',', $csv))
+                    ->map(fn ($i) => trim($i))
+                    ->filter();
+            })
+            ->unique()
+            ->values();
+        return view('products.create', compact('categories', 'allTags', 'allIngredients'));
     }
 
     public function store(Request $request)
@@ -164,6 +185,7 @@ class ProductController extends Controller
             'import_date' => 'nullable|date',
             'is_active' => 'boolean',
             'tags' => 'nullable',
+            'ingredients' => 'nullable',
             'categories' => 'nullable|array',
             'categories.*' => 'exists:categories,id',
             // Thuộc tính mùi hương
@@ -199,6 +221,14 @@ class ProductController extends Controller
                 $data['tags'] = $this->normalizeTags(implode(',', $tagsValue));
             } else {
                 $data['tags'] = $this->normalizeTags($tagsValue);
+            }
+        }
+        if ($request->has('ingredients')) {
+            $ingredientsValue = $request->input('ingredients');
+            if (is_array($ingredientsValue)) {
+                $data['ingredients'] = $this->normalizeIngredients(implode(',', $ingredientsValue));
+            } else {
+                $data['ingredients'] = $this->normalizeIngredients($ingredientsValue);
             }
         }
         if (!isset($data['low_stock_threshold'])) {
@@ -242,8 +272,11 @@ class ProductController extends Controller
         $allTags = collect(Product::pluck('tags')->filter()->all())
             ->flatMap(function ($csv) { return collect(explode(',', $csv))->map(fn($t)=>trim($t))->filter(); })
             ->unique()->values();
+        $allIngredients = collect(Product::pluck('ingredients')->filter()->all())
+            ->flatMap(function ($csv) { return collect(explode(',', $csv))->map(fn($i)=>trim($i))->filter(); })
+            ->unique()->values();
         $selectedCategoryIds = $product->categories()->pluck('categories.id')->toArray();
-        return view('products.edit', compact('product', 'categories', 'selectedCategoryIds', 'allTags'));
+        return view('products.edit', compact('product', 'categories', 'selectedCategoryIds', 'allTags', 'allIngredients'));
     }
 
     public function update(Request $request, Product $product)
@@ -272,6 +305,7 @@ class ProductController extends Controller
             'import_date' => 'nullable|date',
             'is_active' => 'boolean',
             'tags' => 'nullable',
+            'ingredients' => 'nullable',
             'categories' => 'nullable|array',
             'categories.*' => 'exists:categories,id',
             // Thuộc tính mùi hương
@@ -306,6 +340,14 @@ class ProductController extends Controller
                 $data['tags'] = $this->normalizeTags(implode(',', $tagsValue));
             } else {
                 $data['tags'] = $this->normalizeTags($tagsValue);
+            }
+        }
+        if ($request->has('ingredients')) {
+            $ingredientsValue = $request->input('ingredients');
+            if (is_array($ingredientsValue)) {
+                $data['ingredients'] = $this->normalizeIngredients(implode(',', $ingredientsValue));
+            } else {
+                $data['ingredients'] = $this->normalizeIngredients($ingredientsValue);
             }
         }
         if (!isset($data['low_stock_threshold'])) {
@@ -430,6 +472,7 @@ class ProductController extends Controller
                             'import_date' => $row['import_date'] ?? $product->import_date,
                             'sales_channel' => $row['sales_channel'] ?? $product->sales_channel,
                             'tags' => isset($row['tags']) ? self::normalizeTagsStatic($row['tags']) : $product->tags,
+                            'ingredients' => isset($row['ingredients']) ? self::normalizeIngredientsStatic($row['ingredients']) : $product->ingredients,
                             'product_type' => $row['product_type'] ?? $product->product_type,
                             'product_form' => $row['product_form'] ?? $product->product_form,
                             'expiry_date' => $row['expiry_date'] ?? $product->expiry_date,
@@ -456,6 +499,7 @@ class ProductController extends Controller
                             'import_date' => $row['import_date'] ?? null,
                             'sales_channel' => $row['sales_channel'] ?? null,
                             'tags' => isset($row['tags']) ? self::normalizeTagsStatic($row['tags']) : null,
+                            'ingredients' => isset($row['ingredients']) ? self::normalizeIngredientsStatic($row['ingredients']) : null,
                             'product_type' => $row['product_type'] ?? null,
                             'product_form' => $row['product_form'] ?? null,
                             'expiry_date' => $row['expiry_date'] ?? null,
@@ -483,6 +527,14 @@ class ProductController extends Controller
                     $parts = array_values(array_unique($parts));
                     return empty($parts) ? null : implode(',', $parts);
                 }
+
+                public static function normalizeIngredientsStatic(?string $ingredients): ?string
+                {
+                    if (!$ingredients) return null;
+                    $parts = array_filter(array_map('trim', explode(',', $ingredients)));
+                    $parts = array_values(array_unique($parts));
+                    return empty($parts) ? null : implode(',', $parts);
+                }
             }, $request->file('file'));
 
             return redirect()->route('products.index')
@@ -500,7 +552,7 @@ class ProductController extends Controller
         $filename = 'products_template.' . $format;
 
         $columns = [
-            'name','description','import_price','selling_price','category','brand','sku','barcode','stock','low_stock_threshold','image','volume','concentration','origin','import_date','sales_channel','tags','product_type','product_form','expiry_date','is_active'
+            'name','description','import_price','selling_price','category','brand','sku','barcode','stock','low_stock_threshold','image','volume','concentration','origin','import_date','sales_channel','tags','ingredients','product_type','product_form','expiry_date','is_active'
         ];
 
         if ($format === 'csv') {
@@ -590,6 +642,16 @@ class ProductController extends Controller
         return empty($parts) ? null : implode(',', $parts);
     }
 
+    private function normalizeIngredients(?string $ingredients): ?string
+    {
+        if (!$ingredients) {
+            return null;
+        }
+        $parts = array_filter(array_map('trim', explode(',', $ingredients)));
+        $parts = array_values(array_unique($parts));
+        return empty($parts) ? null : implode(',', $parts);
+    }
+
     private function importCsv($uploadedFile): void
     {
         $path = $uploadedFile->getRealPath();
@@ -636,6 +698,7 @@ class ProductController extends Controller
                 'import_date' => $data['import_date'] ?? null,
                 'sales_channel' => $data['sales_channel'] ?? null,
                 'tags' => $this->normalizeTags($data['tags'] ?? null),
+                'ingredients' => $this->normalizeIngredients($data['ingredients'] ?? null),
                 'product_type' => $data['product_type'] ?? null,
                 'product_form' => $data['product_form'] ?? null,
                 'expiry_date' => $data['expiry_date'] ?? null,

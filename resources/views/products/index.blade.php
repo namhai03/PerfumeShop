@@ -2,6 +2,10 @@
 
 @section('title', 'Danh sách sản phẩm - PerfumeShop')
 
+@php
+    use Illuminate\Support\Facades\Storage;
+@endphp
+
 @section('content')
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
         <div>
@@ -170,13 +174,15 @@
                             </td>
                         </tr>
                     @empty
-                        <tr>
-                            <td colspan="6" style="text-align: center; padding: 40px; color: #6c757d;">
-                                <div style="margin-bottom: 16px;">
-                                    <i class="fas fa-shopping-bag" style="font-size: 32px; color: #dee2e6;"></i>
+                        <tr style="height: 400px;">
+                            <td colspan="8" style="text-align: center; vertical-align: middle; padding: 0; color: #6c757d;">
+                                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; min-height: 300px;">
+                                    <div style="margin-bottom: 16px;">
+                                        <i class="fas fa-shopping-bag" style="font-size: 48px; color: #dee2e6;"></i>
+                                    </div>
+                                    <div style="font-size: 18px; font-weight: 500; margin-bottom: 8px;">Chưa có sản phẩm nào</div>
+                                    <div style="font-size: 14px; color: #6c757d;">Bắt đầu bằng cách thêm sản phẩm mới hoặc nhập danh sách từ file Excel.</div>
                                 </div>
-                                <div style="font-size: 16px; font-weight: 500; margin-bottom: 8px;">Chưa có sản phẩm nào</div>
-                                <div style="font-size: 14px;">Bắt đầu bằng cách thêm sản phẩm mới hoặc nhập danh sách từ file Excel.</div>
                             </td>
                         </tr>
                     @endforelse
@@ -285,7 +291,15 @@
                     </div>
                 </div>
                 <div class="form-group" style="display:flex; gap:12px;">
-                    
+                    <div style="flex:1;">
+                        <label class="form-label">Thành phần</label>
+                        <select name="ingredients" class="form-control">
+                            <option value="">-- Tất cả --</option>
+                            @foreach($ingredients as $ingredient)
+                                <option value="{{ $ingredient }}" {{ request('ingredients') == $ingredient ? 'selected' : '' }}>{{ $ingredient }}</option>
+                            @endforeach
+                        </select>
+                    </div>
                     <div style="flex:1;">
                         <label class="form-label">Tồn kho</label>
                         <select name="low_stock" class="form-control">

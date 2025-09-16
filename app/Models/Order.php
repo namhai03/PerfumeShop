@@ -27,6 +27,8 @@ class Order extends Model
         'delivery_date',
         'payment_method',
         'delivery_address',
+        'ward',
+        'city',
         'phone',
     ];
 

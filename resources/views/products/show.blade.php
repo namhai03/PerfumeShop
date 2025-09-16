@@ -2,6 +2,11 @@
 
 @section('title', $product->name . ' - PerfumeShop')
 
+@php
+    use Illuminate\Support\Facades\Storage;
+    use App\Helpers\DateTimeHelper;
+@endphp
+
 @section('content')
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px;">
         <h1 class="page-title">{{ $product->name }}</h1>
@@ -143,7 +148,7 @@
 
             <!-- Fragrance Details -->
             <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e2e8f0;">
-                <label style="font-weight: 500; color: #4a5568; display: block; margin-bottom: 8px;">Đặc tính mùi hương</label>
+                
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
                     <div>
                         <div style="margin-bottom: 10px;"><strong>Nhóm hương:</strong> {{ $product->fragrance_family ?? 'N/A' }}</div>
@@ -163,6 +168,19 @@
                         <span style="border:1px solid #e2e8f0; background:#f8fafc; padding:6px 10px; border-radius:999px; font-size:12px; color:#2c3e50;">{{ $tag }}</span>
                     @empty
                         <span style="color:#6c757d;">Không có</span>
+                    @endforelse
+                </div>
+            </div>
+
+            <!-- Ingredients -->
+            <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e2e8f0;">
+                <label style="font-weight: 500; color: #4a5568; display: block; margin-bottom: 8px;">Thành phần</label>
+                <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                    @php $ingredientList = collect(explode(',', (string)($product->ingredients ?? '')))->map(fn($i)=>trim($i))->filter(); @endphp
+                    @forelse($ingredientList as $ingredient)
+                        <span style="background: #f0f9ff; color: #0369a1; padding: 6px 12px; border-radius: 999px; font-size: 12px; border: 1px solid #bae6fd; font-weight: 500;">{{ $ingredient }}</span>
+                    @empty
+                        <span style="color:#6c757d;">Không có thông tin thành phần</span>
                     @endforelse
                 </div>
             </div>
@@ -205,11 +223,11 @@
                 <div style="color: #718096; font-size: 13px;">
                     <div>
                         Ngày tạo: 
-                        {{ optional($product->created_at)->timezone(config('app.timezone'))->format('d/m/Y H:i') ?? '-' }}
+                        {{ DateTimeHelper::formatVietnamese($product->created_at) }}
                     </div>
                     <div>
                         Cập nhật lần cuối: 
-                        {{ optional($product->updated_at)->timezone(config('app.timezone'))->format('d/m/Y H:i') ?? '-' }}
+                        {{ DateTimeHelper::formatVietnamese($product->updated_at) }}
                     </div>
                 </div>
             </div>

@@ -71,7 +71,7 @@
                 <div>
                     <div class="form-group">
                         <label for="import_price" class="form-label">Giá nhập (VNĐ) *</label>
-                        <input type="number" id="import_price" name="import_price" class="form-control @error('import_price') is-invalid @enderror" value="{{ old('import_price') }}" min="0" step="1000" required>
+                        <input type="text" inputmode="numeric" id="import_price" name="import_price" data-money class="form-control @error('import_price') is-invalid @enderror" value="{{ old('import_price') }}" required>
                         @error('import_price')
                             <div style="color: #dc3545; font-size: 12px; margin-top: 4px;">{{ $message }}</div>
                         @enderror
@@ -79,7 +79,7 @@
 
                     <div class="form-group">
                         <label for="selling_price" class="form-label">Giá bán (VNĐ) *</label>
-                        <input type="number" id="selling_price" name="selling_price" class="form-control @error('selling_price') is-invalid @enderror" value="{{ old('selling_price') }}" min="0" step="1000" required>
+                        <input type="text" inputmode="numeric" id="selling_price" name="selling_price" data-money class="form-control @error('selling_price') is-invalid @enderror" value="{{ old('selling_price') }}" required>
                         @error('selling_price')
                             <div style="color: #dc3545; font-size: 12px; margin-top: 4px;">{{ $message }}</div>
                         @enderror
@@ -168,6 +168,21 @@
                         <input type="hidden" name="tags" id="tags-hidden" value="{{ old('tags') }}">
                         <small style="color:#6c757d;">Bấm để chọn/bỏ tag. Gõ để thêm tag mới, Enter để xác nhận.</small>
                         @error('tags')
+                            <div style="color: #dc3545; font-size: 12px; margin-top: 4px;">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Thành phần</label>
+                        <div id="ingredients-multi" class="form-control" style="height:auto; padding:8px; display:flex; flex-wrap:wrap; gap:8px; cursor:text;">
+                            @foreach(($allIngredients ?? []) as $ingredient)
+                                <button type="button" class="ingredient-option" data-ingredient="{{ $ingredient }}" style="border:1px solid #e2e8f0; background:#fff; padding:6px 10px; border-radius:999px; font-size:12px;">{{ $ingredient }}</button>
+                            @endforeach
+                            <input type="text" id="ingredients-input" placeholder="Thêm thành phần..." style="border:none; outline:none; flex:1; min-width:120px; font-size:12px;" />
+                        </div>
+                        <input type="hidden" name="ingredients" id="ingredients-hidden" value="{{ old('ingredients') }}">
+                        <small style="color:#6c757d;">Bấm để chọn/bỏ thành phần. Gõ để thêm thành phần mới, Enter để xác nhận.</small>
+                        @error('ingredients')
                             <div style="color: #dc3545; font-size: 12px; margin-top: 4px;">{{ $message }}</div>
                         @enderror
                     </div>
@@ -273,7 +288,8 @@
                 .filter(Boolean);
         }
 
-        function shortCodeFromTokens(tokens, eachLen = 4, maxTokens = 4) {
+        function shortCodeFromTokens(tokens, eachLen = 3, maxTokens = 2) {
+            // Chỉ lấy 1-2 phần ngắn nhất từ tên sản phẩm
             return tokens.slice(0, maxTokens).map(t => t.slice(0, eachLen)).join('-');
         }
 
@@ -281,11 +297,12 @@
             const brandTokens = cleanTokenize(brandInput.value);
             const nameTokens = cleanTokenize(nameInput.value);
             if (nameTokens.length === 0 && brandTokens.length === 0) return '';
-            const brandCode = brandTokens.length ? brandTokens[0].slice(0, 5) : '';
-            const nameCode = shortCodeFromTokens(nameTokens, 4, 4);
+            const brandCode = brandTokens.length ? brandTokens[0].slice(0, 4) : '';
+            // Chỉ lấy tối đa 2 phần ngắn từ tên sản phẩm, mỗi phần tối đa 3 ký tự
+            const nameCode = shortCodeFromTokens(nameTokens, 3, 2);
             let base = [brandCode, nameCode].filter(Boolean).join('-');
             base = base.replace(/-+/g, '-').replace(/^-+|-+$/g, '');
-            base = base.slice(0, 28);
+            base = base.slice(0, 20); // Giảm độ dài tối đa xuống 20 ký tự
             const uniq = (Date.now().toString(36)).toUpperCase().slice(-4);
             return base ? `${base}-${uniq}` : uniq;
         }
@@ -427,6 +444,104 @@
         });
     })();
 
+    // Multi-select Ingredients with input and toggle (tương tự tags)
+    (function(){
+        const wrapper = document.getElementById('ingredients-multi');
+        const hidden = document.getElementById('ingredients-hidden');
+        const input = document.getElementById('ingredients-input');
+        const selected = new Set();
+        function renderHidden(){ hidden.value = Array.from(selected).join(','); }
+        function toggleIngredient(ingredient){
+            const i = ingredient.trim(); if (!i) return;
+            if (selected.has(i)) selected.delete(i); else selected.add(i);
+            updateVisual(); renderHidden();
+        }
+        function ensureIngredientButton(ingredient){
+            const i = ingredient.trim(); if (!i) return;
+            let btn = wrapper.querySelector(`button.ingredient-option[data-ingredient="${CSS.escape(i)}"]`);
+            if (!btn) {
+                btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'ingredient-option';
+                btn.dataset.ingredient = i;
+                btn.textContent = i;
+                btn.style.border = '1px solid #e2e8f0';
+                btn.style.background = '#fff';
+                btn.style.padding = '6px 10px';
+                btn.style.borderRadius = '999px';
+                btn.style.fontSize = '12px';
+                btn.style.display = 'inline-flex';
+                btn.style.alignItems = 'center';
+                addRemoveIcon(btn);
+                // mark as created dynamically
+                btn.dataset.created = '1';
+                wrapper.insertBefore(btn, input);
+            }
+            return btn;
+        }
+        function addRemoveIcon(btn){
+            if (btn.querySelector('.remove-ingredient')) return;
+            const x = document.createElement('span');
+            x.textContent = '×';
+            x.className = 'remove-ingredient';
+            x.style.marginLeft = '8px';
+            x.style.fontWeight = 'bold';
+            x.style.cursor = 'pointer';
+            btn.appendChild(x);
+        }
+        function updateVisual(){
+            Array.from(wrapper.querySelectorAll('button.ingredient-option')).forEach(btn=>{
+                const i = btn.dataset.ingredient;
+                btn.style.background = selected.has(i) ? '#e6f4ff' : '#fff';
+            });
+        }
+        // add remove icon to all existing options
+        Array.from(wrapper.querySelectorAll('button.ingredient-option')).forEach(addRemoveIcon);
+        // init from hidden old value
+        (hidden.value || '').split(',').map(i=>i.trim()).filter(Boolean).forEach(i=>selected.add(i));
+        updateVisual(); renderHidden();
+
+        wrapper.addEventListener('click', function(e){
+            const remove = e.target.closest('.remove-ingredient');
+            if (remove) {
+                e.preventDefault();
+                e.stopPropagation();
+                const btn = remove.closest('button.ingredient-option');
+                const i = btn && btn.dataset.ingredient;
+                if (!i) return;
+                // remove from selected
+                if (selected.has(i)) selected.delete(i);
+                // remove chip from list (xóa khỏi danh sách sẵn có)
+                btn.remove();
+                renderHidden();
+                return;
+            }
+            const btn = e.target.closest('button.ingredient-option');
+            if (btn) { toggleIngredient(btn.dataset.ingredient); }
+        });
+        input.addEventListener('keydown', function(e){
+            if (e.key === 'Enter' || e.key === ',') {
+                e.preventDefault();
+                const val = input.value.replace(/,/g,'').trim();
+                if (val) {
+                    ensureIngredientButton(val);
+                    selected.add(val);
+                    input.value='';
+                    updateVisual(); renderHidden();
+                }
+            }
+        });
+        input.addEventListener('blur', function(){
+            const val = input.value.replace(/,/g,'').trim();
+            if (val) {
+                ensureIngredientButton(val);
+                selected.add(val);
+                input.value='';
+                updateVisual(); renderHidden();
+            }
+        });
+    })();
+
     // Variants dynamic rows
     const variantsBody = document.getElementById('variants-body');
     const baseSkuInput = document.getElementById('sku');
@@ -458,7 +573,7 @@
                 <input type="text" class="form-control" name="variants[${idx}][sku]" value="${volume ? buildSku(volume) : ''}" />
             </td>
             <td style="padding:8px; border-bottom:1px solid #eef2f7;">
-                <input type="number" min="0" step="1000" class="form-control" name="variants[${idx}][selling_price]" />
+                <input type="text" inputmode="numeric" data-money class="form-control" name="variants[${idx}][selling_price]" />
             </td>
             <td style="padding:8px; border-bottom:1px solid #eef2f7;">
                 <input type="number" min="0" class="form-control" name="variants[${idx}][stock]" value="0" style="width:100px;" />
@@ -468,6 +583,7 @@
             </td>
         `;
         variantsBody.appendChild(tr);
+        initMoneyInputs(tr);
     }
 
     addBtn.addEventListener('click', function() {
@@ -511,11 +627,48 @@
             e.target.dataset.manual = '1';
         }
     });
+
+    // ===== Định dạng tiền tệ cho input có data-money =====
+    function formatMoneyValue(value) {
+        const digits = String(value || '').replace(/\D+/g, '');
+        if (!digits) return '';
+        return new Intl.NumberFormat('vi-VN').format(parseInt(digits,10));
+    }
+    function getMoneyNumber(value) {
+        const digits = String(value || '').replace(/\D+/g, '');
+        return digits ? String(parseInt(digits,10)) : '';
+    }
+    function attachMoneyHandlers(input) {
+        input.addEventListener('input', function(){
+            const caret = input.selectionStart;
+            const before = input.value.length;
+            input.value = formatMoneyValue(input.value);
+            const after = input.value.length;
+            const delta = after - before;
+            try { input.setSelectionRange((caret||0)+delta, (caret||0)+delta); } catch(e) {}
+        });
+    }
+    function initMoneyInputs(scope){
+        (scope || document).querySelectorAll('input[data-money]').forEach(attachMoneyHandlers);
+    }
+    document.addEventListener('DOMContentLoaded', function(){
+        initMoneyInputs(document);
+        document.querySelectorAll('input[data-money]').forEach(inp => { inp.value = formatMoneyValue(inp.value); });
+        const form = document.querySelector('form[action="{{ route('products.store') }}"]');
+        if (form) form.addEventListener('submit', function(){
+            form.querySelectorAll('input[data-money]').forEach(inp => { inp.value = getMoneyNumber(inp.value); });
+        });
+    });
 </script>
 <style>
     #tag-multi .remove-tag { display: none; }
     #tag-multi .tag-option:hover .remove-tag { display: inline; }
     #tag-multi .tag-option { transition: background 0.15s ease; }
     #tag-multi .tag-option:hover { background: #eef6ff !important; }
+    
+    #ingredients-multi .remove-ingredient { display: none; }
+    #ingredients-multi .ingredient-option:hover .remove-ingredient { display: inline; }
+    #ingredients-multi .ingredient-option { transition: background 0.15s ease; }
+    #ingredients-multi .ingredient-option:hover { background: #eef6ff !important; }
 </style>
 @endpush

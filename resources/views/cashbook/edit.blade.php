@@ -56,7 +56,7 @@
                     </div>
                     <div class="form-group" style="flex: 1;">
                         <label class="form-label">Giá trị*</label>
-                        <input type="number" name="amount" class="form-control" placeholder="Nhập giá trị" value="{{ $voucher->amount }}" required>
+                        <input type="text" inputmode="numeric" name="amount" data-money class="form-control" placeholder="Nhập giá trị" value="{{ $voucher->amount }}" required>
                     </div>
                 </div>
 
@@ -95,4 +95,37 @@
             </div>
         </div>
     </form>
+@push('scripts')
+<script>
+    (function(){
+        function fmt(v){
+            const d = String(v||'').replace(/\D+/g,'');
+            if(!d) return '';
+            return new Intl.NumberFormat('vi-VN').format(parseInt(d,10));
+        }
+        function attach(inp){
+            inp.addEventListener('input', function(){
+                const caret = inp.selectionStart;
+                const before = inp.value.length;
+                inp.value = fmt(inp.value);
+                const after = inp.value.length;
+                const delta = after - before;
+                try { inp.setSelectionRange((caret||0)+delta, (caret||0)+delta); } catch(e) {}
+            });
+        }
+        document.addEventListener('DOMContentLoaded', function(){
+            document.querySelectorAll('input[data-money]').forEach(function(i){ i.value = fmt(i.value); attach(i); });
+            const form = document.getElementById('voucherForm');
+            if(form){
+                form.addEventListener('submit', function(){
+                    form.querySelectorAll('input[data-money]').forEach(function(i){
+                        const d = String(i.value||'').replace(/\D+/g,'');
+                        i.value = d ? String(parseInt(d,10)) : '';
+                    });
+                });
+            }
+        });
+    })();
+</script>
+@endpush
 @endsection

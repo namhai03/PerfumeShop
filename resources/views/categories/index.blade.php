@@ -72,7 +72,7 @@
                             </td>
                             <td>
                                 @php($count = $categoryCounts[$category->id] ?? 0)
-                                <a href="{{ route('products.index', ['category' => $category->id]) }}" class="link" title="Xem sản phẩm thuộc danh mục này">{{ $count }}</a>
+                                <a href="{{ route('products.index', ['category' => $category->id]) }}" style="text-decoration: none; color: inherit;" title="Xem sản phẩm thuộc danh mục này">{{ $count }}</a>
                             </td>
                             
                             
@@ -84,11 +84,13 @@
                             
                         </tr>
                     @empty
-                        <tr>
-                            <td colspan="7" style="text-align:center; padding:40px; color:#6c757d;">
-                                <div style="margin-bottom:16px;"><i class="fas fa-list" style="font-size:32px; color:#dee2e6;"></i></div>
-                                <div style="font-size:16px; font-weight:500; margin-bottom:8px;">Chưa có danh mục nào</div>
-                                <div style="font-size:14px;">Hãy tạo danh mục đầu tiên.</div>
+                        <tr style="height: 400px;">
+                            <td colspan="7" style="text-align: center; vertical-align: middle; padding: 0; color: #6c757d;">
+                                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; min-height: 300px;">
+                                    <div style="margin-bottom:16px;"><i class="fas fa-list" style="font-size:48px; color:#dee2e6;"></i></div>
+                                    <div style="font-size:18px; font-weight:500; margin-bottom:8px;">Chưa có danh mục nào</div>
+                                    <div style="font-size:14px; color: #6c757d;">Hãy tạo danh mục đầu tiên.</div>
+                                </div>
                             </td>
                         </tr>
                     @endforelse
