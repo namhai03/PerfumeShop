@@ -96,31 +96,93 @@ class ShipmentController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'order_code' => 'nullable|string|max:50',
+            // Danh sách đơn hàng: mỗi item có order_code và cod_amount
+            'orders' => 'required|array|min:1',
+            'orders.*.order_code' => 'required|string|max:50|exists:orders,order_number',
+            'orders.*.cod_amount' => 'nullable|numeric|min:0',
+
             'carrier' => 'nullable|string|max:100',
             'branch' => 'nullable|string|max:100',
             'region' => 'nullable|string|max:50',
-            'recipient_name' => 'required|string|max:255',
-            'recipient_phone' => 'required|string|max:20',
-            'address_line' => 'required|string|max:500',
+            'recipient_name' => 'nullable|string|max:255',
+            'recipient_phone' => 'nullable|string|max:20',
+            'address_line' => 'nullable|string|max:500',
             'province' => 'nullable|string|max:100',
             'ward' => 'nullable|string|max:100',
-            'status' => 'nullable|in:pending_pickup,picked_up,in_transit,retry,returning,returned,delivered,failed',
-            'cod_amount' => 'nullable|numeric|min:0',
+            'status' => 'nullable|in:pending_pickup,picked_up,in_transit,retry,returning,returned,delivered,failed,cancelled',
             'shipping_fee' => 'nullable|numeric|min:0',
             'weight_grams' => 'nullable|integer|min:0',
             'picked_up_at' => 'nullable|date',
             'delivered_at' => 'nullable|date',
         ]);
 
+        $ordersInput = collect($validated['orders'])
+            ->filter(fn($o) => !empty($o['order_code']))
+            ->values();
+
+        if ($ordersInput->isEmpty()) {
+            return back()->withInput()->with('error', 'Vui lòng nhập ít nhất một mã đơn hàng hợp lệ.');
+        }
+
         if (empty($validated['status'])) {
             $validated['status'] = 'pending_pickup';
         }
 
-        // Tự sinh tracking_code
-        $validated['tracking_code'] = $this->generateTrackingCode($validated['order_code'] ?? null);
+        // Lấy thông tin từ đơn đầu tiên để sinh mã và fallback người nhận
+        $firstOrderCode = $ordersInput[0]['order_code'];
+        $firstOrder = Order::where('order_number', $firstOrderCode)->first();
 
-        $shipment = Shipment::create($validated);
+        $recipientName = $validated['recipient_name'] ?? null;
+        $recipientPhone = $validated['recipient_phone'] ?? null;
+        $addressLine = $validated['address_line'] ?? null;
+        $province = $validated['province'] ?? null;
+        $ward = $validated['ward'] ?? null;
+
+        if ($firstOrder) {
+            $recipientName = $recipientName ?: $firstOrder->customer_name;
+            $recipientPhone = $recipientPhone ?: $firstOrder->phone;
+            $addressLine = $addressLine ?: $firstOrder->delivery_address;
+            $ward = $ward ?: $firstOrder->ward;
+            $province = $province ?: $firstOrder->city;
+        }
+
+        // Tổng COD = tổng của từng đơn
+        $totalCod = $ordersInput->sum(function ($o) {
+            return (float)($o['cod_amount'] ?? 0);
+        });
+
+        // Tự sinh tracking_code (dựa trên mã đơn đầu tiên nếu có)
+        $trackingCode = $this->generateTrackingCode($firstOrderCode);
+
+        $shipment = Shipment::create([
+            'order_code' => $firstOrderCode, // giữ reference đơn đầu tiên để tương thích cũ
+            'tracking_code' => $trackingCode,
+            'carrier' => $validated['carrier'] ?? null,
+            'branch' => $validated['branch'] ?? null,
+            'region' => $validated['region'] ?? null,
+            'recipient_name' => $recipientName,
+            'recipient_phone' => $recipientPhone,
+            'address_line' => $addressLine,
+            'province' => $province,
+            'ward' => $ward,
+            'status' => $validated['status'],
+            'cod_amount' => $totalCod,
+            'shipping_fee' => $validated['shipping_fee'] ?? 0,
+            'weight_grams' => $validated['weight_grams'] ?? 0,
+        ]);
+
+        // Gắn các đơn hàng vào pivot với COD từng đơn
+        $attachData = [];
+        foreach ($ordersInput as $item) {
+            $order = Order::where('order_number', $item['order_code'])->first();
+            if ($order) {
+                $attachData[$order->id] = ['cod_amount' => (float)($item['cod_amount'] ?? 0)];
+            }
+        }
+        if (!empty($attachData)) {
+            $shipment->ordersMany()->attach($attachData);
+        }
+
         ShipmentEvent::create([
             'shipment_id' => $shipment->id,
             'status' => $shipment->status,
@@ -135,7 +197,7 @@ class ShipmentController extends Controller
     public function updateStatus(Request $request, Shipment $shipment)
     {
         $request->validate([
-            'status' => 'required|in:pending_pickup,picked_up,in_transit,retry,returning,returned,delivered,failed',
+            'status' => 'required|in:pending_pickup,picked_up,in_transit,retry,returning,returned,delivered,failed,cancelled',
             'note' => 'nullable|string|max:255',
         ]);
 
@@ -143,13 +205,35 @@ class ShipmentController extends Controller
         $ts = now();
 
         // Ràng buộc chuyển trạng thái:
-        // - 'delivered' và 'returned' là kết thúc, không cho cập nhật tiếp
+        // - 'delivered', 'returned', 'cancelled' là kết thúc, không cho cập nhật tiếp
         // - 'failed' chỉ cho phép chuyển sang 'returned' (hoàn hàng thành công)
-        if ($shipment->status === 'delivered' || $shipment->status === 'returned') {
+        if (in_array($shipment->status, ['delivered','returned','cancelled'])) {
             return redirect()->back()->with('error', 'Vận đơn đã kết thúc, không thể cập nhật.');
         }
         if ($shipment->status === 'failed' && $status !== 'returned') {
             return redirect()->back()->with('error', 'Vận đơn thất bại chỉ có thể chuyển sang trạng thái hoàn hàng thành công.');
+        }
+
+        // Luồng theo đặc tả:
+        // pending_pickup (Đang lấy hàng) -> cancelled | picked_up
+        // picked_up (Đã lấy hàng) -> cancelled | in_transit
+        // in_transit (Đang giao hàng) -> delivered | returning | failed
+        // returning (Hoàn hàng) -> returned
+        // failed (Thất bại) -> returned
+        $allowedTransitions = [
+            'pending_pickup' => ['picked_up', 'cancelled'],
+            'picked_up' => ['in_transit', 'cancelled'],
+            'in_transit' => ['delivered', 'returning', 'failed'],
+            'returning' => ['returned'],
+            'failed' => ['returned'],
+            // Không cho chuyển từ các trạng thái kết thúc
+            'delivered' => [],
+            'returned' => [],
+            'cancelled' => [],
+        ];
+
+        if (isset($allowedTransitions[$shipment->status]) && !in_array($status, $allowedTransitions[$shipment->status])) {
+            return redirect()->back()->with('error', 'Chuyển trạng thái không hợp lệ từ trạng thái hiện tại.');
         }
 
         $update = ['status' => $status];
@@ -162,6 +246,9 @@ class ShipmentController extends Controller
                 break;
             case 'failed':
                 $update['failed_at'] = $ts;
+                break;
+            case 'returning':
+                $update['returning_at'] = $ts;
                 break;
             case 'returned':
                 $update['returned_at'] = $ts;
@@ -192,6 +279,7 @@ class ShipmentController extends Controller
                     'delivered' => Order::STATUS_DELIVERED,
                     'failed' => Order::STATUS_FAILED,
                     'returned' => Order::STATUS_RETURNED,
+                    'cancelled' => $order->status, // không thay đổi đơn khi hủy vận đơn
                     default => $order->status,
                 };
 

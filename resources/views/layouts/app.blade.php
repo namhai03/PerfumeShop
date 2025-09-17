@@ -685,6 +685,30 @@
 
     @stack('scripts')
     @stack('styles')
+    <script>
+        document.addEventListener('DOMContentLoaded', function(){
+            var dateInputs = document.querySelectorAll('input[type="date"]');
+            dateInputs.forEach(function(input){
+                input.addEventListener('focus', function(){
+                    if (!this.value) {
+                        this.dataset.tempToday = '1';
+                        try { this.valueAsDate = new Date(); } catch (e) {}
+                        if (this.showPicker) { try { this.showPicker(); } catch (e) {} }
+                    }
+                });
+                input.addEventListener('change', function(){
+                    if (this.dataset.tempToday === '1') { this.dataset.userChanged = '1'; }
+                });
+                input.addEventListener('blur', function(){
+                    if (this.dataset.tempToday === '1' && !this.dataset.userChanged) {
+                        this.value = '';
+                    }
+                    delete this.dataset.tempToday;
+                    delete this.dataset.userChanged;
+                });
+            });
+        });
+    </script>
     <style>
         .qty-pos{ color:#16a34a; }
         .qty-neg{ color:#dc2626; }

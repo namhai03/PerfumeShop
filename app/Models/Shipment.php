@@ -13,13 +13,14 @@ class Shipment extends Model
         'order_code','tracking_code','carrier','branch','region',
         'recipient_name','recipient_phone','address_line','province','ward',
         'status','cod_amount','shipping_fee','weight_grams',
-        'picked_up_at','delivered_at','failed_at','returned_at'
+        'picked_up_at','delivered_at','failed_at','returning_at','returned_at'
     ];
 
     protected $casts = [
         'picked_up_at' => 'datetime',
         'delivered_at' => 'datetime',
         'failed_at' => 'datetime',
+        'returning_at' => 'datetime',
         'returned_at' => 'datetime',
         'cod_amount' => 'decimal:2',
         'shipping_fee' => 'decimal:2',
@@ -36,7 +37,12 @@ class Shipment extends Model
         return $this->belongsTo(Order::class, 'order_code', 'order_number');
     }
 
-    // Quan hệ nhiều-nhiều đã loại bỏ theo yêu cầu
+    public function ordersMany()
+    {
+        return $this->belongsToMany(Order::class, 'shipment_orders')
+            ->withPivot(['cod_amount'])
+            ->withTimestamps();
+    }
 }
 
 

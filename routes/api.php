@@ -60,6 +60,7 @@ Route::get('/orders/by-number/{order_number}', function (string $order_number) {
         'address' => $order->delivery_address,
         'ward' => $order->ward,
         'city' => $order->city,
+        'final_amount' => (float)$order->final_amount,
     ];
 });
 

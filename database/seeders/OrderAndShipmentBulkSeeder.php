@@ -22,32 +22,41 @@ class OrderAndShipmentBulkSeeder extends Seeder
 
         $createdOrders = 0;
         for ($i=1; $i<=200; $i++) {
-            // random date from 2024-01-01 to now
-            $start = now()->setTimezone(config('app.timezone'))->setDate(2024,1,1)->startOfDay();
+            // random date from 2025-01-01 to now (yêu cầu người dùng)
+            $start = now()->setTimezone(config('app.timezone'))->setDate(2025,1,1)->startOfDay();
             $randTs = rand($start->timestamp, now()->timestamp);
             $orderDate = now()->setTimestamp($randTs);
 
-            // build simple order
+            // build simple order (khớp form tạo đơn: có customer_name, địa chỉ, city/ward, phone)
             $orderNumber = 'DH' . $orderDate->format('Ymd') . Str::upper(Str::random(4));
             $statusPool = ['confirmed','processing','shipping','delivered'];
             $status = $statusPool[array_rand($statusPool)];
 
-            // lấy (hoặc tạo) customer tạm để thỏa ràng buộc customer_id
-            $customerId = \App\Models\Customer::query()->inRandomOrder()->value('id');
-            if (!$customerId) {
+            // lấy (hoặc tạo) customer ngẫu nhiên để thỏa ràng buộc customer_id và random hóa thông tin KH
+            $customer = \App\Models\Customer::query()->inRandomOrder()->first();
+            if (!$customer) {
+                [$addr0, $ward0, $city0] = $this->randomLocation();
                 $customer = \App\Models\Customer::create([
-                    'name' => 'Khách Tạm',
+                    'name' => 'Khách ' . Str::upper(Str::random(3)),
                     'phone' => '09' . rand(10000000,99999999),
-                    'address' => 'Địa chỉ tạm',
+                    'address' => $addr0,
+                    'ward' => $ward0,
+                    'city' => $city0,
                     'is_active' => true,
+                    'customer_type' => 'walkin',
+                    'source' => rand(0,1) ? 'online' : 'offline',
                 ]);
-                $customerId = $customer->id;
             }
+
+            // random hóa thông tin khách theo yêu cầu: tên/phone có thể khác với bản ghi gốc (form cho phép nhập tự do)
+            [$addr, $ward, $city] = $this->randomLocation();
+            $randCustomerName = rand(0,1) ? $customer->name : ('Khách ' . Str::upper(Str::random(3)));
+            $randPhone = rand(0,1) ? $customer->phone : ('09' . rand(10000000,99999999));
 
             $order = Order::create([
                 'order_number' => $orderNumber,
-                'customer_id' => $customerId,
-                'customer_name' => 'Khách ' . Str::upper(Str::random(3)),
+                'customer_id' => $customer->id,
+                'customer_name' => $randCustomerName,
                 'status' => match($status){
                     'confirmed' => 'confirmed',
                     'processing' => 'processing',
@@ -62,10 +71,10 @@ class OrderAndShipmentBulkSeeder extends Seeder
                 'order_date' => $orderDate->toDateString(),
                 'delivery_date' => $orderDate->copy()->addDays(rand(0,5))->toDateString(),
                 'payment_method' => 'cash',
-                'delivery_address' => 'Số '.rand(1,999).' Đường A',
-                'ward' => 'Phường '.rand(1,15),
-                'city' => rand(0,1) ? 'TP. Hồ Chí Minh' : 'Hà Nội',
-                'phone' => '09' . rand(10000000,99999999),
+                'delivery_address' => $addr,
+                'ward' => $ward,
+                'city' => $city,
+                'phone' => $randPhone,
                 'created_at' => $orderDate,
                 'updated_at' => $orderDate,
             ]);
@@ -91,8 +100,8 @@ class OrderAndShipmentBulkSeeder extends Seeder
                 'final_amount' => $total,
             ]);
 
-            // shipment close to order time (within 0-24h)
-            $shipTs = $orderDate->timestamp + rand(0, 24*3600);
+            // shipment close to order time (within 0-72h, đảm bảo gần ngày đơn hàng)
+            $shipTs = $orderDate->timestamp + rand(0, 72*3600);
             $shipTime = now()->setTimestamp($shipTs);
             $shipStatusPool = ['pending_pickup','picked_up','in_transit','delivered'];
             $shipStatus = $shipStatusPool[array_rand($shipStatusPool)];
@@ -124,13 +133,31 @@ class OrderAndShipmentBulkSeeder extends Seeder
             $createdOrders++;
         }
 
-        $this->command?->info("Đã tạo {$createdOrders} đơn hàng và vận đơn tương ứng (thời gian gần nhau, từ 01/2024 đến nay).");
+        $this->command?->info("Đã tạo {$createdOrders} đơn hàng và vận đơn tương ứng (thời gian gần nhau, từ 01/2025 đến nay).");
     }
 
     private function randomShippingFee(string $region): float
     {
         if ($region === 'HN') return (float)(rand(200, 300) * 100);
         return (float)(rand(150, 250) * 100);
+    }
+
+    private function randomLocation(): array
+    {
+        $cities = [
+            'TP. Hồ Chí Minh' => ['Bến Nghé','Bến Thành','Cầu Kho','Cầu Ông Lãnh','Tân Định','Phú Nhuận','Hiệp Phú','Tăng Nhơn Phú A','Tăng Nhơn Phú B','Linh Trung','Linh Chiểu'],
+            'Hà Nội' => ['Hàng Trống','Hàng Bạc','Hàng Buồm','Cửa Đông','Cửa Nam','Kim Liên','Khương Trung','Trung Hòa','Nhân Chính','Quan Hoa'],
+            'Đà Nẵng' => ['Hải Châu 1','Hải Châu 2','Thạch Thang','Thanh Bình','Thuận Phước','An Hải Bắc','An Hải Đông','An Hải Tây'],
+            'Cần Thơ' => ['Tân An','An Nghiệp','An Cư','An Phú','Xuân Khánh','Hưng Lợi'],
+        ];
+        $city = array_rand($cities);
+        $wards = $cities[$city];
+        $ward = $wards[array_rand($wards)];
+        $streetNo = rand(1,999);
+        $streetNamePool = ['Trần Hưng Đạo','Lê Lợi','Nguyễn Huệ','Điện Biên Phủ','Pasteur','Hai Bà Trưng','Võ Thị Sáu','Cách Mạng Tháng 8','Phan Xích Long','Phổ Quang'];
+        $streetName = $streetNamePool[array_rand($streetNamePool)];
+        $address = "Số {$streetNo} {$streetName}";
+        return [$address, $ward, $city];
     }
 }
 

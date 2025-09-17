@@ -87,7 +87,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label">Ngày giao hàng <span style="color: #e53e3e;">*</span></label>
+                    <label class="form-label">Ngày tạo đơn <span style="color: #e53e3e;">*</span></label>
                     <input type="date" name="order_date" id="order_date" class="form-control" 
                            value="{{ old('order_date', date('Y-m-d')) }}" required>
                 </div>

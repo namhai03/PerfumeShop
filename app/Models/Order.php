@@ -81,6 +81,7 @@ class Order extends Model
     public function shipmentsMany()
     {
         return $this->belongsToMany(Shipment::class, 'shipment_orders')
+            ->withPivot(['cod_amount'])
             ->withTimestamps();
     }
 

@@ -32,6 +32,7 @@ return new class extends Migration
                 'returned',
                 'delivered',
                 'failed',
+                'cancelled',
             ])->default('pending_pickup');
 
             $table->unsignedInteger('weight_grams')->default(0);

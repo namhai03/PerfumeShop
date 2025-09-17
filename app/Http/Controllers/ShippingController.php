@@ -25,7 +25,7 @@ class ShippingController extends Controller
             default => now()->subDays(7),
         };
 
-        $base = Shipment::query()->where('created_at', '>=', $from);
+        $base = Shipment::query();
         if ($province) { $base->where('province', $province); }
 
         // Danh sách tỉnh hiện có trong vận đơn
@@ -35,36 +35,17 @@ class ShippingController extends Controller
             ->distinct()->orderBy('province')
             ->pluck('province');
 
-        $summary = [
-            'pending_pickup' => [
-                'count' => (clone $base)->where('status','pending_pickup')->count(),
-                'cod' => (clone $base)->where('status','pending_pickup')->sum('cod_amount'),
-            ],
-            'picked_up' => [
-                'count' => (clone $base)->where('status','picked_up')->count(),
-                'cod' => (clone $base)->where('status','picked_up')->sum('cod_amount'),
-            ],
-            'in_transit' => [
-                'count' => (clone $base)->where('status','in_transit')->count(),
-                'cod' => (clone $base)->where('status','in_transit')->sum('cod_amount'),
-            ],
-            'retry' => [
-                'count' => (clone $base)->where('status','retry')->count(),
-                'cod' => (clone $base)->where('status','retry')->sum('cod_amount'),
-            ],
-            'returning' => [
-                'count' => (clone $base)->where('status','returning')->count(),
-                'cod' => (clone $base)->where('status','returning')->sum('cod_amount'),
-            ],
-            'returned' => [
-                'count' => (clone $base)->where('status','returned')->count(),
-                'cod' => (clone $base)->where('status','returned')->sum('cod_amount'),
-            ],
-            'delivered' => [
-                'count' => (clone $base)->where('status','delivered')->count(),
-                'cod' => (clone $base)->where('status','delivered')->sum('cod_amount'),
-            ],
-        ];
+        $summary = [];
+        foreach (['pending_pickup','picked_up','in_transit','returning','delivered','failed','returned','cancelled'] as $st) {
+            [$col] = $this->statusDateColumn($st);
+            $q = (clone $base)->where('status', $st);
+            if ($col) { $q->where($col, '>=', $from); }
+            else { $q->where('created_at', '>=', $from); }
+            $summary[$st] = [
+                'count' => $q->count(),
+                'cod' => $q->sum('cod_amount'),
+            ];
+        }
 
         $charts = [
             'avg_pickup_time' => null,
@@ -84,22 +65,24 @@ class ShippingController extends Controller
     public function overviewData(Request $request)
     {
         $range = $request->get('range', '7d');
-        $branch = $request->get('branch');
-        $region = $request->get('region');
+        $province = $request->get('province');
 
         $from = match($range){
             'today' => now()->startOfDay(),
+            '3d' => now()->subDays(3),
+            '7d' => now()->subDays(7),
+            '14d' => now()->subDays(14),
             '30d' => now()->subDays(30),
+            '90d' => now()->subDays(90),
             default => now()->subDays(7),
         };
 
-        $base = Shipment::query()->where('created_at', '>=', $from);
-        if ($branch) { $base->where('branch', $branch); }
-        if ($region) { $base->where('region', $region); }
+        $base = Shipment::query();
+        if ($province) { $base->where('province', $province); }
 
         // Success rate
-        $delivered = (clone $base)->where('status', 'delivered')->count();
-        $failed = (clone $base)->whereIn('status', ['failed','returned'])->count();
+        $delivered = (clone $base)->where('status', 'delivered')->where('delivered_at','>=',$from)->count();
+        $failed = (clone $base)->where('status', 'failed')->where('failed_at','>=',$from)->count();
         $attempted = $delivered + $failed;
         $successRate = $attempted > 0 ? round($delivered / $attempted * 100, 2) : 0;
 
@@ -120,25 +103,25 @@ class ShippingController extends Controller
         $avgDeliveryHours = $deliveryDurations->count() ? round($deliveryDurations->avg(), 2) : 0;
 
         // Daily series by status
-        $seriesStatuses = ['delivered','in_transit','retry','returned','failed'];
+        $seriesStatuses = ['pending_pickup','picked_up','in_transit','returning','delivered','failed','returned','cancelled'];
         $startDate = $from->copy()->startOfDay();
         $dates = [];
         for ($d = $startDate->copy(); $d <= now(); $d->addDay()) {
             $dates[] = $d->format('Y-m-d');
         }
         $daily = array_fill_keys($dates, array_fill_keys($seriesStatuses, 0));
-
-        (clone $base)
-            ->selectRaw('DATE(created_at) as d, status, COUNT(*) as c')
-            ->whereIn('status', $seriesStatuses)
-            ->groupBy('d','status')
-            ->orderBy('d')
-            ->get()
-            ->each(function($row) use (&$daily){
-                $date = $row->d;
-                if (!isset($daily[$date])) { return; }
-                $daily[$date][$row->status] = (int)$row->c;
-            });
+        // Tính theo cột thời gian phù hợp từng trạng thái
+        foreach ($dates as $dStr) {
+            foreach ($seriesStatuses as $st) {
+                [$col] = $this->statusDateColumn($st);
+                $col = $col ?: 'created_at';
+                $count = (clone $base)
+                    ->where('status', $st)
+                    ->whereDate($col, $dStr)
+                    ->count();
+                $daily[$dStr][$st] = $count;
+            }
+        }
 
         // Weight distribution (grams buckets)
         $buckets = [
@@ -159,6 +142,89 @@ class ShippingController extends Controller
             $weightCounts[] = $q->count();
         }
 
+        // Status distribution (for pie chart)
+        $statusDistribution = [];
+        foreach (['pending_pickup', 'picked_up', 'in_transit', 'returning', 'delivered', 'failed', 'returned', 'cancelled'] as $status) {
+            $count = (clone $base)->where('status', $status)->count();
+            if ($count > 0) {
+                $statusDistribution[] = [
+                    'label' => $this->getStatusLabel($status),
+                    'value' => $count
+                ];
+            }
+        }
+
+        // Top provinces (for horizontal bar chart)
+        $topProvinces = (clone $base)
+            ->whereNotNull('province')
+            ->select('province', DB::raw('count(*) as count'))
+            ->groupBy('province')
+            ->orderBy('count', 'desc')
+            ->limit(5)
+            ->get()
+            ->map(function($item) {
+                return [
+                    'province' => $item->province,
+                    'count' => $item->count
+                ];
+            });
+
+        // Success rate trend (daily success rate for line chart)
+        $successRateTrend = [];
+        foreach ($dates as $date) {
+            $delivered = (clone $base)
+                ->where('status', 'delivered')
+                ->whereDate('delivered_at', $date)
+                ->count();
+            $failed = (clone $base)
+                ->where('status', 'failed')
+                ->whereDate('failed_at', $date)
+                ->count();
+            $total = $delivered + $failed;
+            $rate = $total > 0 ? round($delivered / $total * 100, 1) : 0;
+            $successRateTrend[] = [
+                'date' => $date,
+                'rate' => $rate
+            ];
+        }
+
+        // Delivered revenue per day (sum COD for delivered)
+        $deliveredRevenue = [];
+        foreach ($dates as $date) {
+            $sum = (clone $base)
+                ->where('status', 'delivered')
+                ->whereDate('delivered_at', $date)
+                ->sum('cod_amount');
+            $deliveredRevenue[] = [
+                'date' => $date,
+                'amount' => (float)$sum,
+            ];
+        }
+
+        // Shipments by hour of day (0-23)
+        $hourlyCounts = array_fill(0, 24, 0);
+        $hourlyRows = (clone $base)
+            ->where('created_at', '>=', $from)
+            ->get(['created_at'])
+            ->map(function($s){ return (int)$s->created_at->format('G'); });
+        foreach ($hourlyRows as $h) { $hourlyCounts[$h]++; }
+
+        // Average delivery hours by carrier (delivered only) top 5 slowest
+        $byCarrier = (clone $base)
+            ->whereNotNull('delivered_at')
+            ->get(['carrier','created_at','picked_up_at','delivered_at'])
+            ->groupBy('carrier')
+            ->map(function($items, $carrier){
+                $hours = $items->map(function($s){
+                    $start = $s->picked_up_at ?: $s->created_at;
+                    return $start->diffInMinutes($s->delivered_at) / 60;
+                });
+                return [
+                    'carrier' => $carrier ?: 'Không xác định',
+                    'avg_hours' => $hours->count() ? round($hours->avg(), 2) : 0,
+                ];
+            })->sortByDesc('avg_hours')->values()->take(5)->all();
+
         return response()->json([
             'success_rate' => $successRate,
             'avg_pickup_hours' => $avgPickupHours,
@@ -172,7 +238,48 @@ class ShippingController extends Controller
                 'labels' => array_column($buckets, 'label'),
                 'data' => $weightCounts,
             ],
+            'status_distribution' => $statusDistribution,
+            'top_provinces' => $topProvinces,
+            'success_rate_trend' => $successRateTrend,
+            'delivered_revenue' => $deliveredRevenue,
+            'shipments_by_hour' => $hourlyCounts,
+            'delivery_time_by_carrier' => $byCarrier,
         ]);
+    }
+
+    /**
+     * Xác định cột thời gian phù hợp cho từng trạng thái
+     * trả về [columnName]
+     */
+    private function statusDateColumn(string $status): array
+    {
+        return match($status) {
+            'picked_up' => ['picked_up_at'],
+            'in_transit' => ['picked_up_at'],
+            'returning' => ['returning_at'],
+            'delivered' => ['delivered_at'],
+            'failed' => ['failed_at'],
+            'returned' => ['returned_at'],
+            default => ['created_at'],
+        };
+    }
+
+    /**
+     * Chuyển đổi status thành label tiếng Việt
+     */
+    private function getStatusLabel(string $status): string
+    {
+        return match($status) {
+            'pending_pickup' => 'Chờ lấy hàng',
+            'picked_up' => 'Đã lấy hàng',
+            'in_transit' => 'Đang giao hàng',
+            'returning' => 'Đang hoàn hàng',
+            'delivered' => 'Đã giao',
+            'failed' => 'Thất bại',
+            'returned' => 'Đã hoàn',
+            'cancelled' => 'Đã hủy',
+            default => 'Không xác định',
+        };
     }
 }
 

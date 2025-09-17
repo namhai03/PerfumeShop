@@ -18,12 +18,70 @@
     </div>
 
     <div class="card" style="margin-bottom:16px;">
-        <div class="card-header"><h3 class="card-title">Thông tin chung</h3></div>
+        <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+            <h3 class="card-title">Thông tin chung</h3>
+            @if(!in_array($shipment->status, ['delivered','returned','cancelled']))
+            <div class="status-actions">
+                <form method="POST" action="{{ route('shipments.updateStatus', $shipment) }}" class="status-form">
+                    @csrf
+                    <input type="hidden" name="status" value="">
+                    <input type="hidden" name="note" value="">
+                    @php($nexts = match($shipment->status){
+                        'pending_pickup' => [
+                            ['picked_up','Đã lấy hàng','primary'],
+                            ['cancelled','Hủy vận đơn','danger']
+                        ],
+                        'picked_up' => [
+                            ['in_transit','Bắt đầu giao','primary'],
+                            ['cancelled','Hủy vận đơn','danger']
+                        ],
+                        'in_transit' => [
+                            ['delivered','Giao thành công','success'],
+                            ['returning','Hoàn hàng','warning'],
+                            ['failed','Thất bại','danger']
+                        ],
+                        'returning' => [
+                            ['returned','Hoàn hàng thành công','success']
+                        ],
+                        'failed' => [
+                            ['returned','Hoàn hàng thành công','success']
+                        ],
+                        default => []
+                    })
+                    @foreach($nexts as $n)
+                        <button class="btn btn-{{ $n[2] }}" type="button" data-status="{{ $n[0] }}" style="margin-left:8px;">{{ $n[1] }}</button>
+                    @endforeach
+                </form>
+            </div>
+            @endif
+        </div>
         <div class="card-body" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
             <div><strong>Mã đơn hàng:</strong> {{ $shipment->order_code }}</div>
             <div><strong>Mã vận đơn:</strong> {{ $shipment->tracking_code }}</div>
             <div><strong>Hãng vận chuyển:</strong> {{ $shipment->carrier }}</div>
-            <div><strong>Trạng thái:</strong> {{ $shipment->status }}</div>
+            <div><strong>Trạng thái:</strong> 
+                <span class="badge badge-{{ match($shipment->status) {
+                    'pending_pickup' => 'warning',
+                    'picked_up' => 'info', 
+                    'in_transit' => 'primary',
+                    'returning' => 'warning',
+                    'delivered' => 'success',
+                    'failed' => 'danger',
+                    'returned' => 'secondary',
+                    'cancelled' => 'dark',
+                    default => 'light'
+                } }}">{{ match($shipment->status) {
+                    'pending_pickup' => 'Chờ lấy hàng',
+                    'picked_up' => 'Đã lấy hàng',
+                    'in_transit' => 'Đang giao hàng',
+                    'returning' => 'Đang hoàn hàng',
+                    'delivered' => 'Đã giao',
+                    'failed' => 'Thất bại',
+                    'returned' => 'Đã hoàn',
+                    'cancelled' => 'Đã hủy',
+                    default => $shipment->status
+                } }}</span>
+            </div>
             <div><strong>COD:</strong> {{ number_format($shipment->cod_amount,0) }}đ</div>
             <div><strong>Phí vận chuyển:</strong> {{ number_format($shipment->shipping_fee,0) }}đ</div>
             <div><strong>Cập nhật:</strong> {{ ($shipment->updated_at ?? $shipment->created_at)->format('d/m/Y H:i') }}</div>
@@ -63,6 +121,30 @@
         </div>
     </div>
     </div>
+
+    <script>
+        // Xử lý submit form khi click vào nút thao tác
+        document.querySelectorAll('.status-form button[data-status]').forEach(function(button) {
+            button.addEventListener('click', function() {
+                const status = this.getAttribute('data-status');
+                const form = this.closest('.status-form');
+                const statusInput = form.querySelector('input[name="status"]');
+                const noteInput = form.querySelector('input[name="note"]');
+                
+                // Set status
+                statusInput.value = status;
+                
+                // Có thể thêm prompt để nhập ghi chú
+                const note = prompt('Nhập ghi chú (tùy chọn):');
+                if (note !== null) {
+                    noteInput.value = note;
+                }
+                
+                // Submit form
+                form.submit();
+            });
+        });
+    </script>
 @endsection
 
 

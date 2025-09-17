@@ -24,6 +24,8 @@
         </div>
     </div>
 
+    
+
     <!-- Filter Modal -->
     <div id="filterModal" class="filter-modal">
         <div class="filter-modal-content">
@@ -78,7 +80,8 @@
                                         'returning'=>'Đang hoàn hàng',
                                         'returned'=>'Đã hoàn hàng',
                                         'delivered'=>'Đã giao thành công',
-                                        'failed'=>'Giao hàng thất bại'
+                                        'failed'=>'Giao hàng thất bại',
+                                        'cancelled'=>'Đã hủy vận đơn'
                                     ])
                                     @foreach($statuses as $value=>$label)
                                         <label class="status-option">
@@ -256,32 +259,32 @@
                             @foreach($shipments as $shipment)
                                 <tr class="shipment-row clickable" data-href="{{ route('shipments.show', $shipment) }}">
                                     <td class="actions-left">
-                                        @if(!in_array($shipment->status, ['delivered','returned']))
+                                        @if(!in_array($shipment->status, ['delivered','returned','cancelled']))
                                         <form method="POST" action="{{ route('shipments.updateStatus', $shipment) }}" class="act-group" title="Cập nhật trạng thái">
                                             @csrf
                                             <input type="hidden" name="status" value="">
                                             <input type="hidden" name="note" value="">
                                             @php($nexts = match($shipment->status){
-                                                'in_transit' => [
-                                                    ['delivered','Giao thành công','success'],
-                                                    ['failed','Thất bại','danger'],
-                                                    ['returned','Hoàn hàng','warning']
+                                                'pending_pickup' => [
+                                                    ['picked_up','Đã lấy hàng','primary'],
+                                                    ['cancelled','Hủy vận đơn','danger']
                                                 ],
                                                 'picked_up' => [
-                                                    ['in_transit','Bắt đầu giao','primary']
+                                                    ['in_transit','Bắt đầu giao','primary'],
+                                                    ['cancelled','Hủy vận đơn','danger']
                                                 ],
-                                                'retry' => [
-                                                    ['in_transit','Giao lại','primary'],
-                                                    ['failed','Thất bại','danger'],
-                                                    ['returned','Hoàn hàng','warning']
+                                                'in_transit' => [
+                                                    ['delivered','Giao thành công','success'],
+                                                    ['returning','Hoàn hàng','warning'],
+                                                    ['failed','Thất bại','danger']
+                                                ],
+                                                'returning' => [
+                                                    ['returned','Hoàn hàng thành công','success']
                                                 ],
                                                 'failed' => [
                                                     ['returned','Hoàn hàng thành công','success']
                                                 ],
-                                                default => [
-                                                    ['in_transit','Đang giao','primary'],
-                                                    ['delivered','Giao thành công','success']
-                                                ]
+                                                default => []
                                             })
                                             @foreach($nexts as $n)
                                                 <button class="pill-btn pill-{{ $n[2] }}" type="button" data-status="{{ $n[0] }}">{{ $n[1] }}</button>
@@ -309,7 +312,8 @@
                                             'returning' => 'status-returning',
                                             'returned' => 'status-returned',
                                             'delivered' => 'status-delivered',
-                                            'failed' => 'status-failed'
+                                            'failed' => 'status-failed',
+                        'cancelled' => 'status-cancelled'
                                         ])
                                         @php($statusIcons = [
                                             'pending_pickup' => 'fa-clock',
@@ -319,7 +323,8 @@
                                             'returning' => 'fa-undo',
                                             'returned' => 'fa-undo-alt',
                                             'delivered' => 'fa-check-circle',
-                                            'failed' => 'fa-times-circle'
+                                            'failed' => 'fa-times-circle',
+                        'cancelled' => 'fa-ban'
                                         ])
                                         <span class="status-badge {{ $statusClass[$shipment->status] ?? 'status-default' }}">
                                             <i class="fas {{ $statusIcons[$shipment->status] ?? 'fa-circle' }}"></i>
@@ -1453,22 +1458,17 @@
                 if (href) { window.location.href = href; }
             });
         });
-        // Submit status with optional reason for failure
+        // Submit status uniformly (không yêu cầu nhập lý do)
         document.querySelectorAll('.act-group').forEach(function(form){
-            form.addEventListener('click', async function(e){
+            form.addEventListener('click', function(e){
                 const btn = e.target.closest('.pill-btn');
                 if(!btn) return;
                 e.preventDefault();
                 const status = btn.getAttribute('data-status');
                 const noteInput = form.querySelector('input[name="note"]');
                 const statusInput = form.querySelector('input[name="status"]');
-                let note = '';
-                if(status === 'failed'){
-                    note = prompt('Nhập lý do giao hàng thất bại:');
-                    if(note === null){ return; }
-                }
                 statusInput.value = status;
-                noteInput.value = note || '';
+                noteInput.value = '';
                 form.submit();
             });
         });

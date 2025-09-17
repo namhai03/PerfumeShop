@@ -23,6 +23,10 @@ class ShipmentSeeder extends Seeder
             $statusPool = ['pending_pickup','picked_up','in_transit','delivered'];
             $status = $statusPool[array_rand($statusPool)];
 
+            // thời điểm vận đơn gần ngày đơn hàng: trong vòng 0-72 giờ từ order_date (hoặc created_at nếu thiếu)
+            $baseTime = $order->order_date ? \Carbon\Carbon::parse($order->order_date) : ($order->created_at ?? now());
+            $shipTime = (clone $baseTime)->addSeconds(rand(0, 72*3600));
+
             $shipment = Shipment::create([
                 'order_code' => $order->order_number,
                 'tracking_code' => 'AUTO-' . date('ymd') . '-' . strtoupper(bin2hex(random_bytes(3))),
@@ -40,12 +44,14 @@ class ShipmentSeeder extends Seeder
                 // Phí vận chuyển mẫu theo khu vực
                 'shipping_fee' => $this->randomShippingFee(($order->city ?? '') === 'Hà Nội' ? 'HN' : 'HCM'),
                 'weight_grams' => rand(200, 1500),
+                'created_at' => $shipTime,
+                'updated_at' => $shipTime,
             ]);
 
             ShipmentEvent::create([
                 'shipment_id' => $shipment->id,
                 'status' => $status,
-                'event_at' => now()->subMinutes(rand(0, 10000)),
+                'event_at' => $shipTime,
                 'note' => 'Seeded',
             ]);
         }
