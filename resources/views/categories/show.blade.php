@@ -65,7 +65,7 @@
                         <th>SKU</th>
                         <th>Giá bán</th>
                         <th>Tồn kho</th>
-                        <th>Trạng thái</th>
+                        <th>Trạng thái</th
                         <th>Hành động</th>
                     </tr>
                 </thead>

@@ -3,20 +3,21 @@
 @section('title', 'Danh sách vận đơn - PerfumeShop')
 
 @section('content')
+    <div class="shipments-page">
     <div class="page-header">
         <div class="page-header-content">
             <h1 class="page-title">
-                <i class="fas fa-truck-fast"></i>
+                
                 Danh sách vận đơn
             </h1>
-            <p class="page-subtitle">Quản lý và theo dõi tất cả vận đơn vận chuyển</p>
+            
         </div>
         <div class="page-header-actions">
             <button class="btn btn-outline btn-filter-toggle" onclick="openFilterModal()">
                 <i class="fas fa-filter"></i>
                 Bộ lọc
             </button>
-            <a href="#" class="btn btn-primary btn-create">
+            <a href="{{ route('shipments.create') }}" class="btn btn-primary btn-create">
                 <i class="fas fa-plus"></i>
                 Tạo vận đơn mới
             </a>
@@ -112,6 +113,15 @@
                         </select>
                     </div>
                     
+                <div class="filter-group">
+                    <label class="filter-label">Thời gian</label>
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        <input type="date" name="date_from" value="{{ request('date_from') }}" class="form-control" style="height:40px;">
+                        <span>đến</span>
+                        <input type="date" name="date_to" value="{{ request('date_to') }}" class="form-control" style="height:40px;">
+                    </div>
+                </div>
+
                     <div class="filter-group">
                         <label class="filter-label">Sắp xếp</label>
                         <div class="sort-controls">
@@ -233,21 +243,54 @@
                     <table class="table shipments-table">
                         <thead>
                             <tr>
-                                <th>#</th>
+                                <th style="width:180px">Thao tác</th>
                                 <th>Mã đơn hàng</th>
                                 <th>Mã vận đơn</th>
                                 <th>Hãng vận chuyển</th>
                                 <th>Trạng thái</th>
-                                <th>Số tiền COD</th>
                                 <th>Phí vận chuyển</th>
-                                <th>Ngày tạo</th>
-                                <th>Thao tác</th>
+                                <th>Cập nhật gần nhất</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach($shipments as $shipment)
-                                <tr class="shipment-row">
-                                    <td class="shipment-id">{{ $shipment->id }}</td>
+                                <tr class="shipment-row clickable" data-href="{{ route('shipments.show', $shipment) }}">
+                                    <td class="actions-left">
+                                        @if(!in_array($shipment->status, ['delivered','returned']))
+                                        <form method="POST" action="{{ route('shipments.updateStatus', $shipment) }}" class="act-group" title="Cập nhật trạng thái">
+                                            @csrf
+                                            <input type="hidden" name="status" value="">
+                                            <input type="hidden" name="note" value="">
+                                            @php($nexts = match($shipment->status){
+                                                'in_transit' => [
+                                                    ['delivered','Giao thành công','success'],
+                                                    ['failed','Thất bại','danger'],
+                                                    ['returned','Hoàn hàng','warning']
+                                                ],
+                                                'picked_up' => [
+                                                    ['in_transit','Bắt đầu giao','primary']
+                                                ],
+                                                'retry' => [
+                                                    ['in_transit','Giao lại','primary'],
+                                                    ['failed','Thất bại','danger'],
+                                                    ['returned','Hoàn hàng','warning']
+                                                ],
+                                                'failed' => [
+                                                    ['returned','Hoàn hàng thành công','success']
+                                                ],
+                                                default => [
+                                                    ['in_transit','Đang giao','primary'],
+                                                    ['delivered','Giao thành công','success']
+                                                ]
+                                            })
+                                            @foreach($nexts as $n)
+                                                <button class="pill-btn pill-{{ $n[2] }}" type="button" data-status="{{ $n[0] }}">{{ $n[1] }}</button>
+                                            @endforeach
+                                        </form>
+                                        @else
+                                            <span class="muted">Đã kết thúc</span>
+                                        @endif
+                                    </td>
                                     <td class="order-code">
                                         <span class="code-badge">{{ $shipment->order_code }}</span>
                                     </td>
@@ -283,30 +326,11 @@
                                             {{ $statuses[$shipment->status] ?? $shipment->status }}
                                         </span>
                                     </td>
-                                    <td class="cod-amount">
-                                        <span class="amount {{ $shipment->cod_amount > 0 ? 'positive' : 'zero' }}">
-                                            {{ number_format($shipment->cod_amount, 0) }}đ
-                                        </span>
-                                    </td>
                                     <td class="shipping-fee">
                                         <span class="fee">{{ number_format($shipment->shipping_fee, 0) }}đ</span>
                                     </td>
-                                    <td class="created-date">
-                                        <span class="date">{{ $shipment->created_at->format('d/m/Y') }}</span>
-                                        <span class="time">{{ $shipment->created_at->format('H:i') }}</span>
-                                    </td>
-                                    <td class="actions">
-                                        <div class="action-buttons">
-                                            <button class="btn-action btn-view" title="Xem chi tiết">
-                                                <i class="fas fa-eye"></i>
-                                            </button>
-                                            <button class="btn-action btn-edit" title="Chỉnh sửa">
-                                                <i class="fas fa-edit"></i>
-                                            </button>
-                                            <button class="btn-action btn-delete" title="Xóa">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </div>
+                                    <td class="updated-at">
+                                        <span class="date">{{ ($shipment->updated_at ?? $shipment->created_at)->format('d/m/Y H:i') }}</span>
                                     </td>
                                 </tr>
                             @endforeach
@@ -325,7 +349,7 @@
 
     <style>
         /* Page Header */
-        .page-header {
+        .shipments-page .page-header {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
@@ -333,11 +357,11 @@
             gap: 24px;
         }
 
-        .page-header-content {
+        .shipments-page .page-header-content {
             flex: 1;
         }
 
-        .page-title {
+        .shipments-page .page-title {
             font-size: 32px;
             font-weight: 700;
             color: #1e293b;
@@ -347,25 +371,25 @@
             gap: 16px;
         }
 
-        .page-title i {
+        .shipments-page .page-title i {
             color: #3b82f6;
             font-size: 28px;
         }
 
-        .page-subtitle {
+        .shipments-page .page-subtitle {
             color: #64748b;
             font-size: 16px;
             font-weight: 400;
             margin: 0;
         }
 
-        .page-header-actions {
+        .shipments-page .page-header-actions {
             display: flex;
             gap: 12px;
         }
 
         /* Card Styles */
-        .card {
+        .shipments-page .card {
             background: #ffffff;
             border-radius: 16px;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
@@ -375,12 +399,12 @@
             transition: all 0.2s ease;
         }
 
-        .card:hover {
+        .shipments-page .card:hover {
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.06);
             transform: translateY(-1px);
         }
 
-        .card-header {
+        .shipments-page .card-header {
             background: #f8fafc;
             padding: 20px 24px;
             border-bottom: 1px solid #e2e8f0;
@@ -389,7 +413,7 @@
             align-items: center;
         }
 
-        .card-title {
+        .shipments-page .card-title {
             font-size: 18px;
             font-weight: 600;
             color: #1e293b;
@@ -399,16 +423,16 @@
             gap: 12px;
         }
 
-        .card-title i {
+        .shipments-page .card-title i {
             color: #3b82f6;
         }
 
-        .card-stats {
+        .shipments-page .card-stats {
             display: flex;
             gap: 16px;
         }
 
-        .stat-item {
+        .shipments-page .stat-item {
             display: flex;
             align-items: center;
             gap: 8px;
@@ -417,43 +441,43 @@
             font-weight: 500;
         }
 
-        .stat-item i {
+        .shipments-page .stat-item i {
             color: #3b82f6;
         }
 
-        .card-body {
+        .shipments-page .card-body {
             padding: 24px;
         }
 
         /* Filter Form */
-        .filter-form {
+        .shipments-page .filter-form {
             display: flex;
             flex-direction: column;
             gap: 16px;
         }
 
-        .filter-row {
+        .shipments-page .filter-row {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 16px;
             align-items: end;
         }
 
-        .filter-group {
+        .shipments-page .filter-group {
             display: flex;
             flex-direction: column;
             gap: 6px;
         }
 
-        .filter-search {
+        .shipments-page .filter-search {
             grid-column: span 2;
         }
 
-        .filter-status {
+        .shipments-page .filter-status {
             grid-column: span 1;
         }
 
-        .filter-label {
+        .shipments-page .filter-label {
             font-size: 13px;
             font-weight: 500;
             color: #4b5563;
@@ -462,11 +486,11 @@
             letter-spacing: 0.5px;
         }
 
-        .search-input-wrapper {
+        .shipments-page .search-input-wrapper {
             position: relative;
         }
 
-        .search-icon {
+        .shipments-page .search-icon {
             position: absolute;
             left: 12px;
             top: 50%;
@@ -475,7 +499,7 @@
             font-size: 14px;
         }
 
-        .search-input {
+        .shipments-page .search-input {
             padding: 10px 12px 10px 36px;
             background: #f9fafb;
             border: 1px solid #d1d5db;
@@ -485,37 +509,37 @@
             height: 40px;
         }
 
-        .search-input:focus {
+        .shipments-page .search-input:focus {
             background: #ffffff;
             border-color: #3b82f6;
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
         }
 
-        .select-multiple {
+        .shipments-page .select-multiple {
             min-height: 40px;
             max-height: 120px;
             overflow-y: auto;
         }
 
-        .sort-controls {
+        .shipments-page .sort-controls {
             display: flex;
             gap: 8px;
             align-items: center;
         }
 
-        .sort-select {
+        .shipments-page .sort-select {
             flex: 1;
             height: 40px;
         }
 
-        .order-select {
+        .shipments-page .order-select {
             width: 60px;
             height: 40px;
             text-align: center;
             font-weight: 600;
         }
 
-        .filter-actions {
+        .shipments-page .filter-actions {
             display: flex;
             gap: 12px;
             justify-content: flex-end;
@@ -525,81 +549,40 @@
         }
 
         /* Compact Button Styles */
-        .btn-filter {
+        .shipments-page .btn-filter {
             padding: 10px 20px;
             height: 40px;
         }
 
-        .btn-reset {
+        .shipments-page .btn-reset {
             padding: 10px 16px;
             height: 40px;
         }
 
-        /* Button Styles */
-        .btn {
-            padding: 12px 20px;
-            border-radius: 8px;
-            border: none;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-        }
+        /* Buttons: dùng style chung từ layout, chỉ tinh chỉnh riêng cho trang này nếu cần */
+        .shipments-page .btn-create { padding: 10px 16px; }
 
-        .btn i {
-            font-size: 14px;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-        }
-
-        .btn-outline {
-            background: #ffffff;
-            color: #3b82f6;
-            border: 1px solid #3b82f6;
-        }
-
-        .btn-outline:hover {
-            background: #3b82f6;
-            color: white;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-        }
-
-        .btn-create {
+        .shipments-page .btn-create {
             padding: 14px 24px;
             font-size: 15px;
             font-weight: 600;
         }
 
         /* Table Styles */
-        .table-responsive {
+        .shipments-page .table-responsive {
             overflow-x: auto;
             border-radius: 8px;
             border: 1px solid #e5e7eb;
         }
 
-        .shipments-table {
+        .shipments-page .shipments-table {
             width: 100%;
             border-collapse: collapse;
             background: #ffffff;
             font-size: 14px;
         }
 
-        .shipments-table th {
+        .shipments-page .shipments-table th {
             background: #f9fafb;
             color: #374151;
             font-weight: 600;
@@ -611,22 +594,22 @@
             letter-spacing: 0.5px;
         }
 
-        .shipments-table td {
+        .shipments-page .shipments-table td {
             padding: 16px 20px;
             border-bottom: 1px solid #f3f4f6;
             vertical-align: middle;
         }
 
-        .shipments-table tbody tr:hover {
+        .shipments-page .shipments-table tbody tr:hover {
             background: #f8fafc;
         }
 
-        .shipment-row {
+        .shipments-page .shipment-row {
             transition: all 0.2s ease;
         }
 
         /* Status Badges */
-        .status-badge {
+        .shipments-page .status-badge {
             display: inline-flex;
             align-items: center;
             gap: 6px;
@@ -638,53 +621,53 @@
             letter-spacing: 0.5px;
         }
 
-        .status-pending {
+        .shipments-page .status-pending {
             background: #fef3c7;
             color: #92400e;
         }
 
-        .status-picked {
+        .shipments-page .status-picked {
             background: #dbeafe;
             color: #1e40af;
         }
 
-        .status-transit {
+        .shipments-page .status-transit {
             background: #e0e7ff;
             color: #3730a3;
         }
 
-        .status-retry {
+        .shipments-page .status-retry {
             background: #fef3c7;
             color: #92400e;
         }
 
-        .status-returning {
+        .shipments-page .status-returning {
             background: #fef3c7;
             color: #92400e;
         }
 
-        .status-returned {
+        .shipments-page .status-returned {
             background: #fee2e2;
             color: #991b1b;
         }
 
-        .status-delivered {
+        .shipments-page .status-delivered {
             background: #d1fae5;
             color: #065f46;
         }
 
-        .status-failed {
+        .shipments-page .status-failed {
             background: #fee2e2;
             color: #991b1b;
         }
 
-        .status-default {
+        .shipments-page .status-default {
             background: #f3f4f6;
             color: #374151;
         }
 
         /* Code Badges */
-        .code-badge, .tracking-badge {
+        .shipments-page .code-badge, .shipments-page .tracking-badge {
             background: #f1f5f9;
             color: #0f172a;
             padding: 4px 8px;
@@ -694,50 +677,50 @@
             font-weight: 500;
         }
 
-        .carrier-name {
+        .shipments-page .carrier-name {
             font-weight: 500;
             color: #374151;
         }
 
         /* Amount Styles */
-        .amount.positive {
+        .shipments-page .amount.positive {
             color: #059669;
             font-weight: 600;
         }
 
-        .amount.zero {
+        .shipments-page .amount.zero {
             color: #6b7280;
         }
 
-        .fee {
+        .shipments-page .fee {
             color: #374151;
             font-weight: 500;
         }
 
         /* Date Styles */
-        .created-date {
+        .shipments-page .created-date {
             display: flex;
             flex-direction: column;
             gap: 2px;
         }
 
-        .date {
+        .shipments-page .date {
             font-weight: 500;
             color: #374151;
         }
 
-        .time {
+        .shipments-page .time {
             font-size: 12px;
             color: #6b7280;
         }
 
         /* Action Buttons */
-        .action-buttons {
+        .shipments-page .action-buttons {
             display: flex;
             gap: 8px;
         }
 
-        .btn-action {
+        .shipments-page .btn-action {
             width: 32px;
             height: 32px;
             border-radius: 6px;
@@ -751,53 +734,53 @@
             justify-content: center;
         }
 
-        .btn-action:hover {
+        .shipments-page .btn-action:hover {
             transform: translateY(-1px);
         }
 
-        .btn-view:hover {
+        .shipments-page .btn-view:hover {
             background: #dbeafe;
             color: #1e40af;
         }
 
-        .btn-edit:hover {
+        .shipments-page .btn-edit:hover {
             background: #fef3c7;
             color: #92400e;
         }
 
-        .btn-delete:hover {
+        .shipments-page .btn-delete:hover {
             background: #fee2e2;
             color: #991b1b;
         }
 
         /* Pagination */
-        .pagination-wrapper {
+        .shipments-page .pagination-wrapper {
             margin-top: 24px;
             display: flex;
             justify-content: center;
         }
 
         /* Empty State */
-        .empty-state {
+        .shipments-page .empty-state {
             text-align: center;
             padding: 60px 20px;
         }
 
-        .empty-state-icon {
+        .shipments-page .empty-state-icon {
             font-size: 64px;
             color: #3b82f6;
             margin-bottom: 24px;
             opacity: 0.7;
         }
 
-        .empty-state-title {
+        .shipments-page .empty-state-title {
             font-size: 24px;
             font-weight: 600;
             color: #1e293b;
             margin-bottom: 12px;
         }
 
-        .empty-state-text {
+        .shipments-page .empty-state-text {
             color: #64748b;
             margin-bottom: 32px;
             line-height: 1.6;
@@ -807,14 +790,14 @@
             margin-right: auto;
         }
 
-        .empty-state-actions {
+        .shipments-page .empty-state-actions {
             display: flex;
             gap: 16px;
             justify-content: center;
         }
 
         /* Filter Modal Styles */
-        .filter-modal {
+        .shipments-page .filter-modal {
             position: fixed;
             top: 0;
             left: 0;
@@ -831,12 +814,12 @@
             backdrop-filter: blur(4px);
         }
 
-        .filter-modal.active {
+        .shipments-page .filter-modal.active {
             opacity: 1;
             visibility: visible;
         }
 
-        .filter-modal-content {
+        .shipments-page .filter-modal-content {
             background: #ffffff;
             border-radius: 16px;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
@@ -850,11 +833,11 @@
             transition: transform 0.3s ease-in-out;
         }
 
-        .filter-modal.active .filter-modal-content {
+        .shipments-page .filter-modal.active .filter-modal-content {
             transform: scale(1) translateY(0);
         }
 
-        .filter-modal-header {
+        .shipments-page .filter-modal-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -863,7 +846,7 @@
             background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
         }
 
-        .filter-modal-title {
+        .shipments-page .filter-modal-title {
             font-size: 18px;
             font-weight: 600;
             color: #1e293b;
@@ -873,11 +856,11 @@
             gap: 12px;
         }
 
-        .filter-modal-title i {
+        .shipments-page .filter-modal-title i {
             color: #3b82f6;
         }
 
-        .filter-modal-close {
+        .shipments-page .filter-modal-close {
             background: none;
             border: none;
             font-size: 24px;
@@ -889,12 +872,12 @@
             line-height: 1;
         }
 
-        .filter-modal-close:hover {
+        .shipments-page .filter-modal-close:hover {
             color: #3b82f6;
             background: #f1f5f9;
         }
 
-        .filter-modal-body {
+        .shipments-page .filter-modal-body {
             padding: 24px;
             overflow-y: auto;
             flex-grow: 1;
@@ -903,7 +886,7 @@
             gap: 20px;
         }
 
-        .filter-modal-footer {
+        .shipments-page .filter-modal-footer {
             padding: 20px 24px;
             border-top: 1px solid #e2e8f0;
             background: #f8fafc;
@@ -912,24 +895,24 @@
             gap: 12px;
         }
 
-        .btn-filter {
+        .shipments-page .btn-filter {
             padding: 12px 24px;
             height: 44px;
             font-weight: 600;
         }
 
-        .btn-reset {
+        .shipments-page .btn-reset {
             padding: 12px 20px;
             height: 44px;
         }
 
-        .btn-cancel {
+        .shipments-page .btn-cancel {
             padding: 12px 20px;
             height: 44px;
         }
 
         /* Active Filters Display */
-        .active-filters {
+        .shipments-page .active-filters {
             background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
             border-radius: 12px;
             padding: 16px 24px;
@@ -937,7 +920,7 @@
             border: 1px solid #e2e8f0;
         }
 
-        .active-filters-header {
+        .shipments-page .active-filters-header {
             display: flex;
             align-items: center;
             gap: 8px;
@@ -947,17 +930,17 @@
             margin-bottom: 12px;
         }
 
-        .active-filters-header i {
+        .shipments-page .active-filters-header i {
             color: #3b82f6;
         }
 
-        .active-filters-tags {
+        .shipments-page .active-filters-tags {
             display: flex;
             flex-wrap: wrap;
             gap: 8px;
         }
 
-        .filter-tag {
+        .shipments-page .filter-tag {
             background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
             color: #1e40af;
             padding: 8px 16px;
@@ -971,12 +954,12 @@
             transition: all 0.2s ease;
         }
 
-        .filter-tag:hover {
+        .shipments-page .filter-tag:hover {
             transform: translateY(-1px);
             box-shadow: 0 2px 8px rgba(30, 64, 175, 0.2);
         }
 
-        .filter-tag .remove-filter {
+        .shipments-page .filter-tag .remove-filter {
             color: #1e40af;
             text-decoration: none;
             font-size: 16px;
@@ -987,25 +970,25 @@
             transition: all 0.2s ease;
         }
 
-        .filter-tag .remove-filter:hover {
+        .shipments-page .filter-tag .remove-filter:hover {
             color: #2563eb;
             background: rgba(30, 64, 175, 0.1);
         }
 
         /* Filter Form in Modal */
-        .filter-form {
+        .shipments-page .filter-form {
             display: flex;
             flex-direction: column;
             height: 100%;
         }
 
-        .filter-group {
+        .shipments-page .filter-group {
             display: flex;
             flex-direction: column;
             gap: 8px;
         }
 
-        .filter-label {
+        .shipments-page .filter-label {
             font-size: 14px;
             font-weight: 600;
             color: #374151;
@@ -1014,11 +997,11 @@
             letter-spacing: 0;
         }
 
-        .search-input-wrapper {
+        .shipments-page .search-input-wrapper {
             position: relative;
         }
 
-        .search-icon {
+        .shipments-page .search-icon {
             position: absolute;
             left: 16px;
             top: 50%;
@@ -1027,7 +1010,7 @@
             font-size: 14px;
         }
 
-        .search-input {
+        .shipments-page .search-input {
             padding: 12px 16px 12px 44px;
             background: #f9fafb;
             border: 1px solid #d1d5db;
@@ -1038,32 +1021,32 @@
             width: 100%;
         }
 
-        .search-input:focus {
+        .shipments-page .search-input:focus {
             background: #ffffff;
             border-color: #3b82f6;
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
         }
 
-        .select-multiple {
+        .shipments-page .select-multiple {
             min-height: 44px;
             max-height: 120px;
             overflow-y: auto;
             padding: 12px 16px;
         }
 
-        .sort-controls {
+        .shipments-page .sort-controls {
             display: flex;
             gap: 12px;
             align-items: center;
         }
 
-        .sort-select {
+        .shipments-page .sort-select {
             flex: 1;
             height: 44px;
             padding: 12px 16px;
         }
 
-        .order-select {
+        .shipments-page .order-select {
             width: 80px;
             height: 44px;
             text-align: center;
@@ -1072,12 +1055,12 @@
         }
 
         /* Status Dropdown Styles */
-        .status-dropdown {
+        .shipments-page .status-dropdown {
             position: relative;
             width: 100%;
         }
 
-        .status-dropdown-toggle {
+        .shipments-page .status-dropdown-toggle {
             width: 100%;
             padding: 10px 12px;
             background: #f9fafb;
@@ -1093,28 +1076,28 @@
             height: 40px;
         }
 
-        .status-dropdown-toggle:hover {
+        .shipments-page .status-dropdown-toggle:hover {
             background: #ffffff;
             border-color: #3b82f6;
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
         }
 
-        .status-dropdown-text {
+        .shipments-page .status-dropdown-text {
             font-weight: 500;
             color: #374151;
         }
 
-        .status-dropdown-icon {
+        .shipments-page .status-dropdown-icon {
             color: #9ca3af;
             font-size: 14px;
             transition: transform 0.3s ease;
         }
 
-        .status-dropdown.active .status-dropdown-icon {
+        .shipments-page .status-dropdown.active .status-dropdown-icon {
             transform: rotate(180deg);
         }
 
-        .status-dropdown-menu {
+        .shipments-page .status-dropdown-menu {
             position: absolute;
             top: 100%;
             left: 0;
@@ -1133,11 +1116,11 @@
             margin-top: 4px;
         }
 
-        .status-dropdown.active .status-dropdown-menu {
+        .shipments-page .status-dropdown.active .status-dropdown-menu {
             display: flex !important;
         }
 
-        .status-dropdown-header {
+        .shipments-page .status-dropdown-header {
             padding: 12px 16px;
             border-bottom: 1px solid #f3f4f6;
             display: flex;
@@ -1147,13 +1130,13 @@
             border-radius: 8px 8px 0 0;
         }
 
-        .status-dropdown-header span {
+        .shipments-page .status-dropdown-header span {
             font-size: 13px;
             font-weight: 500;
             color: #374151;
         }
 
-        .clear-all-status {
+        .shipments-page .clear-all-status {
             background: none;
             border: none;
             font-size: 13px;
@@ -1163,15 +1146,15 @@
             text-decoration: underline;
         }
 
-        .clear-all-status:hover {
+        .shipments-page .clear-all-status:hover {
             color: #2563eb;
         }
 
-        .status-options {
+        .shipments-page .status-options {
             padding: 12px 16px;
         }
 
-        .status-option {
+        .shipments-page .status-option {
             display: flex;
             align-items: center;
             gap: 12px;
@@ -1183,15 +1166,15 @@
             margin: 2px 0;
         }
 
-        .status-option:hover {
+        .shipments-page .status-option:hover {
             background: #f3f4f6;
         }
 
-        .status-option input[type="checkbox"] {
+        .shipments-page .status-option input[type="checkbox"] {
             display: none; /* Hide default checkbox */
         }
 
-        .status-checkbox {
+        .shipments-page .status-checkbox {
             width: 18px;
             height: 18px;
             border: 2px solid #d1d5db;
@@ -1203,12 +1186,12 @@
             transition: all 0.2s ease;
         }
 
-        .status-option input[type="checkbox"]:checked + .status-checkbox {
+        .shipments-page .status-option input[type="checkbox"]:checked + .status-checkbox {
             background-color: #3b82f6;
             border-color: #3b82f6;
         }
 
-        .status-option input[type="checkbox"]:checked + .status-checkbox::after {
+        .shipments-page .status-option input[type="checkbox"]:checked + .status-checkbox::after {
             content: '\f00c'; /* Font Awesome checkmark */
             font-family: 'Font Awesome 6 Free';
             font-weight: 900;
@@ -1216,171 +1199,185 @@
             font-size: 12px;
         }
 
-        .status-label {
+        .shipments-page .status-label {
             font-size: 14px;
             color: #374151;
             font-weight: 500;
         }
 
         /* Custom scrollbar for dropdown */
-        .status-dropdown-menu::-webkit-scrollbar {
+        .shipments-page .status-dropdown-menu::-webkit-scrollbar {
             width: 6px;
         }
 
-        .status-dropdown-menu::-webkit-scrollbar-track {
+        .shipments-page .status-dropdown-menu::-webkit-scrollbar-track {
             background: #f1f5f9;
             border-radius: 3px;
         }
 
-        .status-dropdown-menu::-webkit-scrollbar-thumb {
+        .shipments-page .status-dropdown-menu::-webkit-scrollbar-thumb {
             background: #cbd5e1;
             border-radius: 3px;
         }
 
-        .status-dropdown-menu::-webkit-scrollbar-thumb:hover {
+        .shipments-page .status-dropdown-menu::-webkit-scrollbar-thumb:hover {
             background: #94a3b8;
         }
 
         /* Responsive Modal */
         @media (max-width: 768px) {
-            .filter-modal-content {
+            .shipments-page .filter-modal-content {
                 width: 95%;
                 max-height: 95vh;
                 margin: 20px;
             }
 
-            .filter-modal-body {
+            .shipments-page .filter-modal-body {
                 padding: 20px;
                 gap: 16px;
             }
 
-            .filter-modal-footer {
+            .shipments-page .filter-modal-footer {
                 padding: 16px 20px;
                 flex-direction: column;
                 gap: 8px;
             }
 
-            .btn-filter,
-            .btn-reset,
-            .btn-cancel {
+            .shipments-page .btn-filter,
+            .shipments-page .btn-reset,
+            .shipments-page .btn-cancel {
                 width: 100%;
                 justify-content: center;
             }
         }
 
         @media (max-width: 480px) {
-            .filter-modal-content {
+            .shipments-page .filter-modal-content {
                 width: 100%;
                 height: 100%;
                 margin: 0;
                 border-radius: 0;
             }
 
-            .filter-modal-header {
+            .shipments-page .filter-modal-header {
                 padding: 16px 20px;
             }
 
-            .filter-modal-body {
+            .shipments-page .filter-modal-body {
                 padding: 16px 20px;
             }
 
-            .filter-modal-footer {
+            .shipments-page .filter-modal-footer {
                 padding: 16px 20px;
             }
         }
 
         /* Responsive adjustments for main page */
         @media (max-width: 1024px) {
-            .filter-search {
+            .shipments-page .filter-search {
                 grid-column: span 1;
             }
             
-            .filter-row {
+            .shipments-page .filter-row {
                 grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
                 gap: 12px;
             }
         }
 
         @media (max-width: 768px) {
-            .page-header {
+            .shipments-page .page-header {
                 flex-direction: column;
                 align-items: stretch;
                 gap: 16px;
             }
 
-            .page-title {
+            .shipments-page .page-title {
                 font-size: 24px;
             }
 
-            .filter-row {
+            .shipments-page .filter-row {
                 grid-template-columns: 1fr;
                 gap: 16px;
             }
             
-            .filter-search {
+            .shipments-page .filter-search {
                 grid-column: span 1;
             }
             
-            .filter-status {
+            .shipments-page .filter-status {
                 grid-column: span 1;
             }
             
-            .sort-controls {
+            .shipments-page .sort-controls {
                 flex-direction: column;
                 gap: 8px;
             }
             
-            .order-select {
+            .shipments-page .order-select {
                 width: 100%;
             }
             
-            .filter-actions {
+            .shipments-page .filter-actions {
                 flex-direction: column;
                 gap: 8px;
             }
 
-            .card-header {
+            .shipments-page .card-header {
                 flex-direction: column;
                 gap: 16px;
                 align-items: stretch;
             }
 
-            .shipments-table th,
-            .shipments-table td {
+            .shipments-page .shipments-table th,
+            .shipments-page .shipments-table td {
                 padding: 12px 16px;
             }
 
-            .action-buttons {
+            .shipments-page .action-buttons {
                 flex-direction: column;
                 gap: 4px;
             }
 
-            .btn-action {
+            .shipments-page .btn-action {
                 width: 28px;
                 height: 28px;
             }
         }
 
         @media (max-width: 480px) {
-            .page-title {
+            .shipments-page .page-title {
                 font-size: 20px;
             }
 
-            .card-body {
+            .shipments-page .card-body {
                 padding: 16px;
             }
 
-            .shipments-table th,
-            .shipments-table td {
+            .shipments-page .shipments-table th,
+            .shipments-page .shipments-table td {
                 padding: 8px 12px;
                 font-size: 12px;
             }
 
-            .status-badge {
+            .shipments-page .status-badge {
                 font-size: 10px;
                 padding: 4px 8px;
             }
         }
+        .shipments-page .page-header .btn, .shipments-page .icon-btn { font-size:12px; padding:8px 10px; }
+        .shipments-page .page-title i { font-size:22px; }
+        .shipments-page .act-group { display:flex; gap:8px; align-items:center; flex-wrap: wrap; }
+        .shipments-page .pill-btn { height:28px; border-radius:999px; border:1px solid #e2e8f0; background:#fff; color:#334155; padding:0 10px; font-size:12px; cursor:pointer; }
+        .shipments-page .pill-btn:hover { background:#f1f5f9; }
+        .shipments-page .pill-primary { border-color:#bfdbfe; color:#1d4ed8; background:#eff6ff; }
+        .shipments-page .pill-success { border-color:#bbf7d0; color:#166534; background:#ecfdf5; }
+        .shipments-page .pill-warning { border-color:#fde68a; color:#92400e; background:#fffbeb; }
+        .shipments-page .pill-danger { border-color:#fecaca; color:#991b1b; background:#fef2f2; }
+        .shipments-page .shipments-table th, .shipments-page .shipments-table td { padding:12px 14px; }
+        .shipments-page .shipments-table th { text-transform:none; font-size:13px; color:#334155; }
+        .shipments-page .muted { color:#94a3b8; font-size:12px; }
+        .shipments-page .shipment-row.clickable { cursor: pointer; }
+        .shipments-page .shipment-row.clickable:hover { background:#f8fafc; }
     </style>
 
     <script>
@@ -1412,24 +1409,17 @@
         });
 
         // Auto-close modal after form submission
-        document.querySelector('.filter-form').addEventListener('submit', function() {
-            setTimeout(closeFilterModal, 100);
-        });
+        const filterFormEl = document.querySelector('.filter-form');
+        if(filterFormEl){
+            filterFormEl.addEventListener('submit', function() { setTimeout(closeFilterModal, 100); });
+        }
 
         // Status Dropdown Functions
         function toggleStatusDropdown() {
             const dropdown = document.querySelector('.status-dropdown');
             const isActive = dropdown.classList.contains('active');
-            
-            // Close all other dropdowns first
-            document.querySelectorAll('.status-dropdown').forEach(d => {
-                d.classList.remove('active');
-            });
-            
-            // Toggle current dropdown
-            if (!isActive) {
-                dropdown.classList.add('active');
-            }
+            document.querySelectorAll('.status-dropdown').forEach(d => d.classList.remove('active'));
+            if (!isActive) { dropdown.classList.add('active'); }
         }
 
         function updateStatusText() {
@@ -1437,42 +1427,53 @@
             const selectedCount = statusDropdown.querySelectorAll('.status-option input:checked').length;
             const statusDropdownToggle = statusDropdown.querySelector('.status-dropdown-toggle');
             const statusDropdownText = statusDropdownToggle.querySelector('.status-dropdown-text');
-
-            if (selectedCount === 0) {
-                statusDropdownText.textContent = 'Chọn trạng thái';
-            } else {
-                statusDropdownText.textContent = `${selectedCount} trạng thái đã chọn`;
-            }
+            statusDropdownText.textContent = selectedCount === 0 ? 'Chọn trạng thái' : `${selectedCount} trạng thái đã chọn`;
         }
 
         function clearAllStatus() {
             const statusDropdown = document.querySelector('.status-dropdown');
             const statusOptions = statusDropdown.querySelectorAll('.status-option input[type="checkbox"]');
-            statusOptions.forEach(checkbox => {
-                checkbox.checked = false;
-            });
+            statusOptions.forEach(checkbox => { checkbox.checked = false; });
             updateStatusText();
         }
 
-        // Close dropdown when clicking outside
         document.addEventListener('click', function(e) {
             const statusDropdowns = document.querySelectorAll('.status-dropdown');
-            statusDropdowns.forEach(dropdown => {
-                if (!dropdown.contains(e.target)) {
-                    dropdown.classList.remove('active');
-                }
-            });
+            statusDropdowns.forEach(dropdown => { if (!dropdown.contains(e.target)) dropdown.classList.remove('active'); });
         });
 
-        // Close dropdown when pressing Escape
         document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                document.querySelectorAll('.status-dropdown').forEach(dropdown => {
-                    dropdown.classList.remove('active');
-                });
-            }
+            if (e.key === 'Escape') { document.querySelectorAll('.status-dropdown').forEach(d => d.classList.remove('active')); }
+        });
+        // Row click to show detail, ignore clicks on action group/buttons/links
+        document.querySelectorAll('.shipment-row.clickable').forEach(function(row){
+            row.addEventListener('click', function(e){
+                if (e.target.closest('.act-group') || e.target.closest('button') || e.target.closest('a')) return;
+                const href = row.getAttribute('data-href');
+                if (href) { window.location.href = href; }
+            });
+        });
+        // Submit status with optional reason for failure
+        document.querySelectorAll('.act-group').forEach(function(form){
+            form.addEventListener('click', async function(e){
+                const btn = e.target.closest('.pill-btn');
+                if(!btn) return;
+                e.preventDefault();
+                const status = btn.getAttribute('data-status');
+                const noteInput = form.querySelector('input[name="note"]');
+                const statusInput = form.querySelector('input[name="status"]');
+                let note = '';
+                if(status === 'failed'){
+                    note = prompt('Nhập lý do giao hàng thất bại:');
+                    if(note === null){ return; }
+                }
+                statusInput.value = status;
+                noteInput.value = note || '';
+                form.submit();
+            });
         });
     </script>
+    </div>
 @endsection
 
 

@@ -31,10 +31,13 @@ class OrderSeeder extends Seeder
         $current = Customer::count();
         if ($current < $targetCustomers) {
             for ($i=$current+1; $i<=$targetCustomers; $i++) {
+                [$addr, $ward, $city] = $this->randomLocation();
                 Customer::create([
                     'name' => self::fakeVietnameseName($i),
                     'phone' => '09' . str_pad((string)rand(10000000, 99999999), 8, '0', STR_PAD_LEFT),
-                    'address' => 'Số ' . rand(1,999) . ' Đường '. chr(64+($i%26 ?: 1)) . ', TP.HCM',
+                    'address' => $addr,
+                    'ward' => $ward,
+                    'city' => $city,
                     'customer_type' => 'walkin',
                     'source' => rand(0,1) ? 'online' : 'offline',
                     'is_active' => true,
@@ -47,13 +50,6 @@ class OrderSeeder extends Seeder
         // Trạng thái theo UI hiện tại
         $possibleStatuses = ['draft','confirmed','processing','shipping','delivered','failed','returned'];
         $paymentMethods = ['cash','bank_transfer','credit_card','other'];
-        $deliveryAddresses = [
-            '123 Đường ABC, Quận 1, TP.HCM',
-            '456 Đường XYZ, Quận 2, TP.HCM',
-            '789 Đường DEF, Quận 3, TP.HCM',
-            '321 Đường GHI, Quận 4, TP.HCM',
-            '654 Đường JKL, Quận 5, TP.HCM'
-        ];
 
         DB::beginTransaction();
 
@@ -63,10 +59,13 @@ class OrderSeeder extends Seeder
                 // Chọn ngẫu nhiên khách hàng và sản phẩm
                 // 30% cơ hội tạo khách mới khi sinh đơn
                 if (rand(1,100) <= 30) {
+                    [$addr2, $ward2, $city2] = $this->randomLocation();
                     $new = Customer::create([
                         'name' => self::fakeVietnameseName($i) . ' ' . Str::upper(Str::random(2)),
                         'phone' => '09' . str_pad((string)rand(10000000, 99999999), 8, '0', STR_PAD_LEFT),
-                        'address' => 'Số ' . rand(1,999) . ' Đường '. chr(64+($i%26 ?: 1)) . ', Hà Nội',
+                        'address' => $addr2,
+                        'ward' => $ward2,
+                        'city' => $city2,
                         'customer_type' => 'walkin',
                         'source' => rand(0,1) ? 'online' : 'offline',
                         'is_active' => true,
@@ -88,9 +87,15 @@ class OrderSeeder extends Seeder
                 // Tạo số đơn hàng
                 $orderNumber = 'DH' . date('Ymd') . Str::upper(Str::random(4));
                 
-                // Tạo ngày đơn hàng (trong vòng 30 ngày gần đây)
-                $orderDate = now()->subDays(rand(0, 30));
+                // Tạo ngày đơn hàng: ngẫu nhiên từ đầu năm 2025 đến hiện tại (kèm giờ phút)
+                $start = now()->startOfYear()->setYear(2025);
+                $endTs = now()->timestamp;
+                $randTs = rand($start->timestamp, $endTs);
+                $orderDate = now()->setTimestamp($randTs);
                 
+                // Lấy thông tin địa chỉ ngẫu nhiên cho đơn (đúng với form: address, ward, city)
+                [$address, $ward, $city] = $this->randomLocation();
+
                 // Tạo đơn hàng
                 $order = Order::create([
                     'order_number' => $orderNumber,
@@ -105,7 +110,9 @@ class OrderSeeder extends Seeder
                     'order_date' => $orderDate,
                     'delivery_date' => $mappedType !== 'draft' ? (clone $orderDate)->addDays(rand(1, 7)) : null,
                     'payment_method' => in_array($status, ['confirmed','processing','shipping','delivered']) ? $paymentMethods[array_rand($paymentMethods)] : null,
-                    'delivery_address' => $deliveryAddresses[array_rand($deliveryAddresses)],
+                    'delivery_address' => $address,
+                    'ward' => $ward,
+                    'city' => $city,
                     'phone' => $customer->phone,
                     'created_at' => $orderDate,
                     'updated_at' => $orderDate,
@@ -252,5 +259,22 @@ class OrderSeeder extends Seeder
         $middle = ['Văn','Thị','Hồng','Minh','Quốc','Thế','Anh','Ngọc','Gia','Nhật','Bảo','Thanh'];
         $first = ['An','Bình','Châu','Dũng','Duy','Giang','Hà','Hải','Hạnh','Hiếu','Huy','Khanh','Khôi','Lan','Linh','Long','Mai','My','Nam','Ngân','Nhung','Phương','Quân','Quỳnh','Sơn','Tâm','Trang','Trung','Tuấn','Vy'];
         return $lastNames[array_rand($lastNames)] . ' ' . $middle[array_rand($middle)] . ' ' . $first[array_rand($first)];
+    }
+
+    private function randomLocation(): array
+    {
+        $cities = [
+            'TP. Hồ Chí Minh' => ['Bến Nghé','Bến Thành','Cầu Kho','Cầu Ông Lãnh','Tân Định','Phú Nhuận','Hiệp Phú','Tăng Nhơn Phú A','Tăng Nhơn Phú B','Linh Trung','Linh Chiểu'],
+            'Hà Nội' => ['Hàng Trống','Hàng Bạc','Hàng Buồm','Cửa Đông','Cửa Nam','Kim Liên','Khương Trung','Trung Hòa','Nhân Chính','Quan Hoa'],
+            'Đà Nẵng' => ['Hải Châu 1','Hải Châu 2','Thạch Thang','Thanh Bình','Thuận Phước','An Hải Bắc','An Hải Đông','An Hải Tây'],
+            'Cần Thơ' => ['Tân An','An Nghiệp','An Cư','An Phú','Xuân Khánh','Hưng Lợi'],
+        ];
+        $city = array_rand($cities);
+        $wards = $cities[$city];
+        $ward = $wards[array_rand($wards)];
+        $streetNo = rand(1,999);
+        $streetName = ['Trần Hưng Đạo','Lê Lợi','Nguyễn Huệ','Điện Biên Phủ','Pasteur','Hai Bà Trưng','Võ Thị Sáu','Cách Mạng Tháng 8','Phan Xích Long','Phổ Quang'][array_rand(['Trần Hưng Đạo','Lê Lợi','Nguyễn Huệ','Điện Biên Phủ','Pasteur','Hai Bà Trưng','Võ Thị Sáu','Cách Mạng Tháng 8','Phan Xích Long','Phổ Quang'])];
+        $address = "Số {$streetNo} {$streetName}";
+        return [$address, $ward, $city];
     }
 }

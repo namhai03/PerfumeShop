@@ -80,7 +80,15 @@ Route::resource('promotions', PromotionController::class)->whereNumber('promotio
 
 // Shipping
 Route::get('shipping/overview', [ShippingController::class, 'overview'])->name('shipping.overview');
+Route::get('shipping/overview-data', [ShippingController::class, 'overviewData'])->name('shipping.overview.data');
 Route::get('shipments', [ShipmentController::class, 'index'])->name('shipments.index');
+Route::get('shipments/create', [ShipmentController::class, 'create'])->name('shipments.create');
+Route::post('shipments', [ShipmentController::class, 'store'])->name('shipments.store');
+Route::post('shipments/{shipment}/status', [ShipmentController::class, 'updateStatus'])->name('shipments.updateStatus')->whereNumber('shipment');
+Route::get('shipments/{shipment}', [ShipmentController::class, 'show'])->name('shipments.show')->whereNumber('shipment');
+Route::get('shipments/{shipment}/edit', [ShipmentController::class, 'edit'])->name('shipments.edit')->whereNumber('shipment');
+Route::put('shipments/{shipment}', [ShipmentController::class, 'update'])->name('shipments.update')->whereNumber('shipment');
+Route::delete('shipments/{shipment}', [ShipmentController::class, 'destroy'])->name('shipments.destroy')->whereNumber('shipment');
 
 // Orders
 Route::get('orders/sales', [OrderController::class, 'sales'])->name('orders.sales');

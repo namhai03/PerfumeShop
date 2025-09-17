@@ -78,6 +78,12 @@ class Order extends Model
         return $this->hasMany(Shipment::class, 'order_code', 'order_number');
     }
 
+    public function shipmentsMany()
+    {
+        return $this->belongsToMany(Shipment::class, 'shipment_orders')
+            ->withTimestamps();
+    }
+
     /**
      * Latest shipment by created_at
      */

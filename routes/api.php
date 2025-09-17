@@ -10,12 +10,10 @@ Route::get('/products/{product}/variants', function (Product $product) {
         ->get();
 });
 
-<?php
-
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\InventoryApiController;
 use App\Http\Controllers\Api\OrderApiController;
+use App\Models\Order;
 use App\Http\Controllers\Api\ProductApiController;
 
 /*
@@ -46,5 +44,22 @@ Route::prefix('n8n')->group(function () {
     // Product APIs
     Route::get('/products/expiring-soon', [ProductApiController::class, 'getExpiringSoonProducts']);
     Route::post('/products/{product}/update-stock', [ProductApiController::class, 'updateProductStock']);
+});
+
+// API hỗ trợ tra cứu đơn hàng theo order_number để auto-fill tạo vận đơn
+Route::get('/orders/by-number/{order_number}', function (string $order_number) {
+    $order = Order::where('order_number', $order_number)->first();
+    if (!$order) {
+        return response()->json(['found' => false], 404);
+    }
+    return [
+        'found' => true,
+        'order_number' => $order->order_number,
+        'customer_name' => $order->customer_name,
+        'phone' => $order->phone,
+        'address' => $order->delivery_address,
+        'ward' => $order->ward,
+        'city' => $order->city,
+    ];
 });
 
