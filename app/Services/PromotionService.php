@@ -171,7 +171,20 @@ class PromotionService
         } elseif ($p->type === 'fixed_amount') {
             $discount = (float)$p->discount_value;
             $discount = min($discount, $eligibleAmount);
+        } elseif ($p->type === 'buy_x_get_y') {
+            // Logic cho "Mua X tặng Y"
+            $totalQty = $items->sum('qty');
+            $buyX = (int)($p->discount_value ?? 1); // Số lượng cần mua
+            $getY = (int)($p->max_discount_amount ?? 1); // Số lượng được tặng
+            
+            if ($totalQty >= $buyX) {
+                $freeItems = floor($totalQty / $buyX) * $getY;
+                // Tính giá trị của sản phẩm được tặng (giả sử giá thấp nhất)
+                $minPrice = $items->min('price') ?? 0;
+                $discount = $freeItems * $minPrice;
+            }
         }
+        
         return max(0.0, (float)$discount);
     }
 }

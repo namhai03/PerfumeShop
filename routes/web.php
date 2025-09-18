@@ -77,6 +77,9 @@ Route::delete('cashbook/accounts/{account}', [CashAccountController::class, 'des
 
 // Promotions
 Route::resource('promotions', PromotionController::class)->whereNumber('promotion');
+Route::post('promotions/validate', [PromotionController::class, 'validatePromotion'])->name('promotions.validate');
+Route::get('promotions/active', [PromotionController::class, 'getActivePromotions'])->name('promotions.active');
+Route::post('promotions/calculate', [PromotionController::class, 'calculatePromotions'])->name('promotions.calculate');
 
 // Shipping
 Route::get('shipping/overview', [ShippingController::class, 'overview'])->name('shipping.overview');

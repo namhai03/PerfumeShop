@@ -207,6 +207,59 @@
             </div>
         </div>
 
+        <!-- Khuyến mại -->
+        <div class="card">
+            <div class="card-header">
+                <h3>
+                    <i class="fas fa-gift" style="margin-right: 8px; color: #4299e1;"></i>
+                    Khuyến mại
+                </h3>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+                <div>
+                    <div class="form-group">
+                        <label class="form-label">Mã khuyến mại</label>
+                        <div style="display: flex; gap: 8px;">
+                            <input type="text" id="promotion_code" class="form-control" 
+                                   placeholder="Nhập mã khuyến mại" style="flex: 1;">
+                            <button type="button" id="apply_promotion" class="btn btn-outline">
+                                <i class="fas fa-check"></i>
+                                Áp dụng
+                            </button>
+                        </div>
+                        <div id="promotion_message" style="margin-top: 8px; font-size: 13px;"></div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Khuyến mại đang hoạt động</label>
+                        <div id="active_promotions" style="max-height: 200px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 6px; padding: 12px; background: #f7fafc;">
+                            <div style="text-align: center; color: #718096; font-size: 13px;">
+                                <i class="fas fa-spinner fa-spin"></i> Đang tải...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div>
+                    <div class="form-group">
+                        <label class="form-label">Khuyến mại đã áp dụng</label>
+                        <div id="applied_promotions" style="border: 1px solid #e2e8f0; border-radius: 6px; padding: 12px; background: #f0fff4; min-height: 100px;">
+                            <div style="text-align: center; color: #718096; font-size: 13px;">
+                                Chưa có khuyến mại nào được áp dụng
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Tổng giảm giá từ khuyến mại</label>
+                        <input type="text" id="promotion_discount_total" class="form-control" readonly 
+                               style="background-color: #f0fff4; font-weight: 600; color: #059669;" value="0 VNĐ">
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Tổng kết -->
         <div class="card">
             <div class="card-header">
@@ -222,14 +275,14 @@
                     </div>
                     
                     <div class="form-group">
-                        <label class="form-label">Giảm giá</label>
+                        <label class="form-label">Giảm giá thủ công</label>
                         <input type="text" inputmode="numeric" name="discount_amount" id="discount_amount" data-money class="form-control" 
                                value="{{ old('discount_amount', 0) }}" onchange="calculateTotal()">
                     </div>
 
                     <div class="form-group" style="margin-top:12px;">
                         <div style="border:1px dashed #cbd5e0; border-radius:8px; padding:12px; background:#f9fafb;">
-                            <div style="font-weight:600; margin-bottom:8px; color:#2d3748;">Chi tiết chiết khấu theo nhóm</div>
+                            <div style="font-weight:600; margin-bottom:8px; color:#2d3748;">Chi tiết chiết khấu</div>
                             <div style="font-size:13px; color:#4a5568; display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
                                 <div>Nhóm KH:</div>
                                 <div id="group_summary_name">-</div>
@@ -243,6 +296,8 @@
                                 <div id="group_discount_value">0</div>
                                 <div>Giảm thủ công:</div>
                                 <div id="manual_discount_value">0</div>
+                                <div>Giảm khuyến mại:</div>
+                                <div id="promotion_discount_value">0</div>
                                 <div style="font-weight:600;">Tổng giảm:</div>
                                 <div id="total_discount_value" style="font-weight:600;">0</div>
                             </div>
@@ -435,6 +490,7 @@
             const price = parseFloat(item.querySelector('.price-input').value) || 0;
             totalAmount += quantity * price;
         });
+        
         // Tính chiết khấu nhóm
         let groupDiscount = 0;
         const groupSelect = document.getElementById('customer_group_id');
@@ -465,12 +521,17 @@
             const digits = String(el.value||'').replace(/\D+/g,'');
             return digits ? parseInt(digits,10) : 0;
         })();
-        const discountAmount = groupDiscount + manualDiscount;
+        
+        // Tính giảm giá từ khuyến mại
+        const promotionDiscount = window.promotionDiscountTotal || 0;
+        
+        const discountAmount = groupDiscount + manualDiscount + promotionDiscount;
         const finalAmount = totalAmount - discountAmount;
         
         document.getElementById('total_amount').value = new Intl.NumberFormat('vi-VN').format(totalAmount);
         document.getElementById('final_amount').value = new Intl.NumberFormat('vi-VN').format(finalAmount);
-        // Cập nhật hiển thị chi tiết nhóm
+        
+        // Cập nhật hiển thị chi tiết
         const nf = new Intl.NumberFormat('vi-VN');
         const setText = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
         setText('group_summary_name', groupName);
@@ -479,7 +540,349 @@
         setText('group_summary_cap', groupCapText);
         setText('group_discount_value', nf.format(groupDiscount));
         setText('manual_discount_value', nf.format(manualDiscount));
+        setText('promotion_discount_value', nf.format(promotionDiscount));
         setText('total_discount_value', nf.format(discountAmount));
+    }
+
+    // Khuyến mại management
+    window.promotionDiscountTotal = 0;
+    window.appliedPromotions = [];
+
+    // Load active promotions
+    async function loadActivePromotions() {
+        try {
+            const response = await fetch('/promotions/active');
+            const data = await response.json();
+            displayActivePromotions(data.promotions);
+        } catch (error) {
+            console.error('Lỗi tải khuyến mại:', error);
+            document.getElementById('active_promotions').innerHTML = 
+                '<div style="text-align: center; color: #e53e3e; font-size: 13px;">Lỗi tải khuyến mại</div>';
+        }
+    }
+
+    // Display active promotions
+    function displayActivePromotions(promotions) {
+        const container = document.getElementById('active_promotions');
+        if (!promotions || promotions.length === 0) {
+            container.innerHTML = '<div style="text-align: center; color: #718096; font-size: 13px;">Không có khuyến mại nào</div>';
+            return;
+        }
+
+        container.innerHTML = promotions.map(promo => `
+            <div class="promotion-item" style="border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px; margin-bottom: 8px; transition: all 0.2s; position: relative;" 
+                 onmouseover="this.style.backgroundColor='#f7fafc'" 
+                 onmouseout="this.style.backgroundColor='transparent'">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div style="flex: 1; cursor: pointer;" onclick="applyPromotionCode('${promo.code}')">
+                        <div style="font-weight: 600; color: #2d3748; font-size: 13px;">${promo.code}</div>
+                        <div style="color: #4a5568; font-size: 12px; margin-top: 2px;">${promo.name}</div>
+                        <div style="color: #718096; font-size: 11px; margin-top: 2px;">${promo.description || ''}</div>
+                    </div>
+                    <button type="button" onclick="showPromotionRequirements('${promo.code}', '${promo.name}', '${promo.description || ''}', ${promo.discount_value}, ${promo.max_discount_amount || 0}, ${promo.min_order_amount || 0}, '${promo.type}', ${promo.min_items || 0}, '${promo.scope}', ${JSON.stringify(promo.applicable_product_ids || [])}, ${JSON.stringify(promo.applicable_category_ids || [])}, ${JSON.stringify(promo.applicable_customer_group_ids || [])}, ${JSON.stringify(promo.applicable_sales_channels || [])}, ${promo.is_stackable})" 
+                            style="background: #4299e1; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 10px; margin-left: 8px; transition: all 0.2s;"
+                            onmouseover="this.style.backgroundColor='#3182ce'; this.style.transform='scale(1.1)'"
+                            onmouseout="this.style.backgroundColor='#4299e1'; this.style.transform='scale(1)'"
+                            title="Xem yêu cầu áp dụng">
+                        !
+                    </button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // Apply promotion code
+    async function applyPromotionCode(code) {
+        document.getElementById('promotion_code').value = code;
+        await validateAndApplyPromotion();
+    }
+
+    // Validate and apply promotion
+    async function validateAndApplyPromotion() {
+        const code = document.getElementById('promotion_code').value.trim();
+        if (!code) {
+            showPromotionMessage('Vui lòng nhập mã khuyến mại', 'error');
+            return;
+        }
+
+        // Check if already applied
+        if (window.appliedPromotions.some(p => p.code === code)) {
+            showPromotionMessage('Mã khuyến mại này đã được áp dụng', 'warning');
+            return;
+        }
+
+        try {
+            // Build cart data
+            const cart = buildCartData();
+            
+            const response = await fetch('/promotions/validate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                },
+                body: JSON.stringify({
+                    code: code,
+                    cart: cart
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.valid) {
+                // Add to applied promotions
+                window.appliedPromotions.push(result.promotion);
+                window.promotionDiscountTotal += result.discount_amount;
+                
+                updateAppliedPromotionsDisplay();
+                updatePromotionDiscountDisplay();
+                calculateTotal();
+                
+                showPromotionMessage(`Áp dụng thành công! Giảm ${result.discount_amount.toLocaleString('vi-VN')} VNĐ`, 'success');
+                document.getElementById('promotion_code').value = '';
+            } else {
+                showPromotionMessage(result.message, 'error');
+            }
+        } catch (error) {
+            console.error('Lỗi validate khuyến mại:', error);
+            showPromotionMessage('Có lỗi xảy ra khi áp dụng mã khuyến mại', 'error');
+        }
+    }
+
+    // Build cart data for validation
+    function buildCartData() {
+        const items = [];
+        document.querySelectorAll('.product-item').forEach(item => {
+            const productSelect = item.querySelector('.product-select');
+            const quantityInput = item.querySelector('.quantity-input');
+            const priceInput = item.querySelector('.price-input');
+            
+            if (productSelect.value && quantityInput.value && priceInput.value) {
+                items.push({
+                    product_id: parseInt(productSelect.value),
+                    category_ids: [], // TODO: Get from product data
+                    price: parseFloat(priceInput.value),
+                    qty: parseInt(quantityInput.value)
+                });
+            }
+        });
+
+        return {
+            items: items,
+            subtotal: calculateSubtotal(),
+            sales_channel: 'online', // Default
+            customer_group_id: document.getElementById('customer_group_id').value ? parseInt(document.getElementById('customer_group_id').value) : null
+        };
+    }
+
+    // Calculate subtotal
+    function calculateSubtotal() {
+        let total = 0;
+        document.querySelectorAll('.product-item').forEach(item => {
+            const quantity = parseFloat(item.querySelector('.quantity-input').value) || 0;
+            const price = parseFloat(item.querySelector('.price-input').value) || 0;
+            total += quantity * price;
+        });
+        return total;
+    }
+
+    // Update applied promotions display
+    function updateAppliedPromotionsDisplay() {
+        const container = document.getElementById('applied_promotions');
+        if (window.appliedPromotions.length === 0) {
+            container.innerHTML = '<div style="text-align: center; color: #718096; font-size: 13px;">Chưa có khuyến mại nào được áp dụng</div>';
+            return;
+        }
+
+        container.innerHTML = window.appliedPromotions.map(promo => `
+            <div style="border: 1px solid #c6f6d5; border-radius: 6px; padding: 8px; margin-bottom: 8px; background: #f0fff4;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <div style="font-weight: 600; color: #22543d; font-size: 13px;">${promo.code}</div>
+                        <div style="color: #2f855a; font-size: 12px;">${promo.name}</div>
+                    </div>
+                    <button type="button" onclick="removePromotion('${promo.code}')" 
+                            style="background: #e53e3e; color: white; border: none; border-radius: 4px; padding: 4px 8px; font-size: 11px; cursor: pointer;">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // Update promotion discount display
+    function updatePromotionDiscountDisplay() {
+        const total = window.promotionDiscountTotal;
+        document.getElementById('promotion_discount_total').value = total.toLocaleString('vi-VN') + ' VNĐ';
+    }
+
+    // Remove promotion
+    function removePromotion(code) {
+        const index = window.appliedPromotions.findIndex(p => p.code === code);
+        if (index !== -1) {
+            const removedPromo = window.appliedPromotions[index];
+            window.promotionDiscountTotal -= removedPromo.discount_amount || 0;
+            window.appliedPromotions.splice(index, 1);
+            
+            updateAppliedPromotionsDisplay();
+            updatePromotionDiscountDisplay();
+            calculateTotal();
+            
+            showPromotionMessage(`Đã bỏ khuyến mại ${code}`, 'info');
+        }
+    }
+
+    // Show promotion message
+    function showPromotionMessage(message, type) {
+        const messageEl = document.getElementById('promotion_message');
+        const colors = {
+            success: '#059669',
+            error: '#e53e3e',
+            warning: '#d97706',
+            info: '#4299e1'
+        };
+        
+        messageEl.innerHTML = `<span style="color: ${colors[type]};">${message}</span>`;
+        
+        // Auto hide after 3 seconds
+        setTimeout(() => {
+            messageEl.innerHTML = '';
+        }, 3000);
+    }
+
+    // Show promotion requirements modal
+    function showPromotionRequirements(code, name, description, discountValue, maxDiscount, minOrder, type, minItems, scope, applicableProducts, applicableCategories, applicableCustomerGroups, applicableSalesChannels, isStackable) {
+        // Create modal HTML
+        const modalHTML = `
+            <div id="promotionModal" class="modal" style="display: block;">
+                <div class="modal-content" style="max-width: 500px;">
+                    <div class="modal-header">
+                        <h3>
+                            <i class="fas fa-info-circle" style="margin-right: 8px; color: #4299e1;"></i>
+                            Yêu cầu áp dụng khuyến mại
+                        </h3>
+                        <span class="close" onclick="closePromotionModal()">&times;</span>
+                    </div>
+                    <div style="padding: 20px 0;">
+                        <div style="background: #f7fafc; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+                            <div style="font-weight: 600; color: #2d3748; font-size: 16px; margin-bottom: 4px;">${code}</div>
+                            <div style="color: #4a5568; font-size: 14px; margin-bottom: 8px;">${name}</div>
+                            <div style="color: #718096; font-size: 13px;">${description}</div>
+                        </div>
+                        
+                        <div style="background: #fff5f5; border: 1px solid #fed7d7; border-radius: 8px; padding: 16px;">
+                            <div style="font-weight: 600; color: #742a2a; margin-bottom: 12px; display: flex; align-items: center;">
+                                <i class="fas fa-exclamation-triangle" style="margin-right: 8px;"></i>
+                                Điều kiện áp dụng
+                            </div>
+                            <div style="color: #742a2a; font-size: 14px; line-height: 1.6;">
+                                ${generateRequirementsText(type, discountValue, maxDiscount, minOrder, minItems, scope, applicableProducts, applicableCategories, applicableCustomerGroups, applicableSalesChannels, isStackable)}
+                            </div>
+                        </div>
+                        
+                        <div style="background: #f0fff4; border: 1px solid #9ae6b4; border-radius: 8px; padding: 16px; margin-top: 16px;">
+                            <div style="font-weight: 600; color: #22543d; margin-bottom: 8px; display: flex; align-items: center;">
+                                <i class="fas fa-lightbulb" style="margin-right: 8px;"></i>
+                                Mẹo sử dụng
+                            </div>
+                            <div style="color: #22543d; font-size: 13px; line-height: 1.5;">
+                                • Click vào tên khuyến mại để áp dụng ngay<br>
+                                • Khuyến mại sẽ được kiểm tra tự động khi áp dụng<br>
+                                • Có thể kết hợp nhiều khuyến mại nếu được phép
+                            </div>
+                        </div>
+                    </div>
+                    <div style="display: flex; justify-content: flex-end; gap: 12px; padding-top: 16px; border-top: 1px solid #e2e8f0;">
+                        <button onclick="closePromotionModal()" class="btn btn-outline">
+                            <i class="fas fa-times"></i>
+                            Đóng
+                        </button>
+                        <button onclick="applyPromotionCode('${code}'); closePromotionModal();" class="btn btn-primary">
+                            <i class="fas fa-check"></i>
+                            Áp dụng ngay
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Add modal to body
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        
+        // Close modal when clicking outside
+        document.getElementById('promotionModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closePromotionModal();
+            }
+        });
+    }
+
+    // Generate requirements text based on promotion type
+    function generateRequirementsText(type, discountValue, maxDiscount, minOrder, minItems, scope, applicableProducts, applicableCategories, applicableCustomerGroups, applicableSalesChannels, isStackable) {
+        let requirements = [];
+        
+        // Minimum order amount
+        if (minOrder > 0) {
+            requirements.push(`• Đơn hàng tối thiểu: ${minOrder.toLocaleString('vi-VN')} VNĐ`);
+        }
+        
+        // Minimum items
+        if (minItems > 0) {
+            requirements.push(`• Số lượng sản phẩm tối thiểu: ${minItems} sản phẩm`);
+        }
+        
+        // Discount conditions
+        if (type === 'percent') {
+            requirements.push(`• Giảm giá: ${discountValue}%`);
+            if (maxDiscount > 0) {
+                requirements.push(`• Giảm tối đa: ${maxDiscount.toLocaleString('vi-VN')} VNĐ`);
+            }
+        } else if (type === 'fixed_amount') {
+            requirements.push(`• Giảm giá: ${discountValue.toLocaleString('vi-VN')} VNĐ`);
+        } else if (type === 'free_shipping') {
+            requirements.push(`• Miễn phí vận chuyển`);
+        } else if (type === 'buy_x_get_y') {
+            requirements.push(`• Mua ${discountValue} sản phẩm được tặng ${maxDiscount} sản phẩm`);
+        }
+        
+        // Scope conditions
+        if (scope === 'product' && applicableProducts && applicableProducts.length > 0) {
+            requirements.push(`• Chỉ áp dụng cho sản phẩm cụ thể (ID: ${applicableProducts.join(', ')})`);
+        } else if (scope === 'category' && applicableCategories && applicableCategories.length > 0) {
+            requirements.push(`• Chỉ áp dụng cho danh mục cụ thể (ID: ${applicableCategories.join(', ')})`);
+        }
+        
+        // Customer group conditions
+        if (applicableCustomerGroups && applicableCustomerGroups.length > 0) {
+            requirements.push(`• Chỉ áp dụng cho nhóm khách hàng cụ thể (ID: ${applicableCustomerGroups.join(', ')})`);
+        }
+        
+        // Sales channel conditions
+        if (applicableSalesChannels && applicableSalesChannels.length > 0) {
+            const channels = applicableSalesChannels.map(ch => ch === 'online' ? 'Online' : ch === 'offline' ? 'Offline' : ch).join(', ');
+            requirements.push(`• Chỉ áp dụng cho kênh bán hàng: ${channels}`);
+        }
+        
+        // Stackable condition
+        if (isStackable) {
+            requirements.push(`• Có thể kết hợp với khuyến mại khác`);
+        } else {
+            requirements.push(`• Không thể kết hợp với khuyến mại khác`);
+        }
+        
+        // General conditions
+        requirements.push(`• Khuyến mại phải đang trong thời gian hiệu lực`);
+        requirements.push(`• Chỉ áp dụng cho khách hàng đủ điều kiện`);
+        
+        return requirements.join('<br>');
+    }
+
+    // Close promotion modal
+    function closePromotionModal() {
+        const modal = document.getElementById('promotionModal');
+        if (modal) {
+            modal.remove();
+        }
     }
 
     // Thêm event listeners cho sản phẩm đầu tiên
@@ -490,6 +893,21 @@
         if (groupSelect) {
             groupSelect.addEventListener('change', calculateTotal);
         }
+        
+        // Load active promotions
+        loadActivePromotions();
+        
+        // Apply promotion button
+        document.getElementById('apply_promotion').addEventListener('click', validateAndApplyPromotion);
+        
+        // Enter key for promotion code
+        document.getElementById('promotion_code').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                validateAndApplyPromotion();
+            }
+        });
+        
         // init money inputs
         (function(){
             function fmt(v){ const d=String(v||'').replace(/\D+/g,''); return d? new Intl.NumberFormat('vi-VN').format(parseInt(d,10)) : ''; }
@@ -623,6 +1041,94 @@
         font-weight: 600;
         color: #2d3748;
         margin: 0;
+    }
+
+    /* Promotion Modal Styles */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.4);
+        backdrop-filter: blur(3px);
+    }
+
+    .modal-content {
+        background-color: white;
+        margin: 8% auto;
+        padding: 24px;
+        border-radius: 12px;
+        width: 90%;
+        max-width: 480px;
+        max-height: 80vh;
+        overflow-y: auto;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        animation: modalSlideIn 0.2s ease;
+    }
+
+    @keyframes modalSlideIn {
+        from { opacity: 0; transform: translateY(-50px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .modal-header { 
+        display: flex; 
+        justify-content: space-between; 
+        align-items: center; 
+        margin-bottom: 20px; 
+        padding-bottom: 16px; 
+        border-bottom: 1px solid #e2e8f0; 
+    }
+
+    .modal-header h3 { 
+        font-size: 18px; 
+        font-weight: 600; 
+        color: #2d3748; 
+        margin: 0;
+    }
+
+    .close { 
+        font-size: 24px; 
+        font-weight: 300; 
+        color: #718096; 
+        cursor: pointer; 
+        transition: color 0.2s ease; 
+    }
+
+    .close:hover { 
+        color: #e53e3e; 
+    }
+
+    /* Promotion item hover effects */
+    .promotion-item:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    /* Info button styles */
+    .promotion-info-btn {
+        background: #4299e1;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 10px;
+        margin-left: 8px;
+        transition: all 0.2s;
+        font-weight: bold;
+    }
+
+    .promotion-info-btn:hover {
+        background: #3182ce;
+        transform: scale(1.1);
     }
 </style>
 @endpush
