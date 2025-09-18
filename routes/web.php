@@ -12,10 +12,18 @@ use App\Http\Controllers\PromotionController;
 use App\Http\Controllers\ShippingController;
 use App\Http\Controllers\ShipmentController;
 use App\Http\Controllers\OrderController;
+use App\Http\Controllers\ReportController;
+use App\Http\Controllers\DashboardController;
 
 Route::get('/', function () {
-    return redirect()->route('products.index');
+    return redirect()->route('dashboard.index');
 });
+
+// Dashboard
+Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard.index');
+Route::get('dashboard/kpi-data', [DashboardController::class, 'getKpiData'])->name('dashboard.kpi-data');
+Route::get('dashboard/chart-data', [DashboardController::class, 'getChartData'])->name('dashboard.chart-data');
+Route::get('dashboard/quick-info', [DashboardController::class, 'getQuickInfo'])->name('dashboard.quick-info');
 
 // Test N8N Integration
 Route::get('/n8n/test', function () {
@@ -98,3 +106,10 @@ Route::get('orders/sales', [OrderController::class, 'sales'])->name('orders.sale
 Route::get('orders/returns', [OrderController::class, 'returns'])->name('orders.returns');
 Route::get('orders/drafts', [OrderController::class, 'drafts'])->name('orders.drafts');
 Route::resource('orders', OrderController::class)->whereNumber('order');
+
+// Reports
+Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
+Route::get('reports/overview', [ReportController::class, 'overview'])->name('reports.overview');
+Route::get('reports/revenue-analysis', [ReportController::class, 'revenueAnalysis'])->name('reports.revenue-analysis');
+Route::get('reports/customer-analysis', [ReportController::class, 'customerAnalysis'])->name('reports.customer-analysis');
+Route::get('reports/order-analysis', [ReportController::class, 'orderAnalysis'])->name('reports.order-analysis');

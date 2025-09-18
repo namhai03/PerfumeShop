@@ -532,11 +532,11 @@
 <body>
     <!-- Sidebar -->
     <div class="sidebar">
-        <a href="{{ route('products.index') }}" class="logo">PerfumeShop</a>
+        <a href="{{ route('dashboard.index') }}" class="logo">PerfumeShop</a>
         <nav>
             <ul class="nav">
                 <li class="nav-item">
-                    <a href="#" class="nav-link">
+                    <a href="{{ route('dashboard.index') }}" class="nav-link {{ request()->routeIs('dashboard.*') ? 'active' : '' }}">
                         <i class="icon fas fa-gauge-high"></i>
                         Tổng quan
                     </a>
@@ -621,10 +621,14 @@
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="#" class="nav-link">
+                    <a href="{{ route('reports.index') }}" class="nav-link {{ request()->routeIs('reports.*') ? 'active' : '' }}">
                         <i class="icon fas fa-chart-line"></i>
                         Báo cáo
                     </a>
+                    <ul class="sub-nav">
+                        <li class="nav-item"><a href="{{ route('reports.index') }}" class="nav-link {{ request()->routeIs('reports.index') ? 'active' : '' }}">Danh sách báo cáo</a></li>
+                        <li class="nav-item"><a href="{{ route('reports.overview') }}" class="nav-link {{ request()->routeIs('reports.overview') ? 'active' : '' }}">Tổng quan báo cáo</a></li>
+                    </ul>
                 </li>
                 <li class="nav-item">
                     <a href="#" class="nav-link">

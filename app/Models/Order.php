@@ -30,6 +30,8 @@ class Order extends Model
         'ward',
         'city',
         'phone',
+        'sales_channel',
+        'completed_at',
     ];
 
     protected $casts = [
@@ -38,6 +40,7 @@ class Order extends Model
         'total_amount' => 'decimal:2',
         'discount_amount' => 'decimal:2',
         'final_amount' => 'decimal:2',
+        'completed_at' => 'datetime',
     ];
 
     // Constants for status (7-state workflow)
