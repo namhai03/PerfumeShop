@@ -3,6 +3,8 @@
 .env
 .env.backup
 .env.production
+.env.local
+.env.*.backup
 .phpactor.json
 .phpunit.result.cache
 /.fleet
@@ -16,9 +18,26 @@
 /public/build
 /public/hot
 /public/storage
+/public/css/*.map
 /storage/*.key
 /storage/pail
+/storage/framework/**
+/storage/logs/**
 /vendor
 Homestead.json
 Homestead.yaml
 Thumbs.db
+npm-debug.log*
+yarn-error.log*
+
+# Databases & local data
+/database/*.sqlite
+/database/*.sqlite-* 
+
+# Project data exports/imports
+/Data/**
+*.xlsx
+*.xls
+*.csv
+*.bak
+*.tmp
