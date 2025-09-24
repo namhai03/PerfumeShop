@@ -1,0 +1,29 @@
+@startuml
+!theme plain
+skinparam direction top to bottom
+skinparam actorStyle rectangle
+skinparam usecaseStyle rectangle
+
+title Use Case - Xác thực và Bảo mật
+
+actor "Quản trị viên" as Admin
+
+usecase "Đăng nhập hệ thống" as UC1
+usecase "Đăng xuất" as UC1_1
+usecase "Đổi mật khẩu" as UC1_2
+usecase "Quản lý phiên làm việc" as UC1_3
+
+Admin --> UC1
+Admin --> UC1_1
+Admin --> UC1_2
+Admin --> UC1_3
+
+UC1 ..> UC1_1 : <<include>>
+UC1 ..> UC1_2 : <<include>>
+UC1 ..> UC1_3 : <<include>>
+
+UC1 -[hidden]-> UC1_1
+UC1_1 -[hidden]-> UC1_2
+UC1_2 -[hidden]-> UC1_3
+
+@enduml

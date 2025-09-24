@@ -1,0 +1,27 @@
+@startuml Dashboard tổng quan
+title Biểu đồ tuần tự - Dashboard tổng quan
+
+actor "Quản trị viên" as Admin
+participant "Trình duyệt" as Browser
+participant "DashboardController" as Controller
+participant "Database" as DB
+
+Admin -> Browser: Truy cập trang chủ
+Browser -> Controller: GET /dashboard
+
+Controller -> DB: Lấy thống kê đơn hàng hôm nay
+DB -> Controller: Trả về số đơn hàng và doanh thu
+
+Controller -> DB: Lấy thống kê sản phẩm
+DB -> Controller: Trả về tổng sản phẩm và tồn kho
+
+Controller -> DB: Lấy thống kê khách hàng
+DB -> Controller: Trả về tổng khách hàng
+
+Controller -> DB: Lấy top sản phẩm bán chạy
+DB -> Controller: Trả về danh sách sản phẩm
+
+Controller -> Browser: Hiển thị dashboard
+Browser -> Admin: Hiển thị thống kê tổng quan
+
+@enduml

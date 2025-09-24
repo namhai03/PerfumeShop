@@ -1,0 +1,80 @@
+@startuml Trợ lý tra cứu thông tin
+title Biểu đồ tuần tự - Trợ lý tra cứu thông tin
+
+actor "Quản trị viên" as Admin
+participant "Trình duyệt" as Browser
+participant "OmniAIController" as Controller
+participant "LLMService" as LLMService
+participant "Order Model" as OrderModel
+participant "Product Model" as ProductModel
+participant "Customer Model" as CustomerModel
+participant "Database" as DB
+
+Admin -> Browser: Truy cập trang AI hỗ trợ
+Browser -> Controller: GET /omni-ai
+Controller -> Browser: Hiển thị giao diện AI chat
+
+Admin -> Browser: Nhập câu hỏi bằng ngôn ngữ tự nhiên
+note right: "Sản phẩm nào bán chạy nhất tuần này?", "Khách hàng nào mua nhiều nhất?", "Tồn kho sản phẩm Chanel như thế nào?"
+Admin -> Browser: Nhấn "Gửi câu hỏi"
+Browser -> Controller: POST /omni-ai/chat
+
+Controller -> Controller: Parse natural language query
+Controller -> LLMService: analyzeQuery(userQuestion)
+LLMService -> LLMService: Extract intent and entities
+LLMService -> LLMService: Determine query type
+note right: product_info, customer_info, sales_info, inventory_info
+LLMService -> Controller: Trả về parsed query
+
+alt AI hiểu được câu hỏi
+    LLMService -> Controller: Trả về queryType và parameters
+    
+    Controller -> Controller: Execute database queries based on intent
+    
+    alt Câu hỏi về sản phẩm
+        Controller -> ProductModel: searchProducts(queryParams)
+        ProductModel -> DB: SELECT * FROM products WHERE name LIKE ? OR sku LIKE ? OR brand LIKE ?
+        DB -> ProductModel: Trả về thông tin sản phẩm
+        ProductModel -> Controller: Trả về productData
+        
+    else Câu hỏi về khách hàng
+        Controller -> CustomerModel: searchCustomers(queryParams)
+        CustomerModel -> DB: SELECT * FROM customers WHERE name LIKE ? OR phone LIKE ?
+        DB -> CustomerModel: Trả về thông tin khách hàng
+        CustomerModel -> Controller: Trả về customerData
+        
+    else Câu hỏi về doanh số
+        Controller -> OrderModel: getSalesData(queryParams)
+        OrderModel -> DB: SELECT * FROM orders WHERE created_at BETWEEN ? AND ? AND type = 'sale'
+        DB -> OrderModel: Trả về dữ liệu doanh số
+        OrderModel -> Controller: Trả về salesData
+        
+    else Câu hỏi về tồn kho
+        Controller -> ProductModel: getInventoryData(queryParams)
+        ProductModel -> DB: SELECT * FROM products WHERE stock <= low_stock_threshold
+        DB -> ProductModel: Trả về dữ liệu tồn kho
+        ProductModel -> Controller: Trả về inventoryData
+    end
+    
+    Controller -> LLMService: generateResponse(queryType, data)
+    LLMService -> LLMService: Format data into natural language
+    LLMService -> LLMService: Generate comprehensive answer
+    LLMService -> Controller: Trả về formatted response
+    
+    Controller -> Browser: Hiển thị câu trả lời
+    Browser -> Admin: Hiển thị thông tin được yêu cầu với:
+    note right: - Câu trả lời chi tiết bằng ngôn ngữ tự nhiên
+    - Dữ liệu cụ thể (số liệu, danh sách)
+    - Gợi ý câu hỏi liên quan
+    
+else AI không hiểu câu hỏi
+    LLMService -> Controller: Trả về "unclear_query"
+    Controller -> Browser: Hiển thị yêu cầu làm rõ
+    Browser -> Admin: Hiển thị "Tôi chưa hiểu rõ câu hỏi của bạn. Bạn có thể diễn đạt lại không?"
+end
+
+Admin -> Browser: Tiếp tục đặt câu hỏi khác
+Browser -> Controller: POST /omni-ai/chat
+note right: Lặp lại quy trình cho câu hỏi mới
+
+@enduml

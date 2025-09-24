@@ -1,0 +1,44 @@
+@startuml Tạo phiếu thu chi
+title Biểu đồ tuần tự - Tạo phiếu thu chi
+
+actor "Quản trị viên" as Admin
+participant "Trình duyệt" as Browser
+participant "CashVoucherController" as Controller
+participant "CashVoucher Model" as VoucherModel
+participant "Database" as DB
+
+Admin -> Browser: Truy cập trang sổ quỹ
+Browser -> Controller: GET /cashbook
+Controller -> VoucherModel: getAllVouchers()
+VoucherModel -> DB: SELECT * FROM cash_vouchers
+DB -> VoucherModel: Trả về danh sách phiếu
+VoucherModel -> Controller: Trả về vouchers
+Controller -> Browser: Hiển thị danh sách phiếu thu chi
+
+Admin -> Browser: Nhấn "Tạo phiếu mới"
+Browser -> Controller: GET /cashbook/create
+Controller -> Browser: Hiển thị form tạo phiếu
+
+Admin -> Browser: Nhập thông tin phiếu
+Admin -> Browser: Chọn loại phiếu (Thu/Chi)
+Admin -> Browser: Nhập số tiền và ghi chú
+Admin -> Browser: Nhấn "Lưu"
+Browser -> Controller: POST /cashbook
+
+Controller -> Controller: Kiểm tra dữ liệu
+
+alt Dữ liệu hợp lệ
+    Controller -> VoucherModel: Tạo phiếu mới
+    VoucherModel -> DB: INSERT INTO cash_vouchers
+    DB -> VoucherModel: Xác nhận tạo thành công
+    VoucherModel -> Controller: Trả về phiếu đã tạo
+    
+    Controller -> Browser: Thông báo thành công
+    Browser -> Admin: Hiển thị "Tạo phiếu thành công"
+    
+else Dữ liệu không hợp lệ
+    Controller -> Browser: Thông báo lỗi
+    Browser -> Admin: Hiển thị thông báo lỗi
+end
+
+@enduml

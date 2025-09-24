@@ -1,0 +1,36 @@
+@startuml
+!theme plain
+skinparam direction top to bottom
+skinparam actorStyle rectangle
+skinparam usecaseStyle rectangle
+
+title Use Case - Quản lý Tồn kho
+
+actor "Quản trị viên" as Admin
+
+usecase "Quản lý tồn kho" as UC5
+usecase "Xem tồn kho" as UC5_1
+usecase "Nhập/Xuất kho" as UC5_2
+usecase "Điều chỉnh tồn kho" as UC5_3
+usecase "Kiểm kê tồn kho" as UC5_4
+usecase "Cảnh báo hết hàng" as UC5_5
+
+Admin --> UC5
+Admin --> UC5_1
+Admin --> UC5_2
+Admin --> UC5_3
+Admin --> UC5_4
+Admin --> UC5_5
+
+UC5 ..> UC5_1 : <<include>>
+UC5 ..> UC5_2 : <<include>>
+UC5 ..> UC5_3 : <<include>>
+UC5 ..> UC5_4 : <<include>>
+UC5 ..> UC5_5 : <<include>>
+
+UC5_1 -[hidden]-> UC5_2
+UC5_2 -[hidden]-> UC5_3
+UC5_3 -[hidden]-> UC5_4
+UC5_4 -[hidden]-> UC5_5
+
+@enduml

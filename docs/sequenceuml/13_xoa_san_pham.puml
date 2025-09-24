@@ -1,0 +1,49 @@
+@startuml Xóa sản phẩm
+title Biểu đồ tuần tự - Xóa sản phẩm
+
+actor "Quản trị viên" as Admin
+participant "Trình duyệt" as Browser
+participant "ProductController" as Controller
+participant "Product Model" as ProductModel
+participant "Order Model" as OrderModel
+participant "Database" as DB
+
+Admin -> Browser: Tìm kiếm sản phẩm cần xóa
+Browser -> Controller: GET /products?search=keyword
+Controller -> ProductModel: searchProducts(keyword)
+ProductModel -> DB: SELECT * FROM products WHERE name LIKE ? OR sku LIKE ?
+DB -> ProductModel: Trả về danh sách sản phẩm
+ProductModel -> Controller: Trả về products
+Controller -> Browser: Hiển thị kết quả tìm kiếm
+
+Admin -> Browser: Chọn sản phẩm cần xóa
+Admin -> Browser: Nhấn "Xóa sản phẩm"
+Browser -> Controller: DELETE /products/{id}
+
+Controller -> Controller: Begin database transaction
+
+Controller -> OrderModel: checkProductOrders(productId)
+OrderModel -> DB: SELECT COUNT(*) FROM order_items WHERE product_id = ?
+DB -> OrderModel: Trả về số lượng đơn hàng liên quan
+
+alt Sản phẩm có đơn hàng liên quan
+    OrderModel -> Controller: Trả về số lượng > 0
+    Controller -> Controller: Rollback transaction
+    Controller -> Browser: Redirect với cảnh báo
+    Browser -> Admin: Hiển thị thông báo "Sản phẩm có đơn hàng liên quan, không thể xóa. Đề xuất ẩn sản phẩm thay vì xóa"
+    
+else Sản phẩm không có đơn hàng liên quan
+    OrderModel -> Controller: Trả về số lượng = 0
+    
+    Controller -> ProductModel: deleteProduct(productId)
+    ProductModel -> DB: DELETE FROM category_product WHERE product_id = ?
+    ProductModel -> DB: DELETE FROM product_variants WHERE product_id = ?
+    ProductModel -> DB: DELETE FROM products WHERE id = ?
+    DB -> ProductModel: Confirm deletion
+    
+    Controller -> Controller: Commit transaction
+    Controller -> Browser: Redirect với thông báo thành công
+    Browser -> Admin: Hiển thị danh sách sản phẩm với thông báo "Sản phẩm đã được xóa thành công"
+end
+
+@enduml

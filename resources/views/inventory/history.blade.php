@@ -155,7 +155,7 @@
                                         }
                                     @endphp
                                     @if($imgPath)
-                                        <img src="{{ $imgPath }}" alt="{{ $m->product->name }}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 6px; border:1px solid #e2e8f0;">
+                                        <img src="{{ $imgPath }}" alt="{{ $m->product->name }}" width="40" height="40" loading="lazy" decoding="async" style="width: 40px; height: 40px; object-fit: cover; border-radius: 6px; border:1px solid #e2e8f0;">
                                     @else
                                         <div style="width: 40px; height: 40px; background-color: #f8f9fa; border:1px solid #e2e8f0; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #6c757d;">
                                             <i class="fas fa-image"></i>

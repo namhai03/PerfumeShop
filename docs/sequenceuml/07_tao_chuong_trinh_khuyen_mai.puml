@@ -1,0 +1,45 @@
+@startuml Tạo chương trình khuyến mãi
+title Biểu đồ tuần tự - Tạo chương trình khuyến mãi
+
+actor "Quản trị viên" as Admin
+participant "Trình duyệt" as Browser
+participant "PromotionController" as Controller
+participant "Promotion Model" as PromotionModel
+participant "Database" as DB
+
+Admin -> Browser: Truy cập trang khuyến mãi
+Browser -> Controller: GET /promotions
+Controller -> PromotionModel: getAllPromotions()
+PromotionModel -> DB: SELECT * FROM promotions
+DB -> PromotionModel: Trả về danh sách khuyến mãi
+PromotionModel -> Controller: Trả về promotions
+Controller -> Browser: Hiển thị danh sách khuyến mãi
+
+Admin -> Browser: Nhấn "Tạo khuyến mãi"
+Browser -> Controller: GET /promotions/create
+Controller -> Browser: Hiển thị form tạo khuyến mãi
+
+Admin -> Browser: Nhập thông tin khuyến mãi
+Admin -> Browser: Nhập tên và mô tả
+Admin -> Browser: Nhập mức giảm giá
+Admin -> Browser: Chọn thời gian hiệu lực
+Admin -> Browser: Nhấn "Lưu"
+Browser -> Controller: POST /promotions
+
+Controller -> Controller: Kiểm tra dữ liệu
+
+alt Dữ liệu hợp lệ
+    Controller -> PromotionModel: Tạo khuyến mãi mới
+    PromotionModel -> DB: INSERT INTO promotions
+    DB -> PromotionModel: Xác nhận tạo thành công
+    PromotionModel -> Controller: Trả về khuyến mãi đã tạo
+    
+    Controller -> Browser: Thông báo thành công
+    Browser -> Admin: Hiển thị "Tạo khuyến mãi thành công"
+    
+else Dữ liệu không hợp lệ
+    Controller -> Browser: Thông báo lỗi
+    Browser -> Admin: Hiển thị thông báo lỗi
+end
+
+@enduml

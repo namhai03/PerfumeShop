@@ -14,6 +14,8 @@ use App\Http\Controllers\ShipmentController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\OmniAIController;
+use App\Http\Controllers\DebugController;
 
 Route::get('/', function () {
     return redirect()->route('dashboard.index');
@@ -113,3 +115,12 @@ Route::get('reports/overview', [ReportController::class, 'overview'])->name('rep
 Route::get('reports/revenue-analysis', [ReportController::class, 'revenueAnalysis'])->name('reports.revenue-analysis');
 Route::get('reports/customer-analysis', [ReportController::class, 'customerAnalysis'])->name('reports.customer-analysis');
 Route::get('reports/order-analysis', [ReportController::class, 'orderAnalysis'])->name('reports.order-analysis');
+
+// OmniAI Chat (UI)
+Route::get('omni-ai', [OmniAIController::class, 'index'])->name('omni-ai.index');
+
+// Debug
+Route::get('debug/llm', [DebugController::class, 'llmTest'])->name('debug.llm');
+Route::get('test/chat', function() {
+    return view('test.chat');
+});

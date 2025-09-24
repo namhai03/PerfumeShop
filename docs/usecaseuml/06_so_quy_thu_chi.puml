@@ -1,0 +1,36 @@
+@startuml
+!theme plain
+skinparam direction top to bottom
+skinparam actorStyle rectangle
+skinparam usecaseStyle rectangle
+
+title Use Case - Sổ quỹ Thu Chi
+
+actor "Quản trị viên" as Admin
+
+usecase "Sổ quỹ thu chi" as UC6
+usecase "Tạo phiếu thu/chi" as UC6_1
+usecase "Xem danh sách phiếu" as UC6_2
+usecase "Đính kèm chứng từ" as UC6_3
+usecase "Đối soát số dư" as UC6_4
+usecase "Báo cáo thu chi" as UC6_5
+
+Admin --> UC6
+Admin --> UC6_1
+Admin --> UC6_2
+Admin --> UC6_3
+Admin --> UC6_4
+Admin --> UC6_5
+
+UC6 ..> UC6_1 : <<include>>
+UC6 ..> UC6_2 : <<include>>
+UC6 ..> UC6_3 : <<include>>
+UC6 ..> UC6_4 : <<include>>
+UC6 ..> UC6_5 : <<include>>
+
+UC6_1 -[hidden]-> UC6_2
+UC6_2 -[hidden]-> UC6_3
+UC6_3 -[hidden]-> UC6_4
+UC6_4 -[hidden]-> UC6_5
+
+@enduml

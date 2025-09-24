@@ -110,7 +110,7 @@
         <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px;">
             @foreach($voucher->attachments as $attachment)
             <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; text-align: center;">
-                <img src="{{ $attachment->file_path }}" alt="{{ $attachment->file_name }}" style="max-width: 100%; height: auto; border-radius: 4px;">
+                <img src="{{ $attachment->file_path }}" alt="{{ $attachment->file_name }}" loading="lazy" decoding="async" style="max-width: 100%; height: auto; border-radius: 4px;">
                 <div style="margin-top: 8px; font-size: 12px; color: #718096;">{{ $attachment->file_name }}</div>
             </div>
             @endforeach

@@ -1,0 +1,50 @@
+@startuml Tạo đơn hàng
+title Biểu đồ tuần tự - Tạo đơn hàng
+
+actor "Quản trị viên" as Admin
+participant "Trình duyệt" as Browser
+participant "OrderController" as Controller
+participant "Order Model" as OrderModel
+participant "Customer Model" as CustomerModel
+participant "Product Model" as ProductModel
+participant "Database" as DB
+
+Admin -> Browser: Truy cập trang tạo đơn hàng
+Browser -> Controller: GET /orders/create
+Controller -> ProductModel: getAllProducts()
+ProductModel -> DB: SELECT * FROM products
+DB -> ProductModel: Trả về danh sách sản phẩm
+ProductModel -> Controller: Trả về products
+Controller -> Browser: Hiển thị form tạo đơn hàng
+
+Admin -> Browser: Nhập thông tin khách hàng
+Admin -> Browser: Chọn sản phẩm và số lượng
+Admin -> Browser: Nhấn "Tạo đơn hàng"
+Browser -> Controller: POST /orders
+
+Controller -> Controller: Validate dữ liệu
+
+alt Dữ liệu hợp lệ
+    Controller -> CustomerModel: Tạo/cập nhật khách hàng
+    CustomerModel -> DB: INSERT/UPDATE customers
+    DB -> CustomerModel: Trả về customer
+    
+    Controller -> OrderModel: Tạo đơn hàng
+    OrderModel -> DB: INSERT INTO orders
+    DB -> OrderModel: Trả về order
+    
+    Controller -> OrderModel: Tạo chi tiết đơn hàng
+    OrderModel -> DB: INSERT INTO order_items
+    
+    Controller -> ProductModel: Cập nhật tồn kho
+    ProductModel -> DB: UPDATE products stock
+    
+    Controller -> Browser: Redirect với thông báo thành công
+    Browser -> Admin: Hiển thị danh sách đơn hàng
+    
+else Dữ liệu không hợp lệ
+    Controller -> Browser: Trả về lỗi
+    Browser -> Admin: Hiển thị thông báo lỗi
+end
+
+@enduml

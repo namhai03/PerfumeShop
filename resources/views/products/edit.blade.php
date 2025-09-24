@@ -202,7 +202,7 @@
                         <label for="image" class="form-label">Hình ảnh sản phẩm</label>
                         @if($product->image)
                             <div style="margin-bottom: 12px;">
-                                <img src="{{ $product->image }}" alt="{{ $product->name }}" style="width: 100px; height: 100px; object-fit: cover; border-radius: 8px; border: 1px solid #e9ecef;">
+                                <img src="{{ $product->image }}" alt="{{ $product->name }}" width="100" height="100" loading="lazy" decoding="async" style="width: 100px; height: 100px; object-fit: cover; border-radius: 8px; border: 1px solid #e9ecef;">
                             </div>
                         @endif
                         <input type="file" id="image" name="image" class="form-control @error('image') is-invalid @enderror" accept="image/*">

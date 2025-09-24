@@ -1,0 +1,59 @@
+@startuml Báo cáo doanh thu
+title Biểu đồ tuần tự - Báo cáo doanh thu
+
+actor "Quản trị viên" as Admin
+participant "Trình duyệt" as Browser
+participant "ReportController" as Controller
+participant "Order Model" as OrderModel
+participant "Product Model" as ProductModel
+participant "Database" as DB
+
+Admin -> Browser: Truy cập trang báo cáo
+Browser -> Controller: GET /reports
+Controller -> Browser: Hiển thị menu báo cáo
+
+Admin -> Browser: Chọn "Báo cáo doanh thu"
+Browser -> Controller: GET /reports/revenue
+Controller -> Browser: Hiển thị form chọn thời gian
+
+Admin -> Browser: Chọn khoảng thời gian
+Admin -> Browser: Chọn loại báo cáo
+Admin -> Browser: Nhấn "Tạo báo cáo"
+Browser -> Controller: POST /reports/revenue
+
+Controller -> Controller: Validate date range
+
+alt Validation thành công
+    Controller -> OrderModel: getRevenueReport(startDate, endDate)
+    OrderModel -> DB: SELECT SUM(final_amount), COUNT(*) FROM orders WHERE order_date BETWEEN ? AND ? AND type = 'sale'
+    DB -> OrderModel: Trả về tổng doanh thu và số đơn hàng
+    
+    Controller -> OrderModel: getRevenueByDay(startDate, endDate)
+    OrderModel -> DB: SELECT DATE(order_date) as date, SUM(final_amount) as revenue FROM orders WHERE order_date BETWEEN ? AND ? AND type = 'sale' GROUP BY DATE(order_date)
+    DB -> OrderModel: Trả về doanh thu theo ngày
+    
+    Controller -> OrderModel: getTopProducts(startDate, endDate)
+    OrderModel -> DB: SELECT p.name, SUM(oi.total_price) as revenue FROM orders o JOIN order_items oi ON o.id = oi.order_id JOIN products p ON oi.product_id = p.id WHERE o.order_date BETWEEN ? AND ? AND o.type = 'sale' GROUP BY p.id ORDER BY revenue DESC LIMIT 10
+    DB -> OrderModel: Trả về top sản phẩm bán chạy
+    
+    Controller -> OrderModel: getRevenueByChannel(startDate, endDate)
+    OrderModel -> DB: SELECT sales_channel, SUM(final_amount) as revenue FROM orders WHERE order_date BETWEEN ? AND ? AND type = 'sale' GROUP BY sales_channel
+    DB -> OrderModel: Trả về doanh thu theo kênh bán
+    
+    OrderModel -> Controller: Trả về dữ liệu báo cáo
+    Controller -> Controller: Process data for charts
+    Controller -> Browser: Hiển thị báo cáo với biểu đồ
+    Browser -> Admin: Hiển thị báo cáo doanh thu
+    
+    Admin -> Browser: Nhấn "Xuất Excel"
+    Browser -> Controller: GET /reports/revenue/export
+    Controller -> Controller: Generate Excel file
+    Controller -> Browser: Download Excel file
+    Browser -> Admin: Tải file Excel về máy
+    
+else Validation thất bại
+    Controller -> Browser: Redirect back with errors
+    Browser -> Admin: Hiển thị form với thông báo lỗi
+end
+
+@enduml

@@ -1,0 +1,80 @@
+@startuml Sửa sản phẩm
+title Biểu đồ tuần tự - Sửa sản phẩm
+
+actor "Quản trị viên" as Admin
+participant "Trình duyệt" as Browser
+participant "ProductController" as Controller
+participant "Product Model" as ProductModel
+participant "Category Model" as CategoryModel
+participant "Database" as DB
+participant "File Storage" as Storage
+
+Admin -> Browser: Tìm kiếm sản phẩm cần sửa
+Browser -> Controller: GET /products?search=keyword
+Controller -> ProductModel: searchProducts(keyword)
+ProductModel -> DB: SELECT * FROM products WHERE name LIKE ? OR sku LIKE ?
+DB -> ProductModel: Trả về danh sách sản phẩm
+ProductModel -> Controller: Trả về products
+Controller -> Browser: Hiển thị kết quả tìm kiếm
+
+Admin -> Browser: Chọn sản phẩm cần sửa
+Admin -> Browser: Nhấn "Sửa sản phẩm"
+Browser -> Controller: GET /products/{id}/edit
+
+Controller -> ProductModel: findById(productId)
+ProductModel -> DB: SELECT * FROM products WHERE id = ?
+DB -> ProductModel: Trả về thông tin sản phẩm
+ProductModel -> Controller: Trả về product
+
+Controller -> CategoryModel: getAllCategories()
+CategoryModel -> DB: SELECT * FROM categories
+DB -> CategoryModel: Trả về danh sách categories
+CategoryModel -> Controller: Trả về categories
+
+Controller -> Browser: Hiển thị form sửa sản phẩm
+
+Admin -> Browser: Chỉnh sửa thông tin sản phẩm
+Admin -> Browser: Cập nhật hình ảnh (nếu cần)
+Admin -> Browser: Nhấn "Cập nhật sản phẩm"
+Browser -> Controller: PUT /products/{id}
+
+Controller -> Controller: Validate input data
+
+alt Validation thành công
+    alt Có upload hình ảnh mới
+        Controller -> Storage: store(newImage)
+        Storage -> Controller: Trả về đường dẫn file mới
+    end
+    
+    Controller -> ProductModel: update(productData)
+    ProductModel -> DB: UPDATE products SET ... WHERE id = ?
+    DB -> ProductModel: Confirm update
+    
+    alt Có thay đổi danh mục
+        Controller -> ProductModel: syncCategories(categoryIds)
+        ProductModel -> DB: DELETE FROM category_product WHERE product_id = ?
+        ProductModel -> DB: INSERT INTO category_product
+    end
+    
+    alt Có thay đổi biến thể
+        loop For each variant
+            alt Biến thể đã tồn tại
+                Controller -> ProductModel: updateVariant(variantId, variantData)
+                ProductModel -> DB: UPDATE product_variants SET ... WHERE id = ?
+            else Biến thể mới
+                Controller -> ProductModel: createVariant(variantData)
+                ProductModel -> DB: INSERT INTO product_variants
+            end
+        end
+    end
+    
+    ProductModel -> Controller: Trả về updated product
+    Controller -> Browser: Redirect với thông báo thành công
+    Browser -> Admin: Hiển thị danh sách sản phẩm với thông báo
+    
+else Validation thất bại
+    Controller -> Browser: Redirect back with errors
+    Browser -> Admin: Hiển thị form với thông báo lỗi
+end
+
+@enduml

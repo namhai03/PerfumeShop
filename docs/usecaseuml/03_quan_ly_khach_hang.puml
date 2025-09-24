@@ -1,0 +1,36 @@
+@startuml
+!theme plain
+skinparam direction top to bottom
+skinparam actorStyle rectangle
+skinparam usecaseStyle rectangle
+
+title Use Case - Quản lý Khách hàng
+
+actor "Quản trị viên" as Admin
+
+usecase "Quản lý khách hàng" as UC3
+usecase "Thêm/Sửa/Xóa khách hàng" as UC3_1
+usecase "Xem/Tìm kiếm khách hàng" as UC3_2
+usecase "Xem lịch sử mua hàng" as UC3_3
+usecase "Phân nhóm khách hàng" as UC3_4
+usecase "Theo dõi giá trị khách hàng" as UC3_5
+
+Admin --> UC3
+Admin --> UC3_1
+Admin --> UC3_2
+Admin --> UC3_3
+Admin --> UC3_4
+Admin --> UC3_5
+
+UC3 ..> UC3_1 : <<include>>
+UC3 ..> UC3_2 : <<include>>
+UC3 ..> UC3_3 : <<include>>
+UC3 ..> UC3_4 : <<include>>
+UC3 ..> UC3_5 : <<include>>
+
+UC3_1 -[hidden]-> UC3_2
+UC3_2 -[hidden]-> UC3_3
+UC3_3 -[hidden]-> UC3_4
+UC3_4 -[hidden]-> UC3_5
+
+@enduml

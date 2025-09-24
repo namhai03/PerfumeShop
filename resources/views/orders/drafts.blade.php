@@ -65,12 +65,37 @@
                     </div>
                 </div>
 
-                <!-- Filters -->
-                <div class="filters-container" style="display: flex; gap: 12px; flex-wrap: wrap;">
+                <!-- Date Filters -->
+                <div class="filters-container" style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <label style="font-size: 13px; color: #4a5568; font-weight: 500; white-space: nowrap;">Từ ngày:</label>
+                        <input type="date" 
+                               name="date_from" 
+                               value="{{ request('date_from') }}" 
+                               class="filter-select" 
+                               style="min-width: 150px;">
+                    </div>
                     
-
-                    <input type="date" name="date_from" value="{{ request('date_from') }}" class="filter-select" placeholder="Từ ngày">
-                    <input type="date" name="date_to" value="{{ request('date_to') }}" class="filter-select" placeholder="Đến ngày">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <label style="font-size: 13px; color: #4a5568; font-weight: 500; white-space: nowrap;">Đến ngày:</label>
+                        <input type="date" 
+                               name="date_to" 
+                               value="{{ request('date_to') }}" 
+                               class="filter-select" 
+                               style="min-width: 150px;">
+                    </div>
+                    
+                    <button type="submit" class="btn btn-outline" style="font-size: 13px; padding: 8px 16px;">
+                        <i class="fas fa-filter"></i>
+                        Lọc
+                    </button>
+                    
+                    @if(request('date_from') || request('date_to') || request('search'))
+                        <a href="{{ route('orders.drafts') }}" class="btn btn-outline" style="font-size: 13px; padding: 8px 16px; color: #e53e3e;">
+                            <i class="fas fa-times"></i>
+                            Xóa bộ lọc
+                        </a>
+                    @endif
                 </div>
             </div>
         </div>
@@ -84,6 +109,7 @@
                     <tr>
                         <th>Mã đơn hàng</th>
                         <th>Khách hàng</th>
+                        <th>Loại</th>
                         <th>Trạng thái</th>
                         <th>Tổng tiền</th>
                         <th>Ngày tạo</th>
@@ -109,6 +135,11 @@
                                 @endif
                             </td>
                             <td>
+                                <span class="badge {{ $order->type_badge_class }}">
+                                    {{ $order->type_text }}
+                                </span>
+                            </td>
+                            <td>
                                 <span class="badge {{ $order->status_badge_class }}">
                                     {{ $order->status_text }}
                                 </span>
@@ -125,9 +156,6 @@
                             </td>
                             <td>
                                 <div class="order-actions">
-                                    <a href="{{ route('orders.show', ['order' => $order->id, 'return' => request()->fullUrl()]) }}" class="btn btn-outline" title="Xem chi tiết">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
                                     <a href="{{ route('orders.edit', ['order' => $order->id, 'return' => request()->fullUrl()]) }}" class="btn btn-outline" title="Chỉnh sửa">
                                         <i class="fas fa-edit"></i>
                                     </a>

@@ -65,13 +65,7 @@
             </div>
         </div>
 
-        <!-- Đơn custom -->
-        <div class="kpi-card" id="kpi-custom-orders">
-            <div class="kpi-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
-                <i class="fas fa-flask"></i>
-            </div>
-            
-        </div>
+       
 
         <!-- Cảnh báo tồn kho -->
         <div class="kpi-card" id="kpi-inventory">
@@ -215,7 +209,8 @@
 </div>
 
 <!-- ApexCharts -->
-<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/apexcharts" as="script" crossorigin>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts" defer crossorigin></script>
 
 <style>
 /* KPI Cards */

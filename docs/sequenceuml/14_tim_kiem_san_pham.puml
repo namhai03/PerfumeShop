@@ -1,0 +1,51 @@
+@startuml Tìm kiếm sản phẩm
+title Biểu đồ tuần tự - Tìm kiếm sản phẩm
+
+actor "Quản trị viên" as Admin
+participant "Trình duyệt" as Browser
+participant "ProductController" as Controller
+participant "Product Model" as ProductModel
+participant "Database" as DB
+
+Admin -> Browser: Truy cập trang danh sách sản phẩm
+Browser -> Controller: GET /products
+Controller -> ProductModel: getAllProducts()
+ProductModel -> DB: SELECT * FROM products
+DB -> ProductModel: Trả về danh sách sản phẩm
+ProductModel -> Controller: Trả về products
+Controller -> Browser: Hiển thị danh sách sản phẩm
+
+Admin -> Browser: Nhập từ khóa tìm kiếm
+Admin -> Browser: Chọn tiêu chí tìm kiếm
+note right: Tên, thương hiệu, danh mục, SKU, barcode
+Admin -> Browser: Nhấn "Tìm kiếm"
+Browser -> Controller: GET /products?search=keyword&criteria=...
+
+Controller -> Controller: Build search query
+Controller -> ProductModel: searchProducts(searchParams)
+ProductModel -> DB: SELECT * FROM products WHERE 
+note right: (name LIKE ? OR sku LIKE ? OR barcode LIKE ?) AND brand = ? AND category = ?
+
+alt Có kết quả tìm kiếm
+    DB -> ProductModel: Trả về danh sách sản phẩm phù hợp
+    ProductModel -> Controller: Trả về search results
+    Controller -> Browser: Hiển thị kết quả tìm kiếm
+    Browser -> Admin: Hiển thị danh sách sản phẩm phù hợp
+    
+    Admin -> Browser: Chọn sản phẩm để xem chi tiết
+    Browser -> Controller: GET /products/{id}
+    Controller -> ProductModel: findById(productId)
+    ProductModel -> DB: SELECT * FROM products WHERE id = ?
+    DB -> ProductModel: Trả về thông tin sản phẩm
+    ProductModel -> Controller: Trả về product
+    Controller -> Browser: Hiển thị chi tiết sản phẩm
+    Browser -> Admin: Hiển thị thông tin chi tiết
+    
+else Không có kết quả
+    DB -> ProductModel: Trả về danh sách rỗng
+    ProductModel -> Controller: Trả về empty results
+    Controller -> Browser: Hiển thị thông báo không tìm thấy
+    Browser -> Admin: Hiển thị "Không tìm thấy sản phẩm phù hợp. Đề xuất từ khóa tương tự"
+end
+
+@enduml

@@ -1,0 +1,25 @@
+@startuml Đăng xuất
+title Biểu đồ tuần tự - Đăng xuất
+
+actor "Quản trị viên" as Admin
+participant "Trình duyệt" as Browser
+participant "Controller" as Controller
+participant "Session" as Session
+participant "Database" as DB
+
+Admin -> Browser: Nhấn nút "Đăng xuất"
+Browser -> Controller: POST /logout
+note right: Gửi request đăng xuất
+
+Controller -> Controller: Validate session
+Controller -> Session: destroy()
+Session -> DB: DELETE FROM sessions WHERE id = ?
+DB -> Session: Confirm deletion
+Session -> Controller: Session destroyed
+
+Controller -> Browser: Redirect to login page
+Browser -> Admin: Hiển thị trang đăng nhập
+
+note over Admin, DB: Phiên làm việc đã được kết thúc an toàn
+
+@enduml

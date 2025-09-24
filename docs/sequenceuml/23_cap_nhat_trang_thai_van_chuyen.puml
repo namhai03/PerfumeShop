@@ -1,0 +1,29 @@
+@startuml Cập nhật trạng thái vận chuyển
+title Biểu đồ tuần tự - Cập nhật trạng thái vận chuyển
+
+actor "Quản trị viên" as Admin
+participant "Trình duyệt" as Browser
+participant "ShipmentController" as Controller
+participant "Shipment Model" as ShipmentModel
+participant "Database" as DB
+
+Admin -> Browser: Xem danh sách vận đơn
+Browser -> Controller: GET /shipments
+Controller -> ShipmentModel: getAllShipments()
+ShipmentModel -> DB: Lấy danh sách vận đơn
+DB -> ShipmentModel: Trả về danh sách
+ShipmentModel -> Controller: Trả về shipments
+Controller -> Browser: Hiển thị danh sách vận đơn
+
+Admin -> Browser: Chọn vận đơn và cập nhật trạng thái
+Browser -> Controller: PUT /shipments/{id}/status
+
+Controller -> ShipmentModel: updateStatus(shipmentId, newStatus)
+ShipmentModel -> DB: Cập nhật trạng thái vận đơn
+DB -> ShipmentModel: Xác nhận cập nhật
+
+ShipmentModel -> Controller: Trả về kết quả
+Controller -> Browser: Thông báo thành công
+Browser -> Admin: Hiển thị "Cập nhật trạng thái thành công"
+
+@enduml

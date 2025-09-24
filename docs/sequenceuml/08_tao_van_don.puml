@@ -1,0 +1,61 @@
+@startuml Tạo vận đơn
+title Biểu đồ tuần tự - Tạo vận đơn
+
+actor "Quản trị viên" as Admin
+participant "Trình duyệt" as Browser
+participant "ShipmentController" as Controller
+participant "Shipment Model" as ShipmentModel
+participant "Order Model" as OrderModel
+participant "Database" as DB
+
+Admin -> Browser: Truy cập danh sách đơn hàng
+Browser -> Controller: GET /orders
+Controller -> OrderModel: getConfirmedOrders()
+OrderModel -> DB: SELECT * FROM orders WHERE status = 'confirmed'
+DB -> OrderModel: Trả về danh sách đơn hàng đã xác nhận
+OrderModel -> Controller: Trả về orders
+Controller -> Browser: Hiển thị danh sách đơn hàng
+
+Admin -> Browser: Chọn đơn hàng cần vận chuyển
+Admin -> Browser: Nhấn "Tạo vận đơn"
+Browser -> Controller: GET /shipments/create?order_id={id}
+Controller -> OrderModel: findById(orderId)
+OrderModel -> DB: SELECT * FROM orders WHERE id = ?
+DB -> OrderModel: Trả về thông tin đơn hàng
+OrderModel -> Controller: Trả về order
+Controller -> Browser: Hiển thị form tạo vận đơn
+
+Admin -> Browser: Nhập thông tin vận chuyển
+note right: Địa chỉ giao hàng, người nhận, số điện thoại
+Admin -> Browser: Chọn phương thức vận chuyển
+Admin -> Browser: Nhập ghi chú đặc biệt
+Admin -> Browser: Nhấn "Tạo vận đơn"
+Browser -> Controller: POST /shipments
+
+Controller -> Controller: Validate input data
+Controller -> Controller: Calculate shipping fee
+note right: Dựa trên khoảng cách và phương thức vận chuyển
+
+alt Validation thành công
+    Controller -> Controller: Begin database transaction
+    
+    Controller -> ShipmentModel: create(shipmentData)
+    ShipmentModel -> DB: INSERT INTO shipments
+    note right: order_code, recipient_name, address, phone, shipping_method, fee, status='pending_pickup'
+    DB -> ShipmentModel: Trả về shipment ID
+    
+    Controller -> OrderModel: updateStatus(orderId, 'shipping')
+    OrderModel -> DB: UPDATE orders SET status = 'shipping' WHERE id = ?
+    DB -> OrderModel: Confirm update
+    
+    Controller -> Controller: Commit transaction
+    Controller -> Browser: Redirect với thông báo thành công
+    Browser -> Admin: Hiển thị danh sách vận đơn với thông báo
+    
+else Validation thất bại
+    Controller -> Controller: Rollback transaction
+    Controller -> Browser: Redirect back with errors
+    Browser -> Admin: Hiển thị form với thông báo lỗi
+end
+
+@enduml

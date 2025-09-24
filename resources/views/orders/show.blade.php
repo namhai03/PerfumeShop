@@ -184,7 +184,7 @@
                             <td>
                                 <div style="display: flex; align-items: center; gap: 12px;">
                                     @if($item->product->image)
-                                        <img src="{{ $item->product->image }}" alt="{{ $item->product->name }}" 
+                                        <img src="{{ $item->product->image }}" alt="{{ $item->product->name }}" width="40" height="40" loading="lazy" decoding="async"
                                              style="width: 40px; height: 40px; object-fit: cover; border-radius: 6px;">
                                     @else
                                         <div style="width: 40px; height: 40px; background-color: #f8f9fa; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #6c757d;">

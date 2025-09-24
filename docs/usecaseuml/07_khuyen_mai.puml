@@ -1,0 +1,32 @@
+@startuml
+!theme plain
+skinparam direction top to bottom
+skinparam actorStyle rectangle
+skinparam usecaseStyle rectangle
+
+title Use Case - Khuyến mãi
+
+actor "Quản trị viên" as Admin
+
+usecase "Khuyến mãi" as UC7
+usecase "Tạo/Sửa/Xóa khuyến mãi" as UC7_1
+usecase "Quản lý mã giảm giá" as UC7_2
+usecase "Theo dõi hiệu quả khuyến mãi" as UC7_3
+usecase "Gợi ý khuyến mãi" as UC7_4
+
+Admin --> UC7
+Admin --> UC7_1
+Admin --> UC7_2
+Admin --> UC7_3
+Admin --> UC7_4
+
+UC7 ..> UC7_1 : <<include>>
+UC7 ..> UC7_2 : <<include>>
+UC7 ..> UC7_3 : <<include>>
+UC7 ..> UC7_4 : <<include>>
+
+UC7_1 -[hidden]-> UC7_2
+UC7_2 -[hidden]-> UC7_3
+UC7_3 -[hidden]-> UC7_4
+
+@enduml

@@ -1,0 +1,36 @@
+@startuml
+!theme plain
+skinparam direction top to bottom
+skinparam actorStyle rectangle
+skinparam usecaseStyle rectangle
+
+title Use Case - Quản lý Đơn hàng
+
+actor "Quản trị viên" as Admin
+
+usecase "Quản lý đơn hàng" as UC4
+usecase "Tạo/Sửa/Xóa đơn hàng" as UC4_1
+usecase "Xem/Tìm kiếm đơn hàng" as UC4_2
+usecase "Cập nhật trạng thái đơn" as UC4_3
+usecase "In hóa đơn" as UC4_4
+usecase "Áp dụng mã khuyến mãi" as UC4_5
+
+Admin --> UC4
+Admin --> UC4_1
+Admin --> UC4_2
+Admin --> UC4_3
+Admin --> UC4_4
+Admin --> UC4_5
+
+UC4 ..> UC4_1 : <<include>>
+UC4 ..> UC4_2 : <<include>>
+UC4 ..> UC4_3 : <<include>>
+UC4 ..> UC4_4 : <<include>>
+UC4 ..> UC4_5 : <<include>>
+
+UC4_1 -[hidden]-> UC4_2
+UC4_2 -[hidden]-> UC4_3
+UC4_3 -[hidden]-> UC4_4
+UC4_4 -[hidden]-> UC4_5
+
+@enduml

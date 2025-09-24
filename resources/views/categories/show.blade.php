@@ -38,7 +38,7 @@
                 <div style="width:160px;">
                     <label class="form-label">Ảnh</label>
                     @if(!empty($category->image))
-                        <img src="{{ Storage::url($category->image) }}" alt="{{ $category->name }}" style="width:160px; height:160px; object-fit:cover; border:1px solid #e2e8f0; border-radius:8px;">
+                        <img src="{{ Storage::url($category->image) }}" alt="{{ $category->name }}" width="160" height="160" loading="lazy" decoding="async" style="width:160px; height:160px; object-fit:cover; border:1px solid #e2e8f0; border-radius:8px;">
                     @else
                         <div style="width:160px; height:160px; background:#f8f9fa; border:1px solid #e2e8f0; border-radius:8px; display:flex; align-items:center; justify-content:center; color:#6c757d;">—</div>
                     @endif

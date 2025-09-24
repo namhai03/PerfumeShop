@@ -194,7 +194,8 @@
         }
     </style>
     <!-- ApexCharts -->
-    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/apexcharts" as="script" crossorigin>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts" defer crossorigin></script>
     <script>
         async function loadShippingDashboard(){
             try{

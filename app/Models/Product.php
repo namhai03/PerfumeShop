@@ -50,4 +50,9 @@ class Product extends Model
     {
         return $this->hasMany(ProductVariant::class);
     }
+
+    public function embeddings()
+    {
+        return $this->hasMany(ProductEmbedding::class);
+    }
 }

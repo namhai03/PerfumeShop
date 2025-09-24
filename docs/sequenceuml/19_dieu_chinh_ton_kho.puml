@@ -1,0 +1,43 @@
+@startuml Điều chỉnh tồn kho
+title Biểu đồ tuần tự - Điều chỉnh tồn kho
+
+actor "Quản trị viên" as Admin
+participant "Trình duyệt" as Browser
+participant "InventoryController" as Controller
+participant "Product Model" as ProductModel
+participant "InventoryMovement Model" as InventoryModel
+participant "Database" as DB
+
+Admin -> Browser: Truy cập trang tồn kho
+Browser -> Controller: GET /inventory
+Controller -> ProductModel: getAllProducts()
+ProductModel -> DB: SELECT * FROM products
+DB -> ProductModel: Trả về danh sách sản phẩm
+ProductModel -> Controller: Trả về products
+Controller -> Browser: Hiển thị danh sách tồn kho
+
+Admin -> Browser: Chọn sản phẩm cần điều chỉnh
+Browser -> Controller: GET /inventory/{id}/adjust
+Controller -> ProductModel: findById(productId)
+ProductModel -> DB: SELECT * FROM products WHERE id = ?
+DB -> ProductModel: Trả về thông tin sản phẩm
+ProductModel -> Controller: Trả về product
+Controller -> Browser: Hiển thị form điều chỉnh
+
+Admin -> Browser: Nhập số lượng mới
+Admin -> Browser: Nhập lý do điều chỉnh
+Admin -> Browser: Nhấn "Xác nhận"
+Browser -> Controller: POST /inventory/{id}/adjust
+
+Controller -> ProductModel: updateStock(productId, newStock)
+ProductModel -> DB: UPDATE products SET stock = ?
+DB -> ProductModel: Cập nhật thành công
+
+Controller -> InventoryModel: create(movementData)
+InventoryModel -> DB: INSERT INTO inventory_movements
+DB -> InventoryModel: Lưu lịch sử thành công
+
+Controller -> Browser: Redirect với thông báo thành công
+Browser -> Admin: Hiển thị "Điều chỉnh tồn kho thành công"
+
+@enduml

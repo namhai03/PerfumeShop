@@ -1,0 +1,40 @@
+@startuml Đăng nhập hệ thống
+title Biểu đồ tuần tự - Đăng nhập hệ thống
+
+actor "Quản trị viên" as Admin
+participant "Trình duyệt" as Browser
+participant "Controller" as Controller
+participant "Model User" as UserModel
+participant "Database" as DB
+
+Admin -> Browser: Truy cập trang đăng nhập
+Browser -> Controller: GET /login
+Controller -> Browser: Hiển thị form đăng nhập
+
+Admin -> Browser: Nhập tên đăng nhập và mật khẩu
+Admin -> Browser: Nhấn nút "Đăng nhập"
+Browser -> Controller: POST /login
+note right: Gửi credentials
+
+Controller -> UserModel: validateCredentials(username, password)
+UserModel -> DB: SELECT * FROM users WHERE username = ?
+DB -> UserModel: Trả về thông tin user
+
+alt Thông tin hợp lệ
+    UserModel -> Controller: Trả về user object
+    Controller -> Controller: Tạo session
+    Controller -> Browser: Redirect to dashboard
+    Browser -> Admin: Hiển thị trang chủ
+else Thông tin không hợp lệ
+    UserModel -> Controller: Trả về null
+    Controller -> Browser: Redirect back with error
+    Browser -> Admin: Hiển thị thông báo lỗi
+end
+
+alt Tài khoản bị khóa
+    UserModel -> Controller: Trả về locked user
+    Controller -> Browser: Redirect back with lock error
+    Browser -> Admin: Hiển thị thông báo tài khoản bị khóa
+end
+
+@enduml

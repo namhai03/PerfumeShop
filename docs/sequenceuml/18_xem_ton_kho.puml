@@ -1,0 +1,37 @@
+@startuml Xem tồn kho
+title Biểu đồ tuần tự - Xem tồn kho
+
+actor "Quản trị viên" as Admin
+participant "Trình duyệt" as Browser
+participant "InventoryController" as Controller
+participant "Product Model" as ProductModel
+participant "Database" as DB
+
+Admin -> Browser: Truy cập trang tồn kho
+Browser -> Controller: GET /inventory
+Controller -> ProductModel: getAllProducts()
+ProductModel -> DB: SELECT * FROM products
+DB -> ProductModel: Trả về danh sách sản phẩm
+ProductModel -> Controller: Trả về products
+Controller -> Browser: Hiển thị danh sách tồn kho
+Browser -> Admin: Hiển thị sản phẩm với số lượng tồn kho
+
+Admin -> Browser: Lọc sản phẩm
+Browser -> Controller: GET /inventory?filter=...
+Controller -> ProductModel: getFilteredProducts()
+ProductModel -> DB: SELECT với điều kiện lọc
+DB -> ProductModel: Trả về kết quả lọc
+ProductModel -> Controller: Trả về filtered products
+Controller -> Browser: Hiển thị kết quả lọc
+Browser -> Admin: Hiển thị sản phẩm đã lọc
+
+Admin -> Browser: Xem chi tiết sản phẩm
+Browser -> Controller: GET /inventory/{id}
+Controller -> ProductModel: findById(productId)
+ProductModel -> DB: SELECT * FROM products WHERE id = ?
+DB -> ProductModel: Trả về thông tin sản phẩm
+ProductModel -> Controller: Trả về product
+Controller -> Browser: Hiển thị chi tiết tồn kho
+Browser -> Admin: Hiển thị thông tin chi tiết sản phẩm
+
+@enduml

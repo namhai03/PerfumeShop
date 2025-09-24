@@ -265,7 +265,7 @@
                 <div class="card-header"><h3>Thông tin sản phẩm</h3></div>
                 <div style="display:flex; gap: 16px;">
                     @if($product->image)
-                        <img src="{{ $product->image }}" style="width:96px; height:96px; object-fit:cover; border-radius:8px; border:1px solid #e5e7eb;" />
+                        <img src="{{ $product->image }}" alt="{{ $product->name }}" width="96" height="96" loading="lazy" decoding="async" style="width:96px; height:96px; object-fit:cover; border-radius:8px; border:1px solid #e5e7eb;" />
                     @else
                         <div style="width:96px; height:96px; background:#f9fafb; border:1px solid #e5e7eb; border-radius:8px; display:flex; align-items:center; justify-content:center; color:#9ca3af;">
                             <i class="fas fa-image"></i>

@@ -1,0 +1,62 @@
+@startuml AI gợi ý sản phẩm
+title Biểu đồ tuần tự - AI gợi ý sản phẩm
+
+actor "Quản trị viên" as Admin
+participant "Trình duyệt" as Browser
+participant "OmniAIController" as Controller
+participant "LLMService" as LLMService
+participant "Order Model" as OrderModel
+participant "Product Model" as ProductModel
+participant "Database" as DB
+
+Admin -> Browser: Truy cập trang AI hỗ trợ
+Browser -> Controller: GET /omni-ai
+Controller -> Browser: Hiển thị giao diện AI
+
+Admin -> Browser: Chọn "Gợi ý sản phẩm"
+Browser -> Controller: POST /omni-ai/product-suggestions
+
+Controller -> Controller: Collect sales data
+Controller -> OrderModel: getSalesData()
+OrderModel -> DB: SELECT p.id, p.name, p.stock, SUM(oi.quantity) as total_sold, SUM(oi.total_price) as revenue FROM products p LEFT JOIN order_items oi ON p.id = oi.product_id LEFT JOIN orders o ON oi.order_id = o.id WHERE o.type = 'sale' GROUP BY p.id
+DB -> OrderModel: Trả về dữ liệu bán hàng
+OrderModel -> Controller: Trả về sales data
+
+Controller -> ProductModel: getInventoryData()
+ProductModel -> DB: SELECT id, name, stock, low_stock_threshold, selling_price, import_price FROM products
+DB -> ProductModel: Trả về dữ liệu tồn kho
+ProductModel -> Controller: Trả về inventory data
+
+Controller -> Controller: Prepare data for AI analysis
+note right: Chuẩn bị dữ liệu: doanh số, tồn kho, giá cả, xu hướng
+
+Controller -> LLMService: analyzeProductSuggestions(salesData, inventoryData)
+LLMService -> LLMService: Analyze sales trends
+LLMService -> LLMService: Identify low stock products
+LLMService -> LLMService: Calculate profit margins
+LLMService -> LLMService: Generate recommendations
+
+alt AI analysis thành công
+    LLMService -> Controller: Trả về gợi ý sản phẩm
+    note right: Danh sách sản phẩm nên nhập thêm, giảm giá, hoặc ngừng bán
+    
+    Controller -> Controller: Format recommendations
+    Controller -> Browser: Hiển thị gợi ý với lý do
+    Browser -> Admin: Hiển thị danh sách gợi ý sản phẩm
+    
+    Admin -> Browser: Chọn sản phẩm để xem chi tiết
+    Browser -> Controller: GET /products/{id}
+    Controller -> ProductModel: findById(productId)
+    ProductModel -> DB: SELECT * FROM products WHERE id = ?
+    DB -> ProductModel: Trả về thông tin sản phẩm
+    ProductModel -> Controller: Trả về product
+    Controller -> Browser: Hiển thị chi tiết sản phẩm
+    Browser -> Admin: Hiển thị thông tin chi tiết
+    
+else AI analysis thất bại
+    LLMService -> Controller: Trả về lỗi
+    Controller -> Browser: Hiển thị thông báo lỗi
+    Browser -> Admin: Hiển thị thông báo không thể phân tích
+end
+
+@enduml

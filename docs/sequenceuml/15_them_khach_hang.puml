@@ -1,0 +1,52 @@
+@startuml Thêm khách hàng
+title Biểu đồ tuần tự - Thêm khách hàng
+
+actor "Quản trị viên" as Admin
+participant "Trình duyệt" as Browser
+participant "CustomerController" as Controller
+participant "Customer Model" as CustomerModel
+participant "CustomerGroup Model" as GroupModel
+participant "Database" as DB
+
+Admin -> Browser: Truy cập trang quản lý khách hàng
+Browser -> Controller: GET /customers
+Controller -> CustomerModel: getAllCustomers()
+CustomerModel -> DB: SELECT * FROM customers
+DB -> CustomerModel: Trả về danh sách khách hàng
+CustomerModel -> Controller: Trả về customers
+Controller -> Browser: Hiển thị danh sách khách hàng
+
+Admin -> Browser: Nhấn "Thêm khách hàng"
+Browser -> Controller: GET /customers/create
+Controller -> GroupModel: getAllGroups()
+GroupModel -> DB: SELECT * FROM customer_groups
+DB -> GroupModel: Trả về danh sách nhóm khách hàng
+GroupModel -> Controller: Trả về groups
+Controller -> Browser: Hiển thị form thêm khách hàng
+
+Admin -> Browser: Nhập thông tin khách hàng
+note right: Tên, số điện thoại, email, địa chỉ
+Admin -> Browser: Chọn nhóm khách hàng (nếu có)
+Admin -> Browser: Thêm ghi chú (nếu cần)
+Admin -> Browser: Nhấn "Lưu khách hàng"
+Browser -> Controller: POST /customers
+
+Controller -> Controller: Validate input data
+
+alt Validation thành công
+    Controller -> CustomerModel: create(customerData)
+    CustomerModel -> DB: INSERT INTO customers
+    note right: name, phone, email, address, customer_group_id, note, is_active
+    DB -> CustomerModel: Trả về customer ID
+    CustomerModel -> Controller: Trả về customer object
+    
+    Controller -> Browser: Redirect với thông báo thành công
+    Browser -> Admin: Hiển thị danh sách khách hàng với thông báo "Khách hàng đã được thêm thành công"
+    
+else Validation thất bại
+    Controller -> Browser: Redirect back with errors
+    Browser -> Admin: Hiển thị form với thông báo lỗi
+    note right: Thông tin bắt buộc chưa đầy đủ → Hiển thị thông báo lỗi, yêu cầu nhập đầy đủ
+end
+
+@enduml

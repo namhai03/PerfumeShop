@@ -3,11 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="PerfumeShop - Hệ thống quản lý cửa hàng nước hoa: sản phẩm, đơn hàng, tồn kho, khuyến mại, báo cáo.">
+    <link rel="canonical" href="{{ url()->current() }}">
+    <meta name="theme-color" content="#111827">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'PerfumeShop - Quản lý cửa hàng nước hoa')</title>
     
+    <!-- Preconnect for performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+
     <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css" crossorigin="anonymous"/>
     
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -104,6 +113,13 @@
             margin: 6px 0 6px 0;
             padding-left: 16px;
             border-left: 1px dashed rgba(255,255,255,0.12);
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .sub-nav.expanded {
+            max-height: 500px;
         }
 
         .sub-nav .nav-link {
@@ -115,6 +131,27 @@
         .sub-nav .nav-link.active {
             background: rgba(59,130,246,0.22);
             box-shadow: inset 0 0 0 1px rgba(59,130,246,0.35);
+        }
+
+        /* Nav link với sub-nav */
+        .nav-item.has-subnav > .nav-link {
+            position: relative;
+            cursor: pointer;
+        }
+
+        .nav-item.has-subnav > .nav-link::after {
+            content: '\f107';
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            position: absolute;
+            right: 20px;
+            transition: transform 0.3s ease;
+            font-size: 12px;
+            opacity: 0.7;
+        }
+
+        .nav-item.has-subnav.expanded > .nav-link::after {
+            transform: rotate(180deg);
         }
 
         /* Main Content */
@@ -541,35 +578,35 @@
                         Tổng quan
                     </a>
                 </li>
-                <li class="nav-item">
+                <li class="nav-item has-subnav {{ request()->routeIs('orders.*') ? 'expanded' : '' }}">
                     <a href="{{ route('orders.index') }}" class="nav-link {{ request()->routeIs('orders.*') ? 'active' : '' }}">
                         <i class="icon fas fa-receipt"></i>
                         Đơn hàng
                     </a>
-                    <ul class="sub-nav">
+                    <ul class="sub-nav {{ request()->routeIs('orders.*') ? 'expanded' : '' }}">
                         <li class="nav-item"><a href="{{ route('orders.index') }}" class="nav-link {{ request()->routeIs('orders.index') ? 'active' : '' }}">Tất cả đơn hàng</a></li>
                         <li class="nav-item"><a href="{{ route('orders.sales') }}" class="nav-link {{ request()->routeIs('orders.sales') ? 'active' : '' }}">Đơn bán</a></li>
                         <li class="nav-item"><a href="{{ route('orders.returns') }}" class="nav-link {{ request()->routeIs('orders.returns') ? 'active' : '' }}">Đơn trả</a></li>
                         <li class="nav-item"><a href="{{ route('orders.drafts') }}" class="nav-link {{ request()->routeIs('orders.drafts') ? 'active' : '' }}">Đơn nháp</a></li>
                     </ul>
                 </li>
-                <li class="nav-item">
-                    <a href="{{ route('shipping.overview') }}" class="nav-link {{ request()->routeIs('shipping.*') ? 'active' : '' }}">
+                <li class="nav-item has-subnav {{ request()->routeIs('shipping.*') || request()->routeIs('shipments.*') ? 'expanded' : '' }}">
+                    <a href="{{ route('shipping.overview') }}" class="nav-link {{ request()->routeIs('shipping.*') || request()->routeIs('shipments.*') ? 'active' : '' }}">
                         <i class="icon fas fa-truck"></i>
                         Vận chuyển
                     </a>
-                    <ul class="sub-nav">
+                    <ul class="sub-nav {{ request()->routeIs('shipping.*') || request()->routeIs('shipments.*') ? 'expanded' : '' }}">
                         <li class="nav-item"><a href="{{ route('shipping.overview') }}" class="nav-link {{ request()->routeIs('shipping.overview') ? 'active' : '' }}">Tổng quan</a></li>
                         <li class="nav-item"><a href="{{ route('shipments.index') }}" class="nav-link {{ request()->routeIs('shipments.*') ? 'active' : '' }}">Vận đơn</a></li>
                     </ul>
                 </li>
 
-                <li class="nav-item">
-                    <a href="#" class="nav-link {{ request()->routeIs('products.*') ? 'active' : '' }}">
+                <li class="nav-item has-subnav {{ request()->routeIs('products.*') || request()->routeIs('categories.*') ? 'expanded' : '' }}">
+                    <a href="#" class="nav-link {{ request()->routeIs('products.*') || request()->routeIs('categories.*') ? 'active' : '' }}">
                         <i class="icon fas fa-box"></i>
                         Sản phẩm
                     </a>
-                    <ul class="sub-nav">
+                    <ul class="sub-nav {{ request()->routeIs('products.*') || request()->routeIs('categories.*') ? 'expanded' : '' }}">
                         <li class="nav-item">
                             <a href="{{ route('products.index') }}" class="nav-link {{ request()->routeIs('products.*') ? 'active' : '' }}">
                                 Danh sách sản phẩm
@@ -584,32 +621,32 @@
                     </ul>
                 </li>
 
-                <li class="nav-item">
+                <li class="nav-item has-subnav {{ request()->routeIs('inventory.*') ? 'expanded' : '' }}">
                     <a href="{{ route('inventory.index') }}" class="nav-link {{ request()->routeIs('inventory.*') ? 'active' : '' }}">
                         <i class="icon fas fa-warehouse"></i>
                         Quản lý kho
                     </a>
-                    <ul class="sub-nav">
+                    <ul class="sub-nav {{ request()->routeIs('inventory.*') ? 'expanded' : '' }}">
                         <li class="nav-item"><a href="{{ route('inventory.index') }}" class="nav-link {{ request()->routeIs('inventory.index') ? 'active' : '' }}">Tồn kho</a></li>
                         <li class="nav-item"><a href="{{ route('inventory.history') }}" class="nav-link {{ request()->routeIs('inventory.history') ? 'active' : '' }}">Lịch sử</a></li>
                     </ul>
                 </li>
-                <li class="nav-item">
+                <li class="nav-item has-subnav {{ request()->routeIs('customers.*') || request()->routeIs('customer-groups.*') ? 'expanded' : '' }}">
                     <a href="{{ route('customers.index') }}" class="nav-link {{ request()->routeIs('customers.*') || request()->routeIs('customer-groups.*') ? 'active' : '' }}">
                         <i class="icon fas fa-users"></i>
                         Khách hàng
                     </a>
-                    <ul class="sub-nav">
+                    <ul class="sub-nav {{ request()->routeIs('customers.*') || request()->routeIs('customer-groups.*') ? 'expanded' : '' }}">
                         <li class="nav-item"><a href="{{ route('customers.index') }}" class="nav-link {{ request()->routeIs('customers.*') ? 'active' : '' }}">Danh sách khách hàng</a></li>
                         <li class="nav-item"><a href="{{ route('customer-groups.index') }}" class="nav-link {{ request()->routeIs('customer-groups.*') ? 'active' : '' }}">Nhóm khách hàng</a></li>
                     </ul>
                 </li>
-                <li class="nav-item">
+                <li class="nav-item has-subnav {{ request()->routeIs('cashbook.*') ? 'expanded' : '' }}">
                     <a href="{{ route('cashbook.index') }}" class="nav-link {{ request()->routeIs('cashbook.*') ? 'active' : '' }}">
                         <i class="icon fas fa-wallet"></i>
                         Sổ quỹ
                     </a>
-                    <ul class="sub-nav">
+                    <ul class="sub-nav {{ request()->routeIs('cashbook.*') ? 'expanded' : '' }}">
                         <li class="nav-item"><a href="{{ route('cashbook.index') }}" class="nav-link {{ request()->routeIs('cashbook.index') ? 'active' : '' }}">Tất cả phiếu</a></li>
                         <li class="nav-item"><a href="{{ route('cashbook.accounts.index') }}" class="nav-link {{ request()->routeIs('cashbook.accounts.*') ? 'active' : '' }}">Tài khoản</a></li>
                     </ul>
@@ -620,37 +657,23 @@
                         Khuyến mại
                     </a>
                 </li>
-                <li class="nav-item">
+                <li class="nav-item has-subnav {{ request()->routeIs('reports.*') ? 'expanded' : '' }}">
                     <a href="{{ route('reports.index') }}" class="nav-link {{ request()->routeIs('reports.*') ? 'active' : '' }}">
                         <i class="icon fas fa-chart-line"></i>
                         Báo cáo
                     </a>
-                    <ul class="sub-nav">
+                    <ul class="sub-nav {{ request()->routeIs('reports.*') ? 'expanded' : '' }}">
                         <li class="nav-item"><a href="{{ route('reports.index') }}" class="nav-link {{ request()->routeIs('reports.index') ? 'active' : '' }}">Danh sách báo cáo</a></li>
                         <li class="nav-item"><a href="{{ route('reports.overview') }}" class="nav-link {{ request()->routeIs('reports.overview') ? 'active' : '' }}">Tổng quan báo cáo</a></li>
                     </ul>
                 </li>
                 <li class="nav-item">
-                    <a href="#" class="nav-link">
+                    <a href="{{ route('omni-ai.index') }}" class="nav-link {{ request()->routeIs('omni-ai.*') ? 'active' : '' }}">
                         <i class="icon fas fa-comments"></i>
                         Chat OmniAI
                     </a>
                 </li>
 
-                <div class="nav-divider"></div>
-                <div class="nav-section-title">Kênh bán hàng</div>
-                <li class="nav-item">
-                    <a href="#" class="nav-link">
-                        <i class="icon fa-brands fa-shopify"></i>
-                        Shopee
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link">
-                        <i class="icon fa-brands fa-tiktok"></i>
-                        Tiktok Shop
-                    </a>
-                </li>
 
                 <div class="nav-divider"></div>
                 <li class="nav-item">
@@ -692,6 +715,20 @@
     @stack('styles')
     <script>
         document.addEventListener('DOMContentLoaded', function(){
+            // Tối ưu ảnh: bật lazy-load và decoding async cho tất cả ảnh, trừ ảnh đầu trang nếu cần LCP
+            try {
+                var imgs = document.querySelectorAll('img');
+                imgs.forEach(function(img, idx){
+                    if (!img.hasAttribute('loading')) {
+                        img.setAttribute('loading', idx === 0 ? 'eager' : 'lazy');
+                    }
+                    if (!img.hasAttribute('decoding')) {
+                        img.setAttribute('decoding', 'async');
+                    }
+                });
+            } catch (e) {}
+
+            // Xử lý date inputs
             var dateInputs = document.querySelectorAll('input[type="date"]');
             dateInputs.forEach(function(input){
                 input.addEventListener('focus', function(){
@@ -710,6 +747,24 @@
                     }
                     delete this.dataset.tempToday;
                     delete this.dataset.userChanged;
+                });
+            });
+
+            // Xử lý sidebar collapse/expand
+            var navItemsWithSubnav = document.querySelectorAll('.nav-item.has-subnav');
+            navItemsWithSubnav.forEach(function(navItem) {
+                var navLink = navItem.querySelector('.nav-link');
+                var subNav = navItem.querySelector('.sub-nav');
+                
+                navLink.addEventListener('click', function(e) {
+                    // Chỉ toggle nếu không phải là link thực sự (href="#")
+                    if (this.getAttribute('href') === '#') {
+                        e.preventDefault();
+                        
+                        // Toggle expanded class
+                        navItem.classList.toggle('expanded');
+                        subNav.classList.toggle('expanded');
+                    }
                 });
             });
         });
