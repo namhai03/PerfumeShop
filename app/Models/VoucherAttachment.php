@@ -15,6 +15,6 @@ class VoucherAttachment extends Model
 
     public function voucher()
     {
-        return $this->belongsTo(CashVoucher::class);
+        return $this->belongsTo(CashVoucher::class, 'voucher_id');
     }
 }

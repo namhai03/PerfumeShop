@@ -1389,14 +1389,20 @@
         // Filter Modal Functions
         function openFilterModal() {
             const modal = document.getElementById('filterModal');
-            modal.classList.add('active');
-            document.body.style.overflow = 'hidden';
+            if (modal) {
+                modal.classList.add('active');
+                document.body.style.overflow = 'hidden';
+                console.log('Filter modal opened'); // Debug log
+            }
         }
 
         function closeFilterModal() {
             const modal = document.getElementById('filterModal');
-            modal.classList.remove('active');
-            document.body.style.overflow = 'auto';
+            if (modal) {
+                modal.classList.remove('active');
+                document.body.style.overflow = 'auto';
+                console.log('Filter modal closed'); // Debug log
+            }
         }
 
         // Close modal when clicking outside
@@ -1406,6 +1412,11 @@
             }
         });
 
+        // Prevent modal from closing when clicking inside modal content
+        document.querySelector('.filter-modal-content').addEventListener('click', function(e) {
+            e.stopPropagation();
+        });
+
         // Close modal with Escape key
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
@@ -1413,10 +1424,13 @@
             }
         });
 
-        // Auto-close modal after form submission
+        // Auto-close modal after form submission (only on successful submit)
         const filterFormEl = document.querySelector('.filter-form');
         if(filterFormEl){
-            filterFormEl.addEventListener('submit', function() { setTimeout(closeFilterModal, 100); });
+            filterFormEl.addEventListener('submit', function(e) {
+                // Don't auto-close immediately, let the form submit naturally
+                // The modal will close when the page reloads with new data
+            });
         }
 
         // Status Dropdown Functions
@@ -1442,9 +1456,19 @@
             updateStatusText();
         }
 
+        // Close status dropdowns when clicking outside
         document.addEventListener('click', function(e) {
             const statusDropdowns = document.querySelectorAll('.status-dropdown');
-            statusDropdowns.forEach(dropdown => { if (!dropdown.contains(e.target)) dropdown.classList.remove('active'); });
+            statusDropdowns.forEach(dropdown => { 
+                if (!dropdown.contains(e.target)) {
+                    dropdown.classList.remove('active'); 
+                }
+            });
+            
+            // Don't close filter modal when clicking on status dropdown
+            if (e.target.closest('.status-dropdown')) {
+                e.stopPropagation();
+            }
         });
 
         document.addEventListener('keydown', function(e) {

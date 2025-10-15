@@ -1,37 +1,18 @@
 @startuml Xem lịch sử tồn kho
-title Biểu đồ tuần tự - Xem lịch sử tồn kho
+title Xem lịch sử tồn kho
 
-actor "Quản trị viên" as Admin
-participant "Trình duyệt" as Browser
-participant "InventoryController" as Controller
-participant "InventoryMovement Model" as InventoryModel
-participant "Database" as DB
+actor Admin
+participant Browser
+participant Controller
+participant InventoryModel
+participant DB
 
-Admin -> Browser: Truy cập trang lịch sử tồn kho
-Browser -> Controller: GET /inventory/history
-Controller -> InventoryModel: getAllMovements()
-InventoryModel -> DB: SELECT * FROM inventory_movements
-DB -> InventoryModel: Trả về lịch sử tồn kho
-InventoryModel -> Controller: Trả về movements
-Controller -> Browser: Hiển thị lịch sử tồn kho
-Browser -> Admin: Hiển thị danh sách giao dịch tồn kho
-
-Admin -> Browser: Lọc theo sản phẩm
-Browser -> Controller: GET /inventory/history?product_id=...
-Controller -> InventoryModel: getMovementsByProduct(productId)
-InventoryModel -> DB: SELECT * FROM inventory_movements WHERE product_id = ?
-DB -> InventoryModel: Trả về giao dịch của sản phẩm
-InventoryModel -> Controller: Trả về filtered movements
-Controller -> Browser: Hiển thị kết quả lọc
-Browser -> Admin: Hiển thị giao dịch của sản phẩm đã chọn
-
-Admin -> Browser: Lọc theo thời gian
-Browser -> Controller: GET /inventory/history?date_from=...&date_to=...
-Controller -> InventoryModel: getMovementsByDate(dateFrom, dateTo)
-InventoryModel -> DB: SELECT * FROM inventory_movements WHERE date BETWEEN ? AND ?
-DB -> InventoryModel: Trả về giao dịch trong khoảng thời gian
-InventoryModel -> Controller: Trả về filtered movements
-Controller -> Browser: Hiển thị kết quả lọc
-Browser -> Admin: Hiển thị giao dịch trong thời gian đã chọn
+Admin -> Browser: Mở trang lịch sử tồn kho
+Browser -> Controller: Yêu cầu lịch sử tồn kho
+Controller -> InventoryModel: Lấy lịch sử
+InventoryModel -> DB: Lấy dữ liệu
+DB -> InventoryModel: Trả dữ liệu
+InventoryModel -> Controller: Trả lịch sử
+Controller -> Browser: Hiển thị lịch sử
 
 @enduml

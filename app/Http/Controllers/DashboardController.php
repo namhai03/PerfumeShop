@@ -27,10 +27,13 @@ class DashboardController extends Controller
      */
     public function getKpiData(Request $request)
     {
-        $period = $request->get('period', 'today'); // today, week, month, quarter, year
+        $period = $request->get('period', '30d');
         
-        $dateRange = $this->getDateRange($period);
-        $previousRange = $this->getPreviousDateRange($period);
+        // Convert period to KPI period format
+        $kpiPeriod = $this->convertToKpiPeriod($period);
+        
+        $dateRange = $this->getDateRange($kpiPeriod);
+        $previousRange = $this->getPreviousDateRange($kpiPeriod);
 
         // KPI Cards
         $kpis = [
@@ -44,13 +47,27 @@ class DashboardController extends Controller
 
         return response()->json($kpis);
     }
+    
+    /**
+     * Convert period to KPI period format
+     */
+    private function convertToKpiPeriod($period)
+    {
+        return match($period) {
+            '7d' => 'week',
+            '30d' => 'month',
+            '90d' => 'quarter',
+            '1y' => 'year',
+            default => 'month'
+        };
+    }
 
     /**
      * API: Lấy dữ liệu biểu đồ tổng quan
      */
     public function getChartData(Request $request)
     {
-        $period = $request->get('period', '30d'); // 7d, 30d, 90d, 1y
+        $period = $request->get('period', '30d');
         
         $charts = [
             'revenue_trend' => $this->getRevenueTrend($period),
@@ -297,21 +314,38 @@ class DashboardController extends Controller
             default => 30
         };
 
+        // Vì completed_at luôn NULL, sử dụng created_at để lọc theo thời gian
+        // Nhưng cần lưu ý rằng đây là thời gian tạo đơn hàng, không phải giao hàng
         $revenueData = Order::whereIn('status', ['delivered'])
             ->where('created_at', '>=', Carbon::now()->subDays($days))
             ->select(
                 DB::raw('DATE(created_at) as date'),
-                DB::raw('SUM(total_amount) as revenue'),
+                DB::raw('SUM(final_amount) as revenue'),
                 DB::raw('COUNT(*) as orders_count')
             )
             ->groupBy('date')
             ->orderBy('date')
             ->get();
 
+        // Tạo mảng đầy đủ các ngày trong khoảng thời gian
+        $labels = [];
+        $revenue = [];
+        $orders = [];
+        
+        // Bắt đầu từ $days ngày trước đến hôm nay
+        for ($i = $days; $i > 0; $i--) {
+            $date = Carbon::now()->subDays($i)->format('Y-m-d');
+            $labels[] = $date;
+            
+            $dayData = $revenueData->where('date', $date)->first();
+            $revenue[] = $dayData ? (float)$dayData->revenue : 0;
+            $orders[] = $dayData ? (int)$dayData->orders_count : 0;
+        }
+
         return [
-            'labels' => $revenueData->pluck('date')->toArray(),
-            'revenue' => $revenueData->pluck('revenue')->toArray(),
-            'orders' => $revenueData->pluck('orders_count')->toArray()
+            'labels' => $labels,
+            'revenue' => $revenue,
+            'orders' => $orders
         ];
     }
 
@@ -405,9 +439,22 @@ class DashboardController extends Controller
             ->orderBy('date')
             ->get();
 
+        // Tạo mảng đầy đủ các ngày trong khoảng thời gian
+        $labels = [];
+        $customers = [];
+        
+        // Bắt đầu từ $days ngày trước đến hôm nay
+        for ($i = $days; $i > 0; $i--) {
+            $date = Carbon::now()->subDays($i)->format('Y-m-d');
+            $labels[] = $date;
+            
+            $dayData = $customerData->where('date', $date)->first();
+            $customers[] = $dayData ? (int)$dayData->new_customers : 0;
+        }
+
         return [
-            'labels' => $customerData->pluck('date')->toArray(),
-            'customers' => $customerData->pluck('new_customers')->toArray()
+            'labels' => $labels,
+            'customers' => $customers
         ];
     }
 

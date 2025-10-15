@@ -426,7 +426,7 @@ Hệ thống có **26 biểu đồ tuần tự** tương ứng với **26 use ca
 - **Backend:** Laravel 10.x Framework
 - **Database:** SQLite (development) / MySQL (production)
 - **AI Integration:** LLM Service cho phân tích dữ liệu
-- **External Services:** N8N cho tự động hóa workflow
+- **External Services:** Tích hợp với các dịch vụ bên ngoài
 
 ### Các Module chính
 1. **Authentication Module:** Xác thực và phân quyền
@@ -529,7 +529,7 @@ Về báo cáo và kiểm toán, hệ thống được thiết kế để tạo 
 - **Frontend:** Blade Templates, CSS3, JavaScript ES6+
 - **Database:** SQLite (dev), MySQL (prod)
 - **AI/ML:** LLM Service integration
-- **External APIs:** N8N workflow automation
+- **External APIs:** Tích hợp API bên ngoài
 - **Documentation:** PlantUML, Markdown
 
 ---

@@ -146,13 +146,7 @@
                             <td class="product-cell">
                                 <div style="display: flex; align-items: center; gap: 12px;">
                                     @php
-                                        $imgPath = null;
-                                        if (!empty($m->product->image)) {
-                                            $img = $m->product->image;
-                                            $isAbsolute = \Illuminate\Support\Str::startsWith($img, ['http://','https://']);
-                                            $isStorage = \Illuminate\Support\Str::startsWith($img, ['/storage/','storage/']);
-                                            $imgPath = $isAbsolute ? $img : ($isStorage ? $img : Storage::url($img));
-                                        }
+                                        $imgPath = \App\Helpers\ImageHelper::getImageUrl($m->product->image);
                                     @endphp
                                     @if($imgPath)
                                         <img src="{{ $imgPath }}" alt="{{ $m->product->name }}" width="40" height="40" loading="lazy" decoding="async" style="width: 40px; height: 40px; object-fit: cover; border-radius: 6px; border:1px solid #e2e8f0;">

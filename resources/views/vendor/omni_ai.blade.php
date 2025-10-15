@@ -61,8 +61,9 @@
 #chatWindow {
     flex: 1;
     overflow-y: auto;
-    padding: 15px;
-    background: #fafafa;
+    padding: 20px;
+    background: #f8f9fa;
+    scroll-behavior: smooth;
 }
 
 .message {
@@ -88,14 +89,54 @@
 }
 
 .message.user .message-content {
-    background: #007bff;
+    background: #4a90e2;
     color: white;
+    box-shadow: 0 2px 4px rgba(74, 144, 226, 0.2);
 }
 
 .message.assistant .message-content {
     background: white;
     color: #333;
-    border: 1px solid #ddd;
+    border: 1px solid #e0e0e0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Agent-specific styling */
+.message.sales-agent {
+    border-left: 4px solid #28a745;
+}
+
+.message.inventory-agent {
+    border-left: 4px solid #ffc107;
+}
+
+.message.report-agent {
+    border-left: 4px solid #17a2b8;
+}
+
+.message.chat-agent {
+    border-left: 4px solid #6f42c1;
+}
+
+.message-header strong {
+    color: #333;
+    font-size: 13px;
+}
+
+.message.sales-agent .message-header strong {
+    color: #28a745;
+}
+
+.message.inventory-agent .message-header strong {
+    color: #ffc107;
+}
+
+.message.report-agent .message-header strong {
+    color: #17a2b8;
+}
+
+.message.chat-agent .message-header strong {
+    color: #6f42c1;
 }
 
 .message-header {
@@ -109,6 +150,50 @@
 
 .message-time {
     font-size: 10px;
+}
+
+.message-text {
+    margin-top: 5px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    line-height: 1.5;
+}
+
+/* Markdown styling */
+.message-text strong {
+    font-weight: bold;
+    color: #2c3e50;
+}
+
+.message-text em {
+    font-style: italic;
+    color: #7f8c8d;
+}
+
+.message-text code {
+    background: #f8f9fa;
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    color: #e74c3c;
+}
+
+.message-text pre {
+    background: #f8f9fa;
+    padding: 10px;
+    border-radius: 5px;
+    overflow-x: auto;
+    margin: 5px 0;
+}
+
+.message-text ul, .message-text ol {
+    margin: 5px 0;
+    padding-left: 20px;
+}
+
+.message-text li {
+    margin: 3px 0;
 }
 
 /* Typing indicator */
@@ -171,8 +256,9 @@
 }
 
 #chatInput:focus {
-    border-color: #007bff;
+    border-color: #4a90e2;
     outline: none;
+    box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
 }
 
 #chatInput:disabled {
@@ -183,14 +269,17 @@
 #sendBtn {
     border-radius: 20px;
     padding: 10px 20px;
-    background: #007bff;
+    background: #4a90e2;
     border: none;
     color: white;
     font-weight: 500;
+    transition: all 0.2s ease;
 }
 
 #sendBtn:hover:not(:disabled) {
-    background: #0056b3;
+    background: #357abd;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(74, 144, 226, 0.3);
 }
 
 #sendBtn:disabled {
@@ -277,10 +366,108 @@
     flex-direction: column;
 }
 
+/* Agent Selector Styles */
+.agent-selector {
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.agent-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.agent-btn {
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    border: 1px solid #ddd;
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.agent-btn:hover {
+    background: #f8f9fa;
+    border-color: #007bff;
+}
+
+.agent-btn.active {
+    background: #007bff;
+    color: white;
+    border-color: #007bff;
+}
+
+.agent-icon {
+    font-size: 14px;
+}
+
+/* Capabilities Panel */
+.capabilities-panel {
+    margin-bottom: 20px;
+}
+
+.capability-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 10px;
+}
+
+.capability-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    background: white;
+    border-radius: 4px;
+    border: 1px solid #e0e0e0;
+    font-size: 11px;
+    color: #666;
+}
+
+.capability-icon {
+    font-size: 12px;
+}
+
 #chatHistory {
     flex: 1;
     overflow-y: auto;
-    max-height: calc(100vh - 300px);
+    max-height: calc(100vh - 400px);
+    min-height: 200px;
+    padding-right: 5px;
+}
+
+/* Custom scrollbar for chat history */
+#chatHistory::-webkit-scrollbar {
+    width: 6px;
+}
+
+#chatHistory::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+#chatHistory::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+    transition: background 0.2s;
+}
+
+#chatHistory::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+/* Firefox scrollbar */
+#chatHistory {
+    scrollbar-width: thin;
+    scrollbar-color: #c1c1c1 #f1f1f1;
 }
 
 .sidebar-header {
@@ -451,6 +638,47 @@
     margin-top: 2px;
 }
 
+/* Empty state for chat history */
+.history-empty {
+    text-align: center;
+    padding: 20px 10px;
+    color: #666;
+}
+
+.history-empty-icon {
+    font-size: 24px;
+    margin-bottom: 8px;
+}
+
+.history-empty-text {
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.history-empty-hint {
+    font-size: 10px;
+    color: #999;
+}
+
+/* Scroll indicator */
+.scroll-indicator {
+    text-align: center;
+    padding: 8px;
+    font-size: 10px;
+    color: #666;
+    background: #f8f9fa;
+    border-radius: 4px;
+    margin-bottom: 8px;
+    border: 1px solid #e0e0e0;
+}
+
+/* Agent icon in history */
+.history-agent-icon {
+    font-size: 12px;
+    margin-right: 6px;
+}
+
 /* Scrollbar */
 #chatWindow::-webkit-scrollbar,
 .chat-sidebar::-webkit-scrollbar {
@@ -461,6 +689,184 @@
 .chat-sidebar::-webkit-scrollbar-thumb {
     background: #ccc;
     border-radius: 2px;
+}
+
+/* Agent-specific message styles */
+.message.sales-agent .message-content {
+    border-left: 4px solid #007bff;
+}
+
+.message.inventory-agent .message-content {
+    border-left: 4px solid #28a745;
+}
+
+.message.report-agent .message-content {
+    border-left: 4px solid #ffc107;
+}
+
+.message.chat-agent .message-content {
+    border-left: 4px solid #6f42c1;
+}
+
+/* Proposal messages */
+.message.proposal {
+    background: #fff3cd;
+    border: 2px solid #ffeaa7;
+}
+
+.message.proposal .proposal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.message.proposal .proposal-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.proposal-btn {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    border: 1px solid;
+    cursor: pointer;
+}
+
+.btn-approve {
+    background: #d4edda;
+    color: #155724;
+    border-color: #c3e6cb;
+}
+
+.btn-reject {
+    background: #f8d7da;
+    color: #721c24;
+    border-color: #f5c6cb;
+}
+
+.btn-modify {
+    background: #fff3cd;
+    color: #856404;
+    border-color: #ffeaa7;
+}
+
+/* Search Results Display */
+.search-results {
+    margin: 10px 0;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border: 1px solid #e0e0e0;
+}
+
+.search-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #333;
+}
+
+.search-icon {
+    font-size: 14px;
+}
+
+.search-items {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.search-item {
+    padding: 6px 8px;
+    background: white;
+    border-radius: 4px;
+    border: 1px solid #e0e0e0;
+    font-size: 11px;
+}
+
+.item-name {
+    font-weight: 600;
+    color: #333;
+}
+
+.item-similarity {
+    color: #666;
+    font-size: 10px;
+}
+
+/* Human Approval Modal */
+.approval-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.approval-modal.show {
+    display: flex;
+}
+
+.approval-content {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.approval-content h3 {
+    margin: 0 0 15px 0;
+    color: #333;
+    font-size: 16px;
+}
+
+.proposal-details {
+    margin-bottom: 20px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border: 1px solid #e0e0e0;
+}
+
+.proposal-type {
+    font-weight: 600;
+    color: #007bff;
+    margin-bottom: 8px;
+    font-size: 13px;
+}
+
+.proposal-text {
+    color: #666;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.approval-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.approval-actions button {
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
 }
 
 /* Responsive */
@@ -478,16 +884,41 @@
     .message-content {
         max-width: 85%;
     }
+    
+    .agent-buttons {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+    
+    .agent-btn {
+        flex: 1;
+        min-width: 80px;
+    }
+    
+    .approval-content {
+        width: 95%;
+        padding: 15px;
+    }
+    
+    .approval-actions {
+        flex-direction: column;
+    }
 }
 </style>
 <h1 class="page-title">Chat OmniAI </h1>
 
 <div class="chat-container">
-    <!-- Sidebar với lịch sử trò chuyện và controls -->
+    <!-- Sidebar với AI Agents và controls -->
     <div class="chat-sidebar">
+        
+
+
+        
+
+        <!-- Chat History -->
         <div class="sidebar-section">
             <div class="sidebar-header">
-                <div class="sidebar-title"> Lịch sử trò chuyện</div>
+                <div class="sidebar-title">📝 Lịch sử trò chuyện</div>
                 <div class="sidebar-controls">
                     <button id="newChatBtn" class="btn-new-chat" title="Cuộc trò chuyện mới">
                         <span>+</span>
@@ -499,6 +930,7 @@
             </div>
         </div>
         
+        <!-- Management -->
         <div class="sidebar-section">
             <div class="sidebar-title">⚙️ Quản lý</div>
             <div class="management-buttons">
@@ -532,6 +964,22 @@
     </div>
 </div>
 
+<!-- Human Approval Modal -->
+<div class="approval-modal" id="approvalModal">
+    <div class="approval-content">
+        <h3>🔍 Đề xuất cần phê duyệt</h3>
+        <div class="proposal-details">
+            <div class="proposal-type" id="proposalType">Sales Agent đề xuất:</div>
+            <div class="proposal-text" id="proposalText">Đang tải đề xuất...</div>
+        </div>
+        <div class="approval-actions">
+            <button class="btn-approve" onclick="handleApproval('approve')">✅ Phê duyệt</button>
+            <button class="btn-reject" onclick="handleApproval('reject')">❌ Từ chối</button>
+            <button class="btn-modify" onclick="handleApproval('modify')">✏️ Chỉnh sửa</button>
+        </div>
+    </div>
+</div>
+
 <script>
 const chatWindow = document.getElementById('chatWindow');
 const chatInput = document.getElementById('chatInput');
@@ -542,57 +990,35 @@ let conversationHistory = [];
 let currentChatId = null;
 let savedConversations = [];
 
-function appendMsg(role, text, isTyping = false) {
-    const el = document.createElement('div');
-    el.className = `message ${role}`;
-    
-    if (isTyping) {
-        el.innerHTML = `
-            <div class="message-content typing">
-                <div class="typing-indicator">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                </div>
-                <span class="typing-text">OmniAI đang trả lời...</span>
-            </div>
-        `;
-    } else {
-        el.innerHTML = `
-            <div class="message-content">
-                <div class="message-header">
-                    <strong>${role === 'user' ? 'Bạn' : 'OmniAI'}</strong>
-                    <span class="message-time">${new Date().toLocaleTimeString('vi-VN', {hour: '2-digit', minute: '2-digit'})}</span>
-                </div>
-                <div class="message-text">${text}</div>
-            </div>
-        `;
+// AI Agents state
+let currentAgent = 'omni';
+let agentConfigs = {
+    omni: {
+        name: 'OmniAI',
+        capabilities: ['Tra cứu', 'Phân tích', 'Gợi ý'],
+        context: ['Database', 'LLM Service'],
+        icon: '🧠'
+    },
+    sales: {
+        name: 'Sales Agent',
+        capabilities: ['Đơn hàng', 'Khách hàng', 'Bán hàng'],
+        context: ['Database', 'Vector Store', 'LLM Service'],
+        icon: '🛒'
+    },
+    inventory: {
+        name: 'Inventory Agent',
+        capabilities: ['Tồn kho', 'Sản phẩm', 'Nhập xuất'],
+        context: ['Database', 'Vector Store'],
+        icon: '📦'
+    },
+    report: {
+        name: 'Report Agent',
+        capabilities: ['Báo cáo', 'KPI', 'Phân tích'],
+        context: ['Database', 'LLM Service'],
+        icon: '📊'
     }
-    
-    chatWindow.appendChild(el);
-    chatWindow.scrollTop = chatWindow.scrollHeight;
-    
-    // Lưu vào conversation history (chỉ khi không phải typing)
-    if (!isTyping) {
-        conversationHistory.push({
-            role: role === 'user' ? 'user' : 'assistant',
-            content: text
-        });
-        
-        // Giới hạn history để tránh token quá nhiều (giữ lại 10 messages gần nhất)
-        if (conversationHistory.length > 10) {
-            conversationHistory = conversationHistory.slice(-10);
-        }
-        
-        // Tự động lưu cuộc hội thoại sau mỗi 3 tin nhắn
-        if (conversationHistory.length % 3 === 0 && conversationHistory.length > 0) {
-            saveCurrentConversation();
-        }
-        
-        // Luôn lưu conversation hiện tại để restore khi reload
-        saveCurrentConversationToStorage();
-    }
-}
+};
+
 
 // Display message without adding to conversation history (for loading saved conversations)
 function displayMessage(role, text) {
@@ -649,7 +1075,10 @@ async function sendMessage() {
             },
             body: JSON.stringify({ 
                 message: msg,
-                conversation_history: conversationHistory.slice(0, -1) // Bỏ message vừa gửi
+                agent: currentAgent,
+                context: {
+                    conversation_history: conversationHistory.slice(0, -1) // Bỏ message vừa gửi
+                }
             })
         });
         
@@ -664,7 +1093,7 @@ async function sendMessage() {
         // Debug: log response để kiểm tra
         console.log('API Response:', data);
 
-        if (!data.success) {
+        if (data.success !== true && data.success !== 'true') {
             // Xóa typing indicator và hiển thị lỗi
             const typingMsg = chatWindow.querySelector('.message.assistant:last-child');
             if (typingMsg && typingMsg.querySelector('.typing')) {
@@ -680,7 +1109,90 @@ async function sendMessage() {
             typingMsg.remove();
         }
         
-        console.log('Processing response type:', data.type);
+        console.log('Processing response type:', data.type || 'undefined');
+        
+        // Lấy Agent name từ response hoặc fallback
+        let agentName = data.agent_name || 'OmniAI';
+        const responseType = data.type || 'unknown';
+        
+        // Xử lý response ngay tại đây
+        switch (data.type) {
+            case 'daily_orders':
+                appendMsg('assistant', data.reply || 'Thống kê đơn hàng không khả dụng.', false, agentName);
+                break;
+            case 'order_lookup':
+                const orderFound = data.found === true;
+                if (!orderFound) appendMsg('assistant', data.reply || 'Không tìm thấy đơn.', false, agentName);
+                else {
+                    // Ensure order exists and has required properties
+                    const orderData = data.order || {};
+                    const orderNumber = orderData.order_number || 'N/A';
+                    const customerName = orderData.customer_name || 'N/A';
+                    const finalAmount = orderData.final_amount || 'N/A';
+                    appendMsg('assistant', data.reply || `Đơn ${orderNumber} - KH: ${customerName} - Tổng: ${finalAmount}`, false, agentName);
+                }
+                break;
+            case 'customer_lookup':
+                const customerFound = data.found === true;
+                if (!customerFound) appendMsg('assistant', data.reply || 'Không tìm thấy khách hàng.', false, agentName);
+                else {
+                    // Ensure customer exists and has required properties
+                    const customerData = data.customer || {};
+                    const customerName = customerData.name || 'N/A';
+                    const customerPhone = customerData.phone || 'N/A';
+                    const customerEmail = customerData.email || 'N/A';
+                    appendMsg('assistant', data.reply || `KH: ${customerName} - SĐT: ${customerPhone} - Email: ${customerEmail}`, false, agentName);
+                }
+                break;
+            case 'sales_analysis':
+                appendMsg('assistant', data.reply || 'Phân tích bán hàng không khả dụng.', false, agentName);
+                break;
+            case 'inventory_check':
+                // Ensure products exists and is an array
+                const lowStockProducts = Array.isArray(data.products) ? data.products : [];
+                const threshold = data.threshold || 5;
+                if (!lowStockProducts.length) appendMsg('assistant', `Không có sản phẩm nào có tồn ≤ ${threshold}.`);
+                else appendMsg('assistant', `Sản phẩm tồn thấp (≤ ${threshold}): ` + lowStockProducts.map(p => `${p.name}(${p.total_stock})`).join(', '));
+                break;
+            case 'product_search':
+            case 'semantic_search':
+            case 'product_recommendation':
+                // Ensure products exists and is an array
+                const searchProducts = Array.isArray(data.products) ? data.products : [];
+                if (!searchProducts.length) appendMsg('assistant', data.reply || 'Không tìm thấy sản phẩm phù hợp.');
+                else appendMsg('assistant', data.reply || `Tìm thấy ${searchProducts.length} sản phẩm phù hợp.`);
+                break;
+            case 'promotions_active':
+                // Ensure promotions exists and is an array
+                const activePromotions = Array.isArray(data.promotions) ? data.promotions : [];
+                if (!activePromotions.length) appendMsg('assistant', 'Hiện không có CTKM đang chạy.');
+                else appendMsg('assistant', 'CTKM đang chạy: ' + activePromotions.map(p => `${p.code || p.name}(${p.type})`).join(', '));
+                break;
+            case 'promotion_simulation':
+                // Ensure result exists and has required properties
+                const simulationResult = data.result || {};
+                const discountTotal = simulationResult.discount_total || 0;
+                const shippingDiscount = simulationResult.shipping_discount || 0;
+                const appliedPromotions = Array.isArray(simulationResult.applied_promotions) ? simulationResult.applied_promotions : [];
+                appendMsg('assistant', `KQ mô phỏng: giảm ${discountTotal} đ; free ship: ${shippingDiscount}; CTKM áp dụng: ${appliedPromotions.length}`);
+                break;
+            case 'llm':
+            case 'general':
+            default:
+                console.log('LLM response:', data.reply);
+                console.log('LLM response type:', typeof data.reply);
+                console.log('LLM response length:', data.reply ? data.reply.length : 0);
+                appendMsg('assistant', data.reply || 'Đây là câu trả lời từ AI.', false, agentName);
+                
+                // Check for human approval in any response
+                if (data.needs_approval === true && data.proposal) {
+                    const proposalData = data.proposal || {};
+                    const proposalMessage = proposalData.message || 'Cần phê duyệt';
+                    const proposalDetails = proposalData.details || 'Chi tiết không khả dụng';
+                    showApprovalModal(proposalMessage, proposalDetails);
+                }
+                break;
+        }
     } catch (error) {
         console.error('Chat error:', error);
         
@@ -698,37 +1210,6 @@ async function sendMessage() {
         sendBtn.innerHTML = 'Gửi';
         chatInput.focus();
     }
-
-    switch (data.type) {
-        case 'order_lookup':
-            if (!data.found) appendMsg('assistant', data.reply || 'Không tìm thấy đơn.');
-            else appendMsg('assistant', `Đơn ${data.order.order_number} - KH: ${data.order.customer_name || 'N/A'} - Tổng: ${data.order.final_amount}`);
-            break;
-        case 'customer_lookup':
-            if (!data.found) appendMsg('assistant', data.reply || 'Không tìm thấy khách hàng.');
-            else appendMsg('assistant', `KH: ${data.customer.name} - SĐT: ${data.customer.phone} - Tổng chi tiêu: ${data.customer.total_spent || 0}`);
-            break;
-        case 'low_stock':
-            if (!data.products || !data.products.length) appendMsg('assistant', `Không có sản phẩm nào có tồn ≤ ${data.threshold}.`);
-            else appendMsg('assistant', `Sản phẩm tồn thấp (≤ ${data.threshold}): ` + data.products.map(p => `${p.name}(${p.total_stock})`).join(', '));
-            break;
-        case 'promotions_active':
-            if (!data.promotions || !data.promotions.length) appendMsg('assistant', 'Hiện không có CTKM đang chạy.');
-            else appendMsg('assistant', 'CTKM đang chạy: ' + data.promotions.map(p => `${p.code || p.name}(${p.type})`).join(', '));
-            break;
-        case 'promotion_simulation':
-            appendMsg('assistant', `KQ mô phỏng: giảm ${data.result.discount_total} đ; free ship: ${data.result.shipping_discount || 0}; CTKM áp dụng: ${(data.result.applied_promotions || []).length}`);
-            break;
-        case 'llm':
-            console.log('LLM response:', data.reply);
-            console.log('LLM response type:', typeof data.reply);
-            console.log('LLM response length:', data.reply ? data.reply.length : 0);
-            appendMsg('assistant', data.reply || 'Đây là câu trả lời từ AI.');
-            break;
-        default:
-            console.log('Default case, reply:', data.reply);
-            appendMsg('assistant', data.reply || 'Bạn cần gì?');
-    }
 }
 
 sendBtn.addEventListener('click', sendMessage);
@@ -736,8 +1217,140 @@ chatInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendMessag
 
 // Event listeners for new buttons
 document.getElementById('newChatBtn').addEventListener('click', createNewChat);
-document.getElementById('clearCurrentBtn').addEventListener('click', clearCurrentConversation);
 document.getElementById('clearAllBtn').addEventListener('click', clearAllConversations);
+
+// Update capabilities list based on agent
+function updateCapabilitiesList(agentType) {
+    const capabilityList = document.getElementById('capabilityList');
+    const capabilities = {
+        omni: [
+            { icon: '📦', text: 'Tra cứu đơn hàng' },
+            { icon: '👥', text: 'Quản lý khách hàng' },
+            { icon: '📊', text: 'Báo cáo doanh thu' },
+            { icon: '🔍', text: 'Tìm kiếm thông minh' }
+        ],
+        sales: [
+            { icon: '🛒', text: 'Xử lý đơn hàng' },
+            { icon: '👥', text: 'Quản lý khách hàng' },
+            { icon: '💰', text: 'Tính toán giá' },
+            { icon: '📈', text: 'Phân tích bán hàng' }
+        ],
+        inventory: [
+            { icon: '📦', text: 'Kiểm tra tồn kho' },
+            { icon: '📋', text: 'Quản lý sản phẩm' },
+            { icon: '📥', text: 'Nhập kho' },
+            { icon: '📤', text: 'Xuất kho' }
+        ],
+        report: [
+            { icon: '📊', text: 'Báo cáo doanh thu' },
+            { icon: '📈', text: 'Phân tích KPI' },
+            { icon: '📋', text: 'Xuất báo cáo' },
+            { icon: '🔍', text: 'Phân tích xu hướng' }
+        ]
+    };
+    
+    capabilityList.innerHTML = capabilities[agentType].map(cap => 
+        `<div class="capability-item">
+            <span class="capability-icon">${cap.icon}</span>
+            <span class="capability-text">${cap.text}</span>
+        </div>`
+    ).join('');
+}
+
+// Human Approval functions
+function showApprovalModal(proposalType, proposalText) {
+    document.getElementById('proposalType').textContent = proposalType;
+    document.getElementById('proposalText').textContent = proposalText;
+    document.getElementById('approvalModal').classList.add('show');
+}
+
+function hideApprovalModal() {
+    document.getElementById('approvalModal').classList.remove('show');
+}
+
+function handleApproval(action) {
+    console.log('Approval action:', action);
+    
+    // Add approval message to chat
+    const actionText = {
+        'approve': '✅ Đã phê duyệt đề xuất',
+        'reject': '❌ Đã từ chối đề xuất',
+        'modify': '✏️ Đang chỉnh sửa đề xuất'
+    };
+    
+    appendMsg('assistant', actionText[action]);
+    hideApprovalModal();
+}
+
+// Simple markdown processor
+function processMarkdown(text) {
+    return text
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        .replace(/`(.*?)`/g, '<code>$1</code>')
+        .replace(/\n/g, '<br>');
+}
+
+// Enhanced message display with agent-specific styling
+function appendMsg(role, text, isTyping = false, agentName = null) {
+    const el = document.createElement('div');
+    let className = `message ${role}`;
+    
+    // Add agent-specific class if specified
+    if (agentName && role === 'assistant') {
+        className += ` ${agentName.toLowerCase().replace(' ', '-')}-agent`;
+    }
+    
+    el.className = className;
+    
+    if (isTyping) {
+        el.innerHTML = `
+            <div class="message-content typing">
+                <div class="typing-indicator">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+                <span class="typing-text">${agentName || 'OmniAI'} đang trả lời...</span>
+            </div>
+        `;
+    } else {
+        el.innerHTML = `
+            <div class="message-content">
+                <div class="message-header">
+                    <strong>${role === 'user' ? 'Bạn' : (agentName || 'OmniAI')}</strong>
+                    <span class="message-time">${new Date().toLocaleTimeString('vi-VN', {hour: '2-digit', minute: '2-digit'})}</span>
+                </div>
+                <div class="message-text">${processMarkdown(text)}</div>
+            </div>
+        `;
+    }
+    
+    chatWindow.appendChild(el);
+    chatWindow.scrollTop = chatWindow.scrollHeight;
+    
+    // Lưu vào conversation history (chỉ khi không phải typing)
+    if (!isTyping) {
+        conversationHistory.push({
+            role: role === 'user' ? 'user' : 'assistant',
+            content: text,
+            agent: agentName || 'OmniAI'
+        });
+        
+        // Giới hạn history để tránh token quá nhiều (giữ lại 10 messages gần nhất)
+        if (conversationHistory.length > 10) {
+            conversationHistory = conversationHistory.slice(-10);
+        }
+        
+        // Tự động lưu cuộc hội thoại sau mỗi 3 tin nhắn
+        if (conversationHistory.length % 3 === 0 && conversationHistory.length > 0) {
+            saveCurrentConversation();
+        }
+        
+        // Luôn lưu conversation hiện tại để restore khi reload
+        saveCurrentConversationToStorage();
+    }
+}
 
 // Event delegation for chat history
 document.addEventListener('click', function(e) {
@@ -791,36 +1404,64 @@ function updateChatHistorySidebar() {
     console.log('Current chat ID:', currentChatId);
     
     if (savedConversations.length === 0) {
-        historyContainer.innerHTML = '<div class="history-item"><div>Chưa có lịch sử trò chuyện</div></div>';
+        historyContainer.innerHTML = `
+            <div class="history-empty">
+                <div class="history-empty-icon">💬</div>
+                <div class="history-empty-text">Chưa có lịch sử trò chuyện</div>
+                <div class="history-empty-hint">Bắt đầu cuộc trò chuyện mới!</div>
+            </div>
+        `;
         return;
     }
     
-    historyContainer.innerHTML = savedConversations.slice(0, 10).map((conv) => {
-        const date = new Date(conv.timestamp);
-        const timeStr = date.toLocaleString('vi-VN', { 
-            hour: '2-digit', 
-            minute: '2-digit',
-            day: '2-digit',
-            month: '2-digit'
-        });
-        
-        const isActive = currentChatId === conv.id ? 'active' : '';
-        
-        console.log(`Rendering conversation ${conv.id}, active: ${isActive}, currentChatId: ${currentChatId}`);
-        
-        return `
-            <div class="history-item ${isActive}" data-chat-id="${conv.id}">
-                <div class="history-item-header">
-                    <div class="history-item-title">${conv.title || 'Cuộc trò chuyện'}</div>
-                    <div class="history-item-actions">
-                        <button class="history-item-delete" data-chat-id="${conv.id}" title="Xóa cuộc trò chuyện">×</button>
+    // Show scroll indicator if there are many conversations
+    const showScrollIndicator = savedConversations.length > 8;
+    
+    historyContainer.innerHTML = `
+        ${showScrollIndicator ? '<div class="scroll-indicator">📜 Cuộn để xem thêm</div>' : ''}
+        ${savedConversations.map((conv) => {
+            const date = new Date(conv.timestamp);
+            const timeStr = date.toLocaleString('vi-VN', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                day: '2-digit',
+                month: '2-digit'
+            });
+            
+            const isActive = currentChatId === conv.id ? 'active' : '';
+            const agentIcon = getAgentIcon(conv.agent || 'omni');
+            
+            console.log(`Rendering conversation ${conv.id}, active: ${isActive}, currentChatId: ${currentChatId}`);
+            
+            return `
+                <div class="history-item ${isActive}" data-chat-id="${conv.id}">
+                    <div class="history-item-header">
+                        <div class="history-item-title">
+                            <span class="history-agent-icon">${agentIcon}</span>
+                            ${conv.title || 'Cuộc trò chuyện'}
+                        </div>
+                        <div class="history-item-actions">
+                            <button class="history-item-delete" data-chat-id="${conv.id}" title="Xóa cuộc trò chuyện">×</button>
+                        </div>
                     </div>
+                    <div class="history-preview">${conv.summary}</div>
+                    <div class="history-time">${timeStr}</div>
                 </div>
-                <div class="history-preview">${conv.summary}</div>
-                <div class="history-time">${timeStr}</div>
-            </div>
-        `;
-    }).join('');
+            `;
+        }).join('')}
+    `;
+}
+
+// Get agent icon based on agent type
+function getAgentIcon(agentType) {
+    const agentIcons = {
+        'omni': '🧠',
+        'sales': '🛒',
+        'inventory': '📦',
+        'report': '📊',
+        'chat': '💬'
+    };
+    return agentIcons[agentType] || '🧠';
 }
 
 // Test API trực tiếp
@@ -965,7 +1606,7 @@ window.testRestore = function() {
     if (currentConversation) {
         try {
             const data = JSON.parse(currentConversation);
-            conversationHistory = data.messages || [];
+            conversationHistory = Array.isArray(data.messages) ? data.messages : [];
             currentChatId = data.chatId || generateChatId();
             console.log('Restored conversation:', conversationHistory.length, 'messages');
             
@@ -1052,7 +1693,10 @@ window.createTestConversation = function() {
 
 // Initialize chat history sidebar on page load
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('=== INITIALIZING CHAT ===');
+    console.log('=== INITIALIZING AI AGENTS CHAT ===');
+    
+    // Initialize AI Agents
+    initializeAgents();
     
     // Load saved conversations
     loadSavedConversations();
@@ -1068,7 +1712,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (currentConversation) {
         try {
             const data = JSON.parse(currentConversation);
-            conversationHistory = data.messages || [];
+            conversationHistory = Array.isArray(data.messages) ? data.messages : [];
             currentChatId = data.chatId || currentChatId;
             console.log('Restored current conversation:', conversationHistory.length, 'messages');
             console.log('Current chat ID:', currentChatId);
@@ -1094,14 +1738,28 @@ document.addEventListener('DOMContentLoaded', function() {
     if (conversationHistory.length === 0) {
         console.log('No conversation to restore, showing welcome message');
         setTimeout(() => {
-            appendMsg('assistant', ' Xin chào! Tôi là OmniAI - trợ lý nội bộ của bạn. Tôi có thể giúp bạn tra cứu sản phẩm, đơn hàng, tồn kho, và nhiều thông tin khác. Hãy thử hỏi tôi bất cứ điều gì!');
+            const config = agentConfigs[currentAgent];
+            appendMsg('assistant', `Xin chào! Tôi là ${config.name} ${config.icon} - trợ lý nội bộ của bạn. Tôi có thể giúp bạn ${config.capabilities.join(', ')}. Hãy thử hỏi tôi bất cứ điều gì!`);
         }, 500);
     } else {
         console.log('Conversation restored, not showing welcome message');
     }
     
-    console.log('=== INITIALIZATION COMPLETE ===');
+    console.log('=== AI AGENTS INITIALIZATION COMPLETE ===');
 });
+
+// Initialize AI Agents
+function initializeAgents() {
+    console.log('Initializing AI Agents...');
+    
+    // Set initial agent
+    currentAgent = 'omni';
+    
+    // Update capabilities list
+    updateCapabilitiesList(currentAgent);
+    
+    console.log('AI Agents initialized:', agentConfigs[currentAgent].name);
+}
 
 // Load saved conversations from localStorage
 function loadSavedConversations() {

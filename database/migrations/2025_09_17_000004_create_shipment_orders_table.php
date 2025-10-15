@@ -12,6 +12,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('shipment_id')->constrained('shipments')->onDelete('cascade');
             $table->foreignId('order_id')->constrained('orders')->onDelete('cascade');
+            $table->decimal('cod_amount', 12, 2)->default(0);
             $table->string('order_number')->index();
             $table->timestamps();
             $table->unique(['shipment_id','order_id']);

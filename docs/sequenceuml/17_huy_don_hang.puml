@@ -6,74 +6,35 @@ participant "Trình duyệt" as Browser
 participant "OrderController" as Controller
 participant "Order Model" as OrderModel
 participant "Product Model" as ProductModel
-participant "InventoryMovement Model" as InventoryModel
 participant "Database" as DB
 
-Admin -> Browser: Truy cập danh sách đơn hàng
-Browser -> Controller: GET /orders
-Controller -> OrderModel: getAllOrders()
-OrderModel -> DB: SELECT * FROM orders
-DB -> OrderModel: Trả về danh sách đơn hàng
-OrderModel -> Controller: Trả về orders
-Controller -> Browser: Hiển thị danh sách đơn hàng
-
 Admin -> Browser: Chọn đơn hàng cần hủy
-Admin -> Browser: Nhấn "Hủy đơn hàng"
 Browser -> Controller: GET /orders/{id}/cancel
 Controller -> OrderModel: findById(orderId)
 OrderModel -> DB: SELECT * FROM orders WHERE id = ?
 DB -> OrderModel: Trả về thông tin đơn hàng
-OrderModel -> Controller: Trả về order
 Controller -> Browser: Hiển thị form hủy đơn hàng
 
 Admin -> Browser: Nhập lý do hủy
 Admin -> Browser: Nhấn "Xác nhận hủy"
 Browser -> Controller: POST /orders/{id}/cancel
 
-Controller -> Controller: Validate cancellation
 Controller -> OrderModel: checkOrderStatus(orderId)
 OrderModel -> DB: SELECT status FROM orders WHERE id = ?
-DB -> OrderModel: Trả về trạng thái đơn hàng
 
 alt Đơn hàng đã được giao
-    OrderModel -> Controller: Trả về status = 'delivered'
     Controller -> Browser: Redirect với cảnh báo
-    Browser -> Admin: Hiển thị thông báo "Đơn hàng đã được giao, không thể hủy. Đề xuất tạo đơn trả hàng"
+    Browser -> Admin: Hiển thị thông báo "Đơn hàng đã được giao, không thể hủy"
     
 else Đơn hàng chưa được giao
-    OrderModel -> Controller: Trả về status != 'delivered'
-    
-    Controller -> Controller: Begin database transaction
-    
     Controller -> OrderModel: updateStatus(orderId, 'cancelled')
     OrderModel -> DB: UPDATE orders SET status = 'cancelled' WHERE id = ?
-    DB -> OrderModel: Confirm update
     
-    Controller -> OrderModel: getOrderItems(orderId)
-    OrderModel -> DB: SELECT * FROM order_items WHERE order_id = ?
-    DB -> OrderModel: Trả về danh sách sản phẩm trong đơn hàng
-    OrderModel -> Controller: Trả về order items
+    Controller -> ProductModel: restoreStockForOrder(orderId)
+    ProductModel -> DB: UPDATE products SET stock = stock + quantity
     
-    loop For each order item
-        Controller -> Controller: Restore inventory for cancelled order
-        Controller -> ProductModel: getCurrentStock(productId)
-        ProductModel -> DB: SELECT stock FROM products WHERE id = ?
-        DB -> ProductModel: Trả về stock hiện tại
-        
-        Controller -> Controller: Calculate new stock
-        note right: newStock = currentStock + quantity (restore inventory)
-        
-        Controller -> ProductModel: updateStock(productId, newStock)
-        ProductModel -> DB: UPDATE products SET stock = ? WHERE id = ?
-        
-        Controller -> InventoryModel: create(movementData)
-        InventoryModel -> DB: INSERT INTO inventory_movements
-        note right: type='return', quantity_change=+quantity, note='Hủy đơn hàng'
-    end
-    
-    Controller -> Controller: Commit transaction
     Controller -> Browser: Redirect với thông báo thành công
-    Browser -> Admin: Hiển thị danh sách đơn hàng với thông báo "Đơn hàng đã được hủy và tồn kho đã được hoàn trả"
+    Browser -> Admin: Hiển thị "Đơn hàng đã được hủy và tồn kho đã được hoàn trả"
 end
 
 @enduml

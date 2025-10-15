@@ -20,7 +20,7 @@ Folder này chứa các biểu đồ tuần tự (Sequence Diagrams) mô tả ch
 
 ### 3. Tạo đơn hàng (`03_tao_don_hang.puml`)
 - **Mô tả**: Luồng tạo đơn hàng mới với quản lý tồn kho tự động
-- **Các bước chính**: Validate, tính toán tổng tiền, tạo/tìm khách hàng, cập nhật tồn kho, gửi thông báo N8N
+- **Các bước chính**: Validate, tính toán tổng tiền, tạo/tìm khách hàng, cập nhật tồn kho
 - **Xử lý lỗi**: Sản phẩm không đủ tồn kho, mã khuyến mãi không hợp lệ
 
 ### 4. Nhập kho (`04_nhap_kho.puml`)
@@ -93,7 +93,7 @@ Mỗi biểu đồ tuần tự bao gồm:
    - Controller (xử lý logic)
    - Model (truy cập dữ liệu)
    - Database (lưu trữ)
-   - External Services (N8N, AI, File Storage)
+   - External Services (AI, File Storage)
 
 3. **Messages**: Các tương tác giữa các thành phần
 4. **Alt blocks**: Xử lý các trường hợp thay thế và lỗi
@@ -103,7 +103,7 @@ Mỗi biểu đồ tuần tự bao gồm:
 
 - Tất cả các biểu đồ đều sử dụng database transaction để đảm bảo tính toàn vẹn dữ liệu
 - Có xử lý lỗi và rollback transaction khi cần thiết
-- Tích hợp với các dịch vụ bên ngoài như N8N và AI
+- Tích hợp với các dịch vụ bên ngoài như AI
 - Hỗ trợ upload file và quản lý storage
 
 ## Cập nhật biểu đồ

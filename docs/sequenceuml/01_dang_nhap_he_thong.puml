@@ -1,40 +1,31 @@
 @startuml Đăng nhập hệ thống
-title Biểu đồ tuần tự - Đăng nhập hệ thống
+title Đăng nhập hệ thống
 
-actor "Quản trị viên" as Admin
-participant "Trình duyệt" as Browser
-participant "Controller" as Controller
-participant "Model User" as UserModel
-participant "Database" as DB
+actor Admin
+participant Browser
+participant Controller
+participant UserModel
+participant DB
 
-Admin -> Browser: Truy cập trang đăng nhập
-Browser -> Controller: GET /login
-Controller -> Browser: Hiển thị form đăng nhập
+Admin -> Browser: Mở trang đăng nhập
+Browser -> Controller: Yêu cầu đăng nhập
+Controller -> Browser: Hiện form
 
-Admin -> Browser: Nhập tên đăng nhập và mật khẩu
-Admin -> Browser: Nhấn nút "Đăng nhập"
-Browser -> Controller: POST /login
-note right: Gửi credentials
+Admin -> Browser: Nhập thông tin, nhấn đăng nhập
+Browser -> Controller: Gửi thông tin
 
-Controller -> UserModel: validateCredentials(username, password)
-UserModel -> DB: SELECT * FROM users WHERE username = ?
-DB -> UserModel: Trả về thông tin user
+Controller -> UserModel: Kiểm tra tài khoản, mật khẩu
+UserModel -> DB: Lấy thông tin user
+DB -> UserModel: Trả kết quả
 
-alt Thông tin hợp lệ
-    UserModel -> Controller: Trả về user object
-    Controller -> Controller: Tạo session
-    Controller -> Browser: Redirect to dashboard
-    Browser -> Admin: Hiển thị trang chủ
-else Thông tin không hợp lệ
-    UserModel -> Controller: Trả về null
-    Controller -> Browser: Redirect back with error
-    Browser -> Admin: Hiển thị thông báo lỗi
-end
-
-alt Tài khoản bị khóa
-    UserModel -> Controller: Trả về locked user
-    Controller -> Browser: Redirect back with lock error
-    Browser -> Admin: Hiển thị thông báo tài khoản bị khóa
+alt Đúng
+    UserModel -> Controller: OK
+    Controller -> Browser: Đăng nhập thành công
+    Browser -> Admin: Vào trang chủ
+else Sai
+    UserModel -> Controller: Sai
+    Controller -> Browser: Báo lỗi
+    Browser -> Admin: Thông báo lỗi
 end
 
 @enduml

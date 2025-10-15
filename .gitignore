@@ -1,3 +1,4 @@
+# Laravel
 *.log
 .DS_Store
 .env
@@ -41,3 +42,21 @@ yarn-error.log*
 *.csv
 *.bak
 *.tmp
+
+# Test files
+test_*.html
+test_*.php
+debug_*.html
+debug_*.php
+
+# Documentation duplicates
+AI_CHAT_SYSTEM_GUIDE.md
+EMBEDDING_COMPLETE_GUIDE.md
+EMBEDDING_GUIDE_STEPS.php
+EMBEDDING_SYSTEM_SUMMARY.md
+presentation_perfumeshop.txt
+
+# IDE and editor files
+*.swp
+*.swo
+*~

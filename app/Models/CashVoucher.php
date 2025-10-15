@@ -34,7 +34,7 @@ class CashVoucher extends Model
 
     public function attachments()
     {
-        return $this->hasMany(VoucherAttachment::class);
+        return $this->hasMany(VoucherAttachment::class, 'voucher_id');
     }
 
     public function scopeByType($query, $type)

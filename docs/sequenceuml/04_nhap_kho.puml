@@ -5,57 +5,26 @@ actor "Quản trị viên" as Admin
 participant "Trình duyệt" as Browser
 participant "InventoryController" as Controller
 participant "Product Model" as ProductModel
-participant "InventoryMovement Model" as InventoryModel
 participant "Database" as DB
 
-Admin -> Browser: Truy cập trang quản lý tồn kho
-Browser -> Controller: GET /inventory
-Controller -> ProductModel: getAllProducts()
-ProductModel -> DB: SELECT * FROM products
-DB -> ProductModel: Trả về danh sách sản phẩm
-ProductModel -> Controller: Trả về products
-Controller -> Browser: Hiển thị danh sách tồn kho
-
 Admin -> Browser: Chọn sản phẩm cần nhập kho
-Admin -> Browser: Nhấn "Điều chỉnh tồn kho"
 Browser -> Controller: GET /inventory/{product}/adjust
 Controller -> ProductModel: findById(productId)
 ProductModel -> DB: SELECT * FROM products WHERE id = ?
-DB -> ProductModel: Trả về thông tin sản phẩm
-ProductModel -> Controller: Trả về product
 Controller -> Browser: Hiển thị form điều chỉnh tồn kho
 
 Admin -> Browser: Chọn loại giao dịch "Nhập kho"
 Admin -> Browser: Nhập số lượng nhập
-Admin -> Browser: Nhập giá đơn vị
-Admin -> Browser: Nhập nhà cung cấp
-Admin -> Browser: Thêm ghi chú
 Admin -> Browser: Nhấn "Cập nhật tồn kho"
 Browser -> Controller: POST /inventory/{product}/adjust
 
 Controller -> Controller: Validate input data
 
 alt Validation thành công
-    Controller -> Controller: Calculate stock changes
-    note right: quantityChange = +quantity (positive for import)
-    
-    Controller -> ProductModel: getCurrentStock(productId)
-    ProductModel -> DB: SELECT stock FROM products WHERE id = ?
-    DB -> ProductModel: Trả về stock hiện tại
-    
-    Controller -> Controller: Calculate new stock
-    note right: newStock = currentStock + quantityChange
-    
     Controller -> ProductModel: updateStock(productId, newStock)
-    ProductModel -> DB: UPDATE products SET stock = ? WHERE id = ?
+    ProductModel -> DB: UPDATE products SET stock = stock + quantity
     DB -> ProductModel: Confirm update
     
-    Controller -> InventoryModel: create(movementData)
-    InventoryModel -> DB: INSERT INTO inventory_movements
-    note right: type='import', quantity_change=+quantity, before_stock, after_stock
-    DB -> InventoryModel: Trả về movement ID
-    
-    InventoryModel -> Controller: Trả về movement object
     Controller -> Browser: Redirect với thông báo thành công
     Browser -> Admin: Hiển thị trang tồn kho với thông báo
     

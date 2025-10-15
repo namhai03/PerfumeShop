@@ -1,0 +1,44 @@
+@startuml AI Vector Store Overview
+!theme plain
+title PerfumeShop - Vector Store (Tổng quan)
+
+package "Frontend" {
+    [UI/API]
+}
+
+package "App" {
+    [App Services]
+}
+
+package "AI" {
+    [AI Engine]
+}
+
+package "Vector Store" {
+    [Vector DB]
+}
+
+package "External AI" {
+    [OpenAI APIs]
+}
+
+package "DB" {
+    [Database]
+}
+
+[UI/API] --> [App Services]
+[App Services] --> [AI Engine]
+[AI Engine] --> [OpenAI APIs]
+[AI Engine] --> [Vector DB]
+[App Services] --> [Database]
+[AI Engine] --> [Database]
+
+note right of [Vector DB]
+  Lưu trữ vector sản phẩm, khách hàng, đơn hàng
+end note
+
+note right of [OpenAI APIs]
+  GPT, Embedding, DALL-E
+end note
+
+@enduml

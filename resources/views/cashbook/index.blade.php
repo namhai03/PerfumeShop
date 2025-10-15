@@ -12,14 +12,8 @@
                 <i class="fas fa-plus"></i>
                 Tạo phiếu
             </a>
-            <a href="{{ route('cashbook.export', request()->query()) }}" class="btn btn-outline" style="font-size: 13px; padding: 8px 16px;">
-                <i class="fas fa-file-export"></i>
-                Xuất CSV
-            </a>
-            <a href="{{ route('cashbook.accounts.index') }}" class="btn btn-outline" style="font-size: 13px; padding: 8px 16px;">
-                <i class="fas fa-university"></i>
-                Tài khoản
-            </a>
+        
+            
         </div>
     </div>
 

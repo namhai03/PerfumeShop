@@ -23,13 +23,7 @@
         <div class="card">
             <div style="text-align: center;">
                 @php
-                    $imgPath = null;
-                    if (!empty($product->image)) {
-                        $img = $product->image;
-                        $isAbsolute = \Illuminate\Support\Str::startsWith($img, ['http://','https://']);
-                        $isStorage = \Illuminate\Support\Str::startsWith($img, ['/storage/','storage/']);
-                        $imgPath = $isAbsolute ? $img : ($isStorage ? $img : Storage::url($img));
-                    }
+                    $imgPath = \App\Helpers\ImageHelper::getImageUrl($product->image);
                 @endphp
                 @if($imgPath)
                     <img src="{{ $imgPath }}" alt="{{ $product->name }}" width="300" height="300" loading="lazy" decoding="async" style="width: 100%; max-width: 300px; height: auto; border-radius: 12px; border:1px solid #e2e8f0;">

@@ -1,92 +1,28 @@
 @startuml Cập nhật trạng thái đơn hàng
-title Biểu đồ tuần tự - Cập nhật trạng thái đơn hàng
+title Cập nhật trạng thái đơn hàng
 
-actor "Quản trị viên" as Admin
-participant "Trình duyệt" as Browser
-participant "OrderController" as Controller
-participant "Order Model" as OrderModel
-participant "Product Model" as ProductModel
-participant "InventoryMovement Model" as InventoryModel
-participant "Database" as DB
+actor Admin
+participant Browser
+participant Controller
+participant OrderModel
+participant ProductModel
+participant DB
 
-Admin -> Browser: Truy cập danh sách đơn hàng
-Browser -> Controller: GET /orders
-Controller -> OrderModel: getAllOrders()
-OrderModel -> DB: SELECT * FROM orders
-DB -> OrderModel: Trả về danh sách đơn hàng
-OrderModel -> Controller: Trả về orders
-Controller -> Browser: Hiển thị danh sách đơn hàng
+Admin -> Browser: Chọn đơn hàng, cập nhật trạng thái
+Browser -> Controller: Gửi yêu cầu cập nhật
 
-Admin -> Browser: Chọn đơn hàng cần cập nhật
-Admin -> Browser: Nhấn "Cập nhật trạng thái"
-Browser -> Controller: GET /orders/{order}/edit
-Controller -> OrderModel: findById(orderId)
-OrderModel -> DB: SELECT * FROM orders WHERE id = ?
-DB -> OrderModel: Trả về thông tin đơn hàng
-OrderModel -> Controller: Trả về order
-Controller -> Browser: Hiển thị form cập nhật đơn hàng
+Controller -> OrderModel: Lấy đơn hàng
+OrderModel -> DB: Lấy dữ liệu đơn hàng
+DB -> OrderModel: Trả dữ liệu
 
-Admin -> Browser: Chọn trạng thái mới
-Admin -> Browser: Nhấn "Cập nhật đơn hàng"
-Browser -> Controller: PUT /orders/{order}
+Controller -> OrderModel: Cập nhật trạng thái
+OrderModel -> DB: Lưu trạng thái mới
 
-Controller -> Controller: Validate input data
-Controller -> Controller: Map status to type
-note right: confirmed/processing/shipping/delivered -> sale, failed/returned -> return
-
-alt Validation thành công
-    Controller -> Controller: Begin database transaction
-    
-    Controller -> OrderModel: update(orderData)
-    OrderModel -> DB: UPDATE orders SET status = ?, type = ?
-    DB -> OrderModel: Confirm update
-    
-    alt Trạng thái thay đổi từ draft sang sale
-        loop For each order item
-            Controller -> Controller: updateInventoryForOrder(order, item)
-            Controller -> ProductModel: getCurrentStock(productId)
-            ProductModel -> DB: SELECT stock FROM products WHERE id = ?
-            DB -> ProductModel: Trả về stock hiện tại
-            
-            Controller -> Controller: Calculate new stock
-            note right: newStock = currentStock - quantity (for sale)
-            
-            Controller -> ProductModel: updateStock(productId, newStock)
-            ProductModel -> DB: UPDATE products SET stock = ? WHERE id = ?
-            
-            Controller -> InventoryModel: create(movementData)
-            InventoryModel -> DB: INSERT INTO inventory_movements
-            note right: type='export', quantity_change=-quantity
-        end
-    end
-    
-    alt Trạng thái thay đổi sang returned
-        loop For each order item
-            Controller -> Controller: updateInventoryForOrder(order, item)
-            Controller -> ProductModel: getCurrentStock(productId)
-            ProductModel -> DB: SELECT stock FROM products WHERE id = ?
-            DB -> ProductModel: Trả về stock hiện tại
-            
-            Controller -> Controller: Calculate new stock
-            note right: newStock = currentStock + quantity (for return)
-            
-            Controller -> ProductModel: updateStock(productId, newStock)
-            ProductModel -> DB: UPDATE products SET stock = ? WHERE id = ?
-            
-            Controller -> InventoryModel: create(movementData)
-            InventoryModel -> DB: INSERT INTO inventory_movements
-            note right: type='return', quantity_change=+quantity
-        end
-    end
-    
-    Controller -> Controller: Commit transaction
-    Controller -> Browser: Redirect với thông báo thành công
-    Browser -> Admin: Hiển thị danh sách đơn hàng với thông báo
-    
-else Validation thất bại
-    Controller -> Controller: Rollback transaction
-    Controller -> Browser: Redirect back with errors
-    Browser -> Admin: Hiển thị form với thông báo lỗi
+alt Nếu cần cập nhật tồn kho
+    Controller -> ProductModel: Cập nhật tồn kho
+    ProductModel -> DB: Lưu tồn kho mới
 end
+
+Controller -> Browser: Thông báo kết quả
 
 @enduml

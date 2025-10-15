@@ -40,7 +40,7 @@ class Shipment extends Model
     public function ordersMany()
     {
         return $this->belongsToMany(Order::class, 'shipment_orders')
-            ->withPivot(['cod_amount'])
+            ->withPivot(['order_number'])
             ->withTimestamps();
     }
 }

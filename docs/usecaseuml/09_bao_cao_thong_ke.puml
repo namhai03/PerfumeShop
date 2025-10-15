@@ -1,6 +1,5 @@
 @startuml
 !theme plain
-skinparam direction top to bottom
 skinparam actorStyle rectangle
 skinparam usecaseStyle rectangle
 
@@ -8,29 +7,23 @@ title Use Case - Báo cáo Thống kê
 
 actor "Quản trị viên" as Admin
 
-usecase "Báo cáo thống kê" as UC9
-usecase "Dashboard tổng quan" as UC9_1
-usecase "Báo cáo doanh thu" as UC9_2
-usecase "Báo cáo tồn kho" as UC9_3
-usecase "Báo cáo khách hàng" as UC9_4
-usecase "Xuất báo cáo Excel" as UC9_5
+usecase "Dashboard tổng quan" as UC1
+usecase "Báo cáo doanh thu" as UC2
+usecase "Báo cáo tồn kho" as UC3
+usecase "Báo cáo khách hàng" as UC4
+usecase "Xuất báo cáo Excel" as UC5
 
-Admin --> UC9
-Admin --> UC9_1
-Admin --> UC9_2
-Admin --> UC9_3
-Admin --> UC9_4
-Admin --> UC9_5
+Admin --> UC1
+Admin --> UC2
+Admin --> UC3
+Admin --> UC4
+Admin --> UC5
 
-UC9 ..> UC9_1 : <<include>>
-UC9 ..> UC9_2 : <<include>>
-UC9 ..> UC9_3 : <<include>>
-UC9 ..> UC9_4 : <<include>>
-UC9 ..> UC9_5 : <<include>>
-
-UC9_1 -[hidden]-> UC9_2
-UC9_2 -[hidden]-> UC9_3
-UC9_3 -[hidden]-> UC9_4
-UC9_4 -[hidden]-> UC9_5
+UC1 --> UC2 : <<extend>>
+UC1 --> UC3 : <<extend>>
+UC1 --> UC4 : <<extend>>
+UC2 --> UC5 : <<extend>>
+UC3 --> UC5 : <<extend>>
+UC4 --> UC5 : <<extend>>
 
 @enduml

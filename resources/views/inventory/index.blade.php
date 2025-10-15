@@ -8,14 +8,7 @@
             <h1 class="page-title">Quản lý kho</h1>
             
         </div>
-        <div style="display: flex; gap: 12px;">
-            <button onclick="openExportModal()" class="btn btn-outline" style="font-size: 13px; padding: 8px 16px;">
-                <i class="fas fa-upload"></i>
-                Xuất file
-            </button>
-            
-            
-        </div>
+        
     </div>
 
     @if(session('success'))
@@ -127,13 +120,7 @@
                             <td class="product-cell">
                                 <div style="display: flex; align-items: center; gap: 12px;">
                                     @php
-                                        $imgPath = null;
-                                        if (!empty($product->image)) {
-                                            $img = $product->image;
-                                            $isAbsolute = \Illuminate\Support\Str::startsWith($img, ['http://','https://']);
-                                            $isStorage = \Illuminate\Support\Str::startsWith($img, ['/storage/','storage/']);
-                                            $imgPath = $isAbsolute ? $img : ($isStorage ? $img : Storage::url($img));
-                                        }
+                                        $imgPath = \App\Helpers\ImageHelper::getImageUrl($product->image);
                                     @endphp
                                     @if($imgPath)
                                         <img src="{{ $imgPath }}" alt="{{ $product->name }}" width="64" height="64" loading="lazy" decoding="async" style="width: 64px; height: 64px; object-fit: cover; border-radius: 10px; border:1px solid #e2e8f0;">
@@ -477,33 +464,7 @@
         </div>
     </div>
 
-    <!-- Export Modal -->
-    <div class="modal" id="exportModal" style="display: none;">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Xuất file tồn kho</h3>
-                <span class="close" onclick="closeExportModal()">&times;</span>
-            </div>
-            
-            <form action="{{ route('inventory.export') }}" method="GET">
-                <div class="form-group">
-                    <label class="form-label">Chọn định dạng xuất file</label>
-                    <div style="display: flex; gap: 12px; margin-top: 8px;">
-                        
-                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                            <input type="radio" name="format" value="csv">
-                            <span>CSV (.csv)</span>
-                        </label>
-                    </div>
-                </div>
-                
-                <div style="display: flex; gap: 12px; justify-content: flex-end;">
-                    <button type="button" class="btn btn-outline" onclick="closeExportModal()">Hủy</button>
-                    <button type="submit" class="btn btn-primary">Xuất file</button>
-                </div>
-            </form>
-        </div>
-    </div>
+ 
 @endsection
 
 @push('scripts')

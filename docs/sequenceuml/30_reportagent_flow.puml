@@ -1,0 +1,86 @@
+@startuml AI Agents với Vector Store Flow
+!theme plain
+title AI Agents sử dụng Vector Store
+
+start
+
+:User gửi query đến AI Agent;
+note right: Natural language query
+
+:AI Agent phân tích intent;
+note right: Intent recognition
+
+if (Intent = Product Search?) then (Có)
+    :Chuyển đổi query thành embedding;
+    note right: OpenAI text-embedding-3-small
+    
+    :Tìm kiếm trong Vector Store "products";
+    note right: Semantic similarity search
+    
+    :Lấy top-k similar products;
+    note right: k=5, similarity > 0.7
+    
+    :Retrieve product metadata;
+    note right: Price, stock, category
+    
+    :Format kết quả cho user;
+    
+elseif (Intent = Customer Recommendation?) then (Có)
+    :Lấy customer profile embedding;
+    note right: From customer behavior history
+    
+    :Tìm kiếm similar customers;
+    note right: Vector Store "customers" collection
+    
+    :Lấy purchase patterns;
+    note right: What similar customers bought
+    
+    :Recommend products based on patterns;
+    
+elseif (Intent = Sales Analysis?) then (Có)
+    :Tạo embedding cho sales query;
+    
+    :Tìm kiếm trong Vector Store "orders";
+    note right: Order pattern embeddings
+    
+    :Lấy similar order patterns;
+    
+    :Phân tích xu hướng bán hàng;
+    
+    :Generate insights với LLM;
+    
+elseif (Intent = Inventory Prediction?) then (Có)
+    :Lấy product embedding;
+    
+    :Tìm similar products trong Vector Store;
+    
+    :Lấy sales velocity patterns;
+    
+    :Dự đoán demand với AI;
+    
+else (Intent = General Query)
+    :Tạo embedding cho query;
+    
+    :Tìm kiếm across all collections;
+    note right: Products, customers, orders
+    
+    :Aggregate relevant data;
+    
+    :Send to LLM với context;
+    note right: GPT-4o-mini với retrieved data
+    
+    :Generate comprehensive response;
+endif
+
+:Trả về kết quả cho user;
+note right: Formatted response
+
+:Log interaction trong Vector Store;
+note right: Store query-result pairs
+
+:Update embeddings nếu cần;
+note right: Incremental learning
+
+stop
+
+@enduml

@@ -11,7 +11,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
-use App\Services\N8nService;
 
 class OrderController extends Controller
 {
@@ -228,27 +227,6 @@ class OrderController extends Controller
                 ->with('error', 'Có lỗi xảy ra khi tạo đơn hàng: ' . $e->getMessage());
         }
 
-        // Sau khi tạo đơn hàng thành công, gửi thông báo qua n8n
-        if ($order) {
-            try {
-                $n8nService = new N8nService();
-                $n8nService->sendNewOrderNotification([
-                    'id' => $order->id,
-                    'order_number' => $order->order_number,
-                    'customer_name' => $order->customer_name ?? 'N/A',
-                    'customer_phone' => $order->phone ?? 'N/A',
-                    'total_amount' => $order->total_amount,
-                    'status' => $order->status,
-                    'order_date' => $order->order_date->format('Y-m-d H:i:s')
-                ]);
-            } catch (\Exception $e) {
-                // Log lỗi nhưng không ảnh hưởng đến việc tạo đơn hàng
-                Log::error('Failed to send N8N notification for new order', [
-                    'order_id' => $order->id,
-                    'error' => $e->getMessage()
-                ]);
-            }
-        }
 
         return redirect()->route('orders.index')
             ->with('success', 'Đơn hàng đã được tạo thành công!');

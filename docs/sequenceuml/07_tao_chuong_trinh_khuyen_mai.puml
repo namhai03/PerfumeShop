@@ -1,45 +1,40 @@
 @startuml Tạo chương trình khuyến mãi
-title Biểu đồ tuần tự - Tạo chương trình khuyến mãi
+title Tạo chương trình khuyến mãi (đơn giản, có LLM gợi ý)
 
-actor "Quản trị viên" as Admin
-participant "Trình duyệt" as Browser
-participant "PromotionController" as Controller
-participant "Promotion Model" as PromotionModel
-participant "Database" as DB
+actor Admin
+participant Browser
+participant Controller
+participant PromotionModel
+participant DB
+participant LLM
 
-Admin -> Browser: Truy cập trang khuyến mãi
-Browser -> Controller: GET /promotions
-Controller -> PromotionModel: getAllPromotions()
-PromotionModel -> DB: SELECT * FROM promotions
-DB -> PromotionModel: Trả về danh sách khuyến mãi
-PromotionModel -> Controller: Trả về promotions
-Controller -> Browser: Hiển thị danh sách khuyến mãi
+Admin -> Browser: Mở trang khuyến mãi
+Browser -> Controller: Yêu cầu danh sách khuyến mãi
+Controller -> PromotionModel: Lấy danh sách
+PromotionModel -> DB: Lấy dữ liệu
+DB -> PromotionModel: Trả dữ liệu
+PromotionModel -> Controller: Trả danh sách
+Controller -> Browser: Hiển thị danh sách
 
 Admin -> Browser: Nhấn "Tạo khuyến mãi"
-Browser -> Controller: GET /promotions/create
-Controller -> Browser: Hiển thị form tạo khuyến mãi
+Browser -> Controller: Yêu cầu form tạo khuyến mãi
+Controller -> Browser: Trả về form
 
-Admin -> Browser: Nhập thông tin khuyến mãi
-Admin -> Browser: Nhập tên và mô tả
-Admin -> Browser: Nhập mức giảm giá
-Admin -> Browser: Chọn thời gian hiệu lực
-Admin -> Browser: Nhấn "Lưu"
-Browser -> Controller: POST /promotions
+Admin -> Browser: Nhập thông tin, nhấn "Gợi ý"
+Browser -> LLM: Gửi thông tin để gợi ý
+LLM -> Browser: Trả về gợi ý chương trình khuyến mãi
 
-Controller -> Controller: Kiểm tra dữ liệu
+Admin -> Browser: Chỉnh sửa, nhấn "Lưu"
+Browser -> Controller: Gửi dữ liệu khuyến mãi
 
 alt Dữ liệu hợp lệ
-    Controller -> PromotionModel: Tạo khuyến mãi mới
-    PromotionModel -> DB: INSERT INTO promotions
-    DB -> PromotionModel: Xác nhận tạo thành công
-    PromotionModel -> Controller: Trả về khuyến mãi đã tạo
-    
+    Controller -> PromotionModel: Thêm khuyến mãi
+    PromotionModel -> DB: Lưu khuyến mãi
+    DB -> PromotionModel: OK
+    PromotionModel -> Controller: OK
     Controller -> Browser: Thông báo thành công
-    Browser -> Admin: Hiển thị "Tạo khuyến mãi thành công"
-    
-else Dữ liệu không hợp lệ
+else Dữ liệu lỗi
     Controller -> Browser: Thông báo lỗi
-    Browser -> Admin: Hiển thị thông báo lỗi
 end
 
 @enduml

@@ -4,9 +4,6 @@ title Biểu đồ tuần tự - Xuất báo cáo Excel
 actor "Quản trị viên" as Admin
 participant "Trình duyệt" as Browser
 participant "ReportController" as Controller
-participant "Order Model" as OrderModel
-participant "Product Model" as ProductModel
-participant "Customer Model" as CustomerModel
 participant "Database" as DB
 participant "Excel Generator" as Excel
 
@@ -15,7 +12,6 @@ Browser -> Controller: GET /reports
 Controller -> Browser: Hiển thị menu báo cáo
 
 Admin -> Browser: Chọn loại báo cáo cần xuất
-note right: Báo cáo doanh thu, báo cáo tồn kho, báo cáo khách hàng
 Admin -> Browser: Chọn khoảng thời gian
 Admin -> Browser: Nhấn "Xuất Excel"
 Browser -> Controller: POST /reports/export
@@ -23,37 +19,12 @@ Browser -> Controller: POST /reports/export
 Controller -> Controller: Validate export parameters
 
 alt Validation thành công
-    Controller -> Controller: Determine report type
+    Controller -> DB: Get report data based on type
+    DB -> Controller: Trả về dữ liệu báo cáo
     
-    alt Báo cáo doanh thu
-        Controller -> OrderModel: getRevenueReport(startDate, endDate)
-        OrderModel -> DB: SELECT o.*, c.name as customer_name FROM orders o LEFT JOIN customers c ON o.customer_id = c.id WHERE o.order_date BETWEEN ? AND ? AND o.type = 'sale' ORDER BY o.created_at DESC
-        DB -> OrderModel: Trả về dữ liệu đơn hàng
-        OrderModel -> Controller: Trả về revenueData
-        
-        Controller -> OrderModel: getRevenueSummary(startDate, endDate)
-        OrderModel -> DB: SELECT COUNT(*) as total_orders, SUM(final_amount) as total_revenue, AVG(final_amount) as avg_order_value FROM orders WHERE order_date BETWEEN ? AND ? AND type = 'sale'
-        DB -> OrderModel: Trả về tổng kết doanh thu
-        OrderModel -> Controller: Trả về summaryData
-        
-    else Báo cáo tồn kho
-        Controller -> ProductModel: getInventoryReport()
-        ProductModel -> DB: SELECT * FROM products ORDER BY stock ASC
-        DB -> ProductModel: Trả về dữ liệu tồn kho
-        ProductModel -> Controller: Trả về inventoryData
-        
-    else Báo cáo khách hàng
-        Controller -> CustomerModel: getCustomerReport()
-        CustomerModel -> DB: SELECT c.*, COUNT(o.id) as total_orders, SUM(o.final_amount) as total_spent FROM customers c LEFT JOIN orders o ON c.id = o.customer_id GROUP BY c.id ORDER BY total_spent DESC
-        DB -> CustomerModel: Trả về dữ liệu khách hàng
-        CustomerModel -> Controller: Trả về customerData
-    end
-    
-    Controller -> Excel: generateExcelFile(reportData, reportType)
+    Controller -> Excel: generateExcelFile(reportData)
     Excel -> Excel: Create Excel workbook
     Excel -> Excel: Add data to sheets
-    Excel -> Excel: Format cells and headers
-    Excel -> Excel: Add charts (if needed)
     Excel -> Controller: Trả về Excel file path
     
     Controller -> Browser: Download Excel file

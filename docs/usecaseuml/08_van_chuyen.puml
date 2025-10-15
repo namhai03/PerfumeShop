@@ -1,6 +1,5 @@
 @startuml
 !theme plain
-skinparam direction top to bottom
 skinparam actorStyle rectangle
 skinparam usecaseStyle rectangle
 
@@ -8,25 +7,18 @@ title Use Case - Vận chuyển
 
 actor "Quản trị viên" as Admin
 
-usecase "Vận chuyển" as UC8
-usecase "Tạo vận đơn" as UC8_1
-usecase "Theo dõi giao hàng" as UC8_2
-usecase "Cập nhật trạng thái vận chuyển" as UC8_3
-usecase "Xử lý hoàn trả" as UC8_4
+usecase "Tạo vận đơn" as UC1
+usecase "Theo dõi giao hàng" as UC2
+usecase "Cập nhật trạng thái vận chuyển" as UC3
+usecase "Xử lý hoàn trả" as UC4
 
-Admin --> UC8
-Admin --> UC8_1
-Admin --> UC8_2
-Admin --> UC8_3
-Admin --> UC8_4
+Admin --> UC1
+Admin --> UC2
+Admin --> UC3
+Admin --> UC4
 
-UC8 ..> UC8_1 : <<include>>
-UC8 ..> UC8_2 : <<include>>
-UC8 ..> UC8_3 : <<include>>
-UC8 ..> UC8_4 : <<include>>
-
-UC8_1 -[hidden]-> UC8_2
-UC8_2 -[hidden]-> UC8_3
-UC8_3 -[hidden]-> UC8_4
+UC1 --> UC2 : <<extend>>
+UC2 --> UC3 : <<extend>>
+UC2 --> UC4 : <<extend>>
 
 @enduml

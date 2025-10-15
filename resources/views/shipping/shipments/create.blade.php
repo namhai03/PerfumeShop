@@ -6,7 +6,7 @@
     <div class="shipment-create-page">
     <div class="page-header">
         <div class="page-header-content">
-            <h1 class="page-title"><i class="fas fa-truck-fast"></i> Tạo vận đơn</h1>
+            <h1 class="page-title"> Tạo vận đơn</h1>
         </div>
         <div class="page-header-actions">
             <a href="{{ route('shipments.index') }}" class="btn btn-outline">Quay lại</a>
@@ -24,26 +24,20 @@
                 <div class="form-group" style="grid-column: span 2;">
                     <label class="form-label">Đơn hàng trong vận đơn</label>
                     <div id="ordersList" style="display:flex; flex-direction:column; gap:8px;">
-                        <div class="order-row" style="display:grid; grid-template-columns: 2fr 1fr 1fr auto; gap:8px; align-items:end;">
+                        <div class="order-row" style="display:grid; grid-template-columns: 2fr 1fr auto; gap:8px; align-items:end;">
                             <div>
                                 <label class="form-label">Mã đơn hàng</label>
                                 <input type="text" name="orders[0][order_code]" value="{{ old('orders.0.order_code') }}" class="form-control order-code-input" placeholder="VD: DH20250916ABCD" onblur="handleOrderCodeBlur(this)" oninput="clearInputError(this)">
                                 <small class="error-msg" style="display:none;"></small>
                             </div>
                             <div>
-                                <label class="form-label">COD (đ)</label>
-                                <input type="number" step="0.01" name="orders[0][cod_amount]" value="{{ old('orders.0.cod_amount', 0) }}" class="form-control cod-input" oninput="recalcTotalCod()">
+                                <label class="form-label">Ghi chú</label>
+                                <input type="text" class="form-control" placeholder="(tuỳ chọn)">
                             </div>
-                            
                             <div>
                                 <button type="button" class="btn btn-outline" onclick="addOrderRow()">Thêm</button>
                             </div>
                         </div>
-                    </div>
-                    <div style="margin-top:8px; display:flex; gap:12px; align-items:center;">
-                        <strong>Tổng COD:</strong>
-                        <span id="totalCod" style="font-weight:600;">0</span>
-                        <span>đ</span>
                     </div>
                 </div>
                 <!-- Mã vận đơn sinh tự động trong backend -->
@@ -138,16 +132,12 @@
             const index = list.querySelectorAll('.order-row').length;
             const row = document.createElement('div');
             row.className = 'order-row';
-            row.style = 'display:grid; grid-template-columns: 2fr 1fr 1fr auto; gap:8px; align-items:end;';
+            row.style = 'display:grid; grid-template-columns: 2fr 1fr auto; gap:8px; align-items:end;';
             row.innerHTML = `
                 <div>
                     <label class="form-label">Mã đơn hàng</label>
                     <input type="text" name="orders[${index}][order_code]" class="form-control order-code-input" placeholder="VD: DH20250916ABCD" onblur="handleOrderCodeBlur(this)" oninput="clearInputError(this)">
                     <small class="error-msg" style="display:none;"></small>
-                </div>
-                <div>
-                    <label class="form-label">COD (đ)</label>
-                    <input type="number" step="0.01" name="orders[${index}][cod_amount]" value="0" class="form-control cod-input" oninput="recalcTotalCod()">
                 </div>
                 <div>
                     <label class="form-label">Ghi chú</label>
@@ -158,34 +148,23 @@
                 </div>
             `;
             list.appendChild(row);
-            recalcTotalCod();
         }
 
         function removeOrderRow(btn){
             const row = btn.closest('.order-row');
             if(row){ row.remove(); }
-            recalcTotalCod();
-        }
-
-        function recalcTotalCod(){
-            let total = 0;
-            document.querySelectorAll('#ordersList .cod-input').forEach(el => {
-                const v = parseFloat(el.value || '0');
-                if(!isNaN(v)) total += v;
-            });
-            document.getElementById('totalCod').textContent = Intl.NumberFormat('vi-VN').format(total);
-        }
-
-        function showInputError(inputEl, message){
-            inputEl.classList.add('input-error');
-            const msgEl = inputEl.parentElement.querySelector('.error-msg');
-            if(msgEl){ msgEl.textContent = message || ''; msgEl.style.display = message ? 'block' : 'none'; }
         }
 
         function clearInputError(inputEl){
             inputEl.classList.remove('input-error');
             const msgEl = inputEl.parentElement.querySelector('.error-msg');
             if(msgEl){ msgEl.textContent = ''; msgEl.style.display = 'none'; }
+        }
+
+        function showInputError(inputEl, message){
+            inputEl.classList.add('input-error');
+            const msgEl = inputEl.parentElement.querySelector('.error-msg');
+            if(msgEl){ msgEl.textContent = message || ''; msgEl.style.display = message ? 'block' : 'none'; }
         }
 
         async function handleOrderCodeBlur(inputEl){
@@ -221,26 +200,11 @@
                         if(w && !w.value) w.value = data.ward || '';
                         if(c && !c.value) c.value = data.city || '';
                     }
-                    // Auto-fill COD của chính dòng đang nhập nếu trống hoặc 0
-                    const row = inputEl.closest('.order-row');
-                    if(row){
-                        const codInput = row.querySelector('input[name$="[cod_amount]"]');
-                        if(codInput){
-                            const cur = parseFloat(codInput.value || '0');
-                            if(isNaN(cur) || cur === 0){
-                                codInput.value = data.final_amount ?? 0;
-                                recalcTotalCod();
-                            }
-                        }
-                    }
                 }
             }catch(e){
                 showInputError(inputEl, 'Không tìm thấy đơn hàng');
             }
         }
-
-        // Khởi tạo tổng COD lần đầu
-        document.addEventListener('DOMContentLoaded', recalcTotalCod);
     </script>
     </div>
 @endsection

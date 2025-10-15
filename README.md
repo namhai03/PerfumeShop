@@ -125,5 +125,5 @@ Distributed under the MIT License. See `LICENSE` for more information.
 
 ## Liên hệ
 
-- Email: [your-email@example.com]
+- Email: [namhai.632003@example.com]
 - Project Link: [https://github.com/username/PerfumeShop](https://github.com/username/PerfumeShop)

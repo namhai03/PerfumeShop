@@ -1,0 +1,58 @@
+@startuml AI Data Collection & Embedding Flow
+!theme plain
+title AI Data Collection & Embedding Process
+
+start
+
+:Khởi tạo hệ thống AI;
+note right: System startup
+
+:Thu thập dữ liệu sản phẩm từ Database;
+note right: Products, descriptions, categories
+
+:Thu thập dữ liệu đơn hàng;
+note right: Orders, customer behavior, sales patterns
+
+:Thu thập dữ liệu khách hàng;
+note right: Customer profiles, preferences, history
+
+:Thu thập dữ liệu tồn kho;
+note right: Inventory levels, stock movements
+
+:Chuẩn hóa và làm sạch dữ liệu;
+note right: Data cleaning, normalization
+
+:Chuẩn bị text data cho embedding;
+note right: Combine product info, descriptions, categories
+
+if (Có OpenAI API key?) then (Có)
+    :Gọi OpenAI Embedding API;
+    note right: text-embedding-3-small model
+    
+    :Tạo vector embeddings cho sản phẩm;
+    note right: 1536-dimensional vectors
+    
+    :Lưu embeddings vào Vector Store;
+    note right: Pinecone/Weaviate/Chroma
+    
+else (Không)
+    :Sử dụng local embedding model;
+    note right: Sentence Transformers
+    
+    :Tạo embeddings offline;
+    
+    :Lưu vào local vector store;
+endif
+
+:Index embeddings trong Vector Store;
+note right: Create searchable index
+
+:Thiết lập similarity search;
+note right: Cosine similarity, threshold 0.7
+
+:Test vector search functionality;
+note right: Verify search quality
+
+stop
+
+@enduml

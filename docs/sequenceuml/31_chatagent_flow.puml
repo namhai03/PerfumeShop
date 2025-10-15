@@ -1,0 +1,98 @@
+@startuml Semantic Search Process Flow
+!theme plain
+title Semantic Search & Retrieval Process
+
+start
+
+:User nhập search query;
+note right: "Tìm nước hoa nam phù hợp mùa hè"
+
+:Preprocess query text;
+note right: Clean, normalize, tokenize
+
+:Generate query embedding;
+note right: OpenAI text-embedding-3-small
+note right: 1536-dimensional vector
+
+:Connect to Vector Store;
+note right: Pinecone/Weaviate/Chroma
+
+:Perform semantic search;
+note right: Cosine similarity search
+
+if (Search trong collection nào?) then (Products)
+    :Search trong "products" collection;
+    note right: Product embeddings
+    
+    :Apply metadata filters;
+    note right: Category: "Nam", Season: "Summer"
+    
+    :Retrieve top-k results;
+    note right: k=10, similarity > 0.6
+    
+elseif (Customers) then (Customers)
+    :Search trong "customers" collection;
+    note right: Customer behavior embeddings
+    
+    :Find similar customer profiles;
+    
+    :Get purchase history patterns;
+    
+elseif (Orders) then (Orders)
+    :Search trong "orders" collection;
+    note right: Order pattern embeddings
+    
+    :Find similar order patterns;
+    
+    :Extract sales insights;
+    
+else (All Collections)
+    :Search across all collections;
+    note right: Multi-collection search
+    
+    :Aggregate results by relevance;
+    
+    :Rank by combined similarity;
+endif
+
+:Post-process search results;
+note right: Filter, deduplicate, rank
+
+:Retrieve full metadata;
+note right: Product details, prices, stock
+
+:Calculate relevance scores;
+note right: Weighted similarity scores
+
+if (Có kết quả phù hợp?) then (Có)
+    :Format results cho display;
+    note right: Structured response format
+    
+    :Add AI explanations;
+    note right: Why these products match
+    
+    :Generate recommendations;
+    note right: Additional suggestions
+    
+else (Không)
+    :Expand search criteria;
+    note right: Lower similarity threshold
+    
+    :Try alternative queries;
+    note right: Query expansion
+    
+    :Return "no results" message;
+endif
+
+:Log search interaction;
+note right: Store query-result pairs
+
+:Update search analytics;
+note right: Track search performance
+
+:Return formatted results;
+note right: JSON response với metadata
+
+stop
+
+@enduml

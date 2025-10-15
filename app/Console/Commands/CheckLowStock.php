@@ -3,7 +3,6 @@
 namespace App\Console\Commands;
 
 use App\Models\Product;
-use App\Services\N8nService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 
@@ -14,14 +13,14 @@ class CheckLowStock extends Command
      *
      * @var string
      */
-    protected $signature = 'inventory:check-low-stock {--send-alert : Gửi thông báo qua n8n}';
+    protected $signature = 'inventory:check-low-stock';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Kiểm tra sản phẩm có tồn kho thấp và gửi thông báo';
+    protected $description = 'Kiểm tra sản phẩm có tồn kho thấp';
 
     /**
      * Execute the console command.
@@ -68,24 +67,11 @@ class CheckLowStock extends Command
 
         $this->table($headers, $rows);
 
-        // Gửi thông báo qua n8n nếu có option
-        if ($this->option('send-alert')) {
-            $this->info('Đang gửi thông báo qua n8n...');
-            
-            $n8nService = new N8nService();
-            $success = $n8nService->sendLowStockAlert($lowStockProducts->toArray());
-
-            if ($success) {
-                $this->info('✅ Thông báo đã được gửi thành công qua n8n!');
-                Log::info('Low stock alert sent via n8n', [
-                    'products_count' => $lowStockProducts->count(),
-                    'products' => $lowStockProducts->pluck('name')->toArray()
-                ]);
-            } else {
-                $this->error('❌ Không thể gửi thông báo qua n8n. Vui lòng kiểm tra log.');
-            }
+        // Thông báo về sản phẩm sắp hết hàng
+        if ($lowStockProducts->count() > 0) {
+            $this->info('⚠️  Có ' . $lowStockProducts->count() . ' sản phẩm sắp hết hàng!');
         } else {
-            $this->info('💡 Sử dụng --send-alert để gửi thông báo qua n8n');
+            $this->info('✅ Tất cả sản phẩm đều có đủ hàng trong kho.');
         }
 
         return 0;

@@ -224,6 +224,124 @@
             box-shadow: 0 2px 8px rgba(66, 153, 225, 0.3);
         }
 
+        .user-profile {
+            position: relative;
+        }
+
+        .user-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            border: 1px solid #e2e8f0;
+            min-width: 280px;
+            z-index: 1000;
+            display: none;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+
+        .user-dropdown.show {
+            display: block;
+            animation: dropdownSlideIn 0.2s ease;
+        }
+
+        @keyframes dropdownSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 20px;
+            background: #f8fafc;
+        }
+
+        .user-avatar-large {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            background: #4299e1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .user-details {
+            flex: 1;
+        }
+
+        .user-name {
+            font-weight: 600;
+            color: #2d3748;
+            font-size: 14px;
+        }
+
+        .user-email {
+            color: #718096;
+            font-size: 12px;
+            margin-top: 2px;
+        }
+
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 20px;
+            color: #4a5568;
+            text-decoration: none;
+            font-size: 14px;
+            transition: background-color 0.2s ease;
+        }
+
+        .dropdown-item:hover {
+            background: #f7fafc;
+            color: #2d3748;
+        }
+
+        .dropdown-item i {
+            width: 16px;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .dropdown-divider {
+            height: 1px;
+            background: #e2e8f0;
+            margin: 4px 0;
+        }
+
+        .dropdown-form {
+            margin: 0;
+        }
+
+        .logout-btn {
+            background: none;
+            border: none;
+            width: 100%;
+            text-align: left;
+            cursor: pointer;
+            color: #e53e3e;
+        }
+
+        .logout-btn:hover {
+            background: #fed7d7;
+            color: #c53030;
+        }
+
         .user-avatar {
             width: 24px;
             height: 24px;
@@ -615,9 +733,7 @@
                         <li class="nav-item">
                             <a href="{{ route('categories.index') }}" class="nav-link {{ request()->routeIs('categories.*') ? 'active' : '' }}">Danh mục sản phẩm</a>
                         </li>
-                        <li class="nav-item">
-                            <a href="#" class="nav-link">Bảng giá</a>
-                        </li>
+                        
                     </ul>
                 </li>
 
@@ -651,11 +767,15 @@
                         <li class="nav-item"><a href="{{ route('cashbook.accounts.index') }}" class="nav-link {{ request()->routeIs('cashbook.accounts.*') ? 'active' : '' }}">Tài khoản</a></li>
                     </ul>
                 </li>
-                <li class="nav-item">
+                <li class="nav-item has-subnav {{ request()->routeIs('promotions.*') ? 'expanded' : '' }}">
                     <a href="{{ route('promotions.index') }}" class="nav-link {{ request()->routeIs('promotions.*') ? 'active' : '' }}">
                         <i class="icon fas fa-gift"></i>
                         Khuyến mại
                     </a>
+                    <ul class="sub-nav {{ request()->routeIs('promotions.*') ? 'expanded' : '' }}">
+                        <li class="nav-item"><a href="{{ route('promotions.index') }}" class="nav-link {{ request()->routeIs('promotions.index') ? 'active' : '' }}">Danh sách</a></li>
+                        <li class="nav-item"><a href="{{ route('promotions.ai.index') }}" class="nav-link {{ request()->routeIs('promotions.ai.index') ? 'active' : '' }}">Khuyến mại AI</a></li>
+                    </ul>
                 </li>
                 <li class="nav-item has-subnav {{ request()->routeIs('reports.*') ? 'expanded' : '' }}">
                     <a href="{{ route('reports.index') }}" class="nav-link {{ request()->routeIs('reports.*') ? 'active' : '' }}">
@@ -663,8 +783,9 @@
                         Báo cáo
                     </a>
                     <ul class="sub-nav {{ request()->routeIs('reports.*') ? 'expanded' : '' }}">
+                    <li class="nav-item"><a href="{{ route('reports.overview') }}" class="nav-link {{ request()->routeIs('reports.overview') ? 'active' : '' }}">Tổng quan báo cáo</a></li>
                         <li class="nav-item"><a href="{{ route('reports.index') }}" class="nav-link {{ request()->routeIs('reports.index') ? 'active' : '' }}">Danh sách báo cáo</a></li>
-                        <li class="nav-item"><a href="{{ route('reports.overview') }}" class="nav-link {{ request()->routeIs('reports.overview') ? 'active' : '' }}">Tổng quan báo cáo</a></li>
+
                     </ul>
                 </li>
                 <li class="nav-item">
@@ -697,10 +818,38 @@
                 <div class="header-icon">
                     <i class="fas fa-bell"></i>
                 </div>
-                <div class="user-profile">
-                    <div class="user-avatar">Ch</div>
-                    <span>Admin</span>
+                <div class="user-profile" onclick="toggleUserMenu()">
+                    <div class="user-avatar">{{ substr(Auth::user()->name ?? 'A', 0, 1) }}</div>
+                    <span>{{ Auth::user()->name ?? 'Admin' }}</span>
                     <i class="fas fa-chevron-down" style="font-size: 12px;"></i>
+                </div>
+                
+                <!-- User Dropdown Menu -->
+                <div class="user-dropdown" id="userDropdown">
+                    <div class="user-info">
+                        <div class="user-avatar-large">{{ substr(Auth::user()->name ?? 'A', 0, 1) }}</div>
+                        <div class="user-details">
+                            <div class="user-name">{{ Auth::user()->name ?? 'Admin' }}</div>
+                            <div class="user-email">{{ Auth::user()->email ?? 'admin@perfumeshop.com' }}</div>
+                        </div>
+                    </div>
+                    <div class="dropdown-divider"></div>
+                    <a href="#" class="dropdown-item">
+                        <i class="fas fa-user"></i>
+                        Thông tin cá nhân
+                    </a>
+                    <a href="#" class="dropdown-item">
+                        <i class="fas fa-cog"></i>
+                        Cài đặt
+                    </a>
+                    <div class="dropdown-divider"></div>
+                    <form method="POST" action="{{ route('logout') }}" class="dropdown-form">
+                        @csrf
+                        <button type="submit" class="dropdown-item logout-btn">
+                            <i class="fas fa-sign-out-alt"></i>
+                            Đăng xuất
+                        </button>
+                    </form>
                 </div>
             </div>
         </header>
@@ -766,6 +915,22 @@
                         subNav.classList.toggle('expanded');
                     }
                 });
+            });
+
+            // Xử lý user dropdown menu
+            window.toggleUserMenu = function() {
+                var dropdown = document.getElementById('userDropdown');
+                dropdown.classList.toggle('show');
+            };
+
+            // Đóng dropdown khi click bên ngoài
+            document.addEventListener('click', function(e) {
+                var dropdown = document.getElementById('userDropdown');
+                var userProfile = document.querySelector('.user-profile');
+                
+                if (dropdown && !userProfile.contains(e.target)) {
+                    dropdown.classList.remove('show');
+                }
             });
         });
     </script>

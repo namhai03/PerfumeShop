@@ -1,59 +1,29 @@
 @startuml Thêm sản phẩm
-title Biểu đồ tuần tự - Thêm sản phẩm
+title Thêm sản phẩm
 
-actor "Quản trị viên" as Admin
-participant "Trình duyệt" as Browser
-participant "ProductController" as Controller
-participant "Product Model" as ProductModel
-participant "Category Model" as CategoryModel
-participant "Database" as DB
-participant "File Storage" as Storage
+actor Admin
+participant Browser
+participant Controller
+participant ProductModel
+participant DB
 
-Admin -> Browser: Truy cập trang thêm sản phẩm
-Browser -> Controller: GET /products/create
-Controller -> CategoryModel: getAllCategories()
-CategoryModel -> DB: SELECT * FROM categories
-DB -> CategoryModel: Trả về danh sách categories
-CategoryModel -> Controller: Trả về categories
-Controller -> Browser: Hiển thị form thêm sản phẩm
+Admin -> Browser: Mở trang thêm sản phẩm
+Browser -> Controller: Yêu cầu form
+Controller -> Browser: Trả về form
 
-Admin -> Browser: Nhập thông tin sản phẩm
-note right: Tên, mô tả, giá, SKU, etc.
-Admin -> Browser: Upload hình ảnh
-Admin -> Browser: Nhấn "Lưu sản phẩm"
-Browser -> Controller: POST /products
+Admin -> Browser: Nhập thông tin, nhấn lưu
+Browser -> Controller: Gửi dữ liệu sản phẩm
 
-Controller -> Controller: Validate input data
-
-alt Validation thành công
-    alt Có upload hình ảnh
-        Controller -> Storage: store(image)
-        Storage -> Controller: Trả về đường dẫn file
-    end
-    
-    Controller -> ProductModel: create(productData)
-    ProductModel -> DB: INSERT INTO products
-    DB -> ProductModel: Trả về product ID
-    
-    alt Có danh mục được chọn
-        Controller -> ProductModel: syncCategories(categoryIds)
-        ProductModel -> DB: INSERT INTO category_product
-    end
-    
-    alt Có biến thể sản phẩm
-        loop For each variant
-            Controller -> ProductModel: createVariant(variantData)
-            ProductModel -> DB: INSERT INTO product_variants
-        end
-    end
-    
-    ProductModel -> Controller: Trả về product object
-    Controller -> Browser: Redirect với thông báo thành công
-    Browser -> Admin: Hiển thị danh sách sản phẩm với thông báo
-    
-else Validation thất bại
-    Controller -> Browser: Redirect back with errors
-    Browser -> Admin: Hiển thị form với thông báo lỗi
+alt Dữ liệu hợp lệ
+    Controller -> ProductModel: Tạo sản phẩm
+    ProductModel -> DB: Lưu sản phẩm
+    DB -> ProductModel: OK
+    ProductModel -> Controller: OK
+    Controller -> Browser: Thông báo thành công
+    Browser -> Admin: Hiển thị danh sách sản phẩm
+else Dữ liệu lỗi
+    Controller -> Browser: Thông báo lỗi
+    Browser -> Admin: Hiển thị lại form
 end
 
 @enduml

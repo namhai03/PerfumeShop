@@ -96,10 +96,9 @@ class ShipmentController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            // Danh sách đơn hàng: mỗi item có order_code và cod_amount
+            // Danh sách đơn hàng: mỗi item có order_code
             'orders' => 'required|array|min:1',
             'orders.*.order_code' => 'required|string|max:50|exists:orders,order_number',
-            'orders.*.cod_amount' => 'nullable|numeric|min:0',
 
             'carrier' => 'nullable|string|max:100',
             'branch' => 'nullable|string|max:100',
@@ -146,10 +145,8 @@ class ShipmentController extends Controller
             $province = $province ?: $firstOrder->city;
         }
 
-        // Tổng COD = tổng của từng đơn
-        $totalCod = $ordersInput->sum(function ($o) {
-            return (float)($o['cod_amount'] ?? 0);
-        });
+        // Tổng COD = 0 (không sử dụng COD)
+        $totalCod = 0;
 
         // Tự sinh tracking_code (dựa trên mã đơn đầu tiên nếu có)
         $trackingCode = $this->generateTrackingCode($firstOrderCode);
@@ -171,12 +168,12 @@ class ShipmentController extends Controller
             'weight_grams' => $validated['weight_grams'] ?? 0,
         ]);
 
-        // Gắn các đơn hàng vào pivot với COD từng đơn
+        // Gắn các đơn hàng vào pivot (không có COD)
         $attachData = [];
         foreach ($ordersInput as $item) {
             $order = Order::where('order_number', $item['order_code'])->first();
             if ($order) {
-                $attachData[$order->id] = ['cod_amount' => (float)($item['cod_amount'] ?? 0)];
+                $attachData[$order->id] = ['order_number' => $order->order_number];
             }
         }
         if (!empty($attachData)) {

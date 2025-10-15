@@ -1,44 +1,27 @@
 @startuml Xem lịch sử mua hàng
-title Biểu đồ tuần tự - Xem lịch sử mua hàng
+title Xem lịch sử mua hàng
 
-actor "Quản trị viên" as Admin
-participant "Trình duyệt" as Browser
-participant "CustomerController" as Controller
-participant "Customer Model" as CustomerModel
-participant "Order Model" as OrderModel
-participant "Database" as DB
+actor Admin
+participant Browser
+participant Controller
+participant CustomerModel
+participant OrderModel
+participant DB
 
-Admin -> Browser: Truy cập trang quản lý khách hàng
-Browser -> Controller: GET /customers
-Controller -> CustomerModel: getAllCustomers()
-CustomerModel -> DB: SELECT * FROM customers
-DB -> CustomerModel: Trả về danh sách khách hàng
-CustomerModel -> Controller: Trả về customers
-Controller -> Browser: Hiển thị danh sách khách hàng
+Admin -> Browser: Mở trang khách hàng
+Browser -> Controller: Yêu cầu danh sách khách hàng
+Controller -> CustomerModel: Lấy danh sách
+CustomerModel -> DB: Lấy dữ liệu
+DB -> CustomerModel: Trả dữ liệu
+CustomerModel -> Controller: Trả danh sách
+Controller -> Browser: Hiển thị danh sách
 
-Admin -> Browser: Chọn khách hàng cần xem lịch sử
-Browser -> Controller: GET /customers/{id}/purchase-history
-
-Controller -> CustomerModel: findById(customerId)
-CustomerModel -> DB: SELECT * FROM customers WHERE id = ?
-DB -> CustomerModel: Trả về thông tin khách hàng
-CustomerModel -> Controller: Trả về customer
-
-Controller -> OrderModel: getCustomerOrders(customerId)
-OrderModel -> DB: SELECT * FROM orders WHERE customer_id = ?
-DB -> OrderModel: Trả về danh sách đơn hàng
-OrderModel -> Controller: Trả về orders
-
+Admin -> Browser: Chọn khách hàng
+Browser -> Controller: Yêu cầu lịch sử mua hàng
+Controller -> OrderModel: Lấy đơn hàng theo khách
+OrderModel -> DB: Lấy đơn hàng
+DB -> OrderModel: Trả đơn hàng
+OrderModel -> Controller: Trả danh sách đơn hàng
 Controller -> Browser: Hiển thị lịch sử mua hàng
-Browser -> Admin: Hiển thị thông tin khách hàng và danh sách đơn hàng
-
-Admin -> Browser: Chọn đơn hàng để xem chi tiết
-Browser -> Controller: GET /orders/{id}
-Controller -> OrderModel: getOrderDetails(orderId)
-OrderModel -> DB: SELECT order và order_items
-DB -> OrderModel: Trả về chi tiết đơn hàng
-OrderModel -> Controller: Trả về order details
-Controller -> Browser: Hiển thị chi tiết đơn hàng
-Browser -> Admin: Hiển thị thông tin chi tiết đơn hàng
 
 @enduml

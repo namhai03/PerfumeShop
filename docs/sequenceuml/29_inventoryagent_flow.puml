@@ -1,0 +1,62 @@
+@startuml Vector Store Integration Flow
+!theme plain
+title Vector Store Integration & Management
+
+start
+
+:Khởi tạo Vector Store Connection;
+note right: Connect to Pinecone/Weaviate/Chroma
+
+:Kiểm tra kết nối Vector Store;
+note right: Health check
+
+if (Vector Store có sẵn?) then (Có)
+    :Tạo namespace cho PerfumeShop;
+    note right: Isolated data space
+    
+    :Thiết lập index configuration;
+    note right: Dimensions: 1536, Metric: cosine
+    
+    :Tạo collection "products";
+    note right: Product embeddings collection
+    
+    :Tạo collection "customers";
+    note right: Customer behavior embeddings
+    
+    :Tạo collection "orders";
+    note right: Order pattern embeddings
+    
+else (Không)
+    :Khởi tạo local Vector Store;
+    note right: ChromaDB local instance
+    
+    :Tạo local collections;
+endif
+
+:Upload product embeddings batch;
+note right: Batch size: 100 vectors
+
+:Upload customer embeddings;
+note right: Customer preference vectors
+
+:Upload order pattern embeddings;
+note right: Sales pattern vectors
+
+:Thiết lập metadata filtering;
+note right: Category, price range, availability
+
+:Configure similarity thresholds;
+note right: Product: 0.7, Customer: 0.8, Order: 0.6
+
+:Test vector operations;
+note right: Insert, search, update, delete
+
+:Setup monitoring & logging;
+note right: Track vector operations
+
+:Backup vector data;
+note right: Regular backup schedule
+
+stop
+
+@enduml
