@@ -331,7 +331,6 @@ class ChatAgent
         
         **PHONG CÁCH TRẢ LỜI:**
         - Thân thiện, nhiệt tình, chuyên nghiệp
-        - Sử dụng emoji phù hợp (💬🌸✨🛍️)
         - Đưa ra lời khuyên hữu ích và chính xác
         - Tạo cảm giác tin cậy và gần gũi
         - Format thông tin dễ đọc với markdown
@@ -532,7 +531,7 @@ class ChatAgent
             return '';
         }
 
-        $formatted = "🛍️ **SẢN PHẨM LIÊN QUAN:**\n\n";
+        $formatted = "**SẢN PHẨM LIÊN QUAN:**\n\n";
         
         foreach ($products as $i => $product) {
             $formatted .= "**" . ((int)$i + 1) . ". " . $product['name'] . "**\n";

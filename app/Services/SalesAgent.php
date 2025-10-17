@@ -7,6 +7,7 @@ use App\Models\Customer;
 use App\Models\Product;
 use App\Services\LLMService;
 use App\Services\VectorSearchService;
+use App\Services\UniversalVectorSearchService;
 use App\Services\DataService;
 use Illuminate\Support\Facades\Log;
 
@@ -14,12 +15,14 @@ class SalesAgent
 {
     private LLMService $llmService;
     private VectorSearchService $vectorSearchService;
+    private UniversalVectorSearchService $universalVectorSearchService;
     private DataService $dataService;
 
-    public function __construct(LLMService $llmService, VectorSearchService $vectorSearchService, DataService $dataService)
+    public function __construct(LLMService $llmService, VectorSearchService $vectorSearchService, UniversalVectorSearchService $universalVectorSearchService, DataService $dataService)
     {
         $this->llmService = $llmService;
         $this->vectorSearchService = $vectorSearchService;
+        $this->universalVectorSearchService = $universalVectorSearchService;
         $this->dataService = $dataService;
     }
 
@@ -46,7 +49,7 @@ class SalesAgent
                 switch ($classification['primary']) {
                     case 'daily_orders':
                         Log::info('SalesAgent: Routing to daily orders based on classification');
-                        return $this->handleDailyOrderQuery($message);
+                        return $this->handleDailyOrderQuery($message, $context);
                         
                     case 'customer_lookup':
                         Log::info('SalesAgent: Routing to customer lookup based on classification');
@@ -74,7 +77,7 @@ class SalesAgent
             // Daily order count query (check first to avoid conflict with order lookup)
             if ($this->looksLikeDailyOrderQuery($message)) {
                 Log::info('SalesAgent: Detected daily order query');
-                return $this->handleDailyOrderQuery($message);
+                return $this->handleDailyOrderQuery($message, $context);
             }
 
             // Order lookup
@@ -184,20 +187,39 @@ class SalesAgent
             'items_count' => $order->items->count()
         ];
 
+        // Use LLM to generate natural response instead of hard-coded format
+        $orderContext = [
+            'order_data' => $orderData,
+            'order_number' => $orderNumber,
+            'suggestion' => $this->getOrderSuggestion($orderData['status'])
+        ];
+
+        $systemPrompt = "Bạn là Sales Agent chuyên nghiệp. Người dùng vừa tra cứu thông tin đơn hàng. Hãy trả lời một cách tự nhiên và thân thiện với thông tin đơn hàng được cung cấp.
+
+**THÔNG TIN ĐƠN HÀNG:**
+- Mã đơn hàng: {$orderNumber}
+- Khách hàng: {$orderData['customer_name']}
+- Số điện thoại: {$orderData['customer_phone']}
+- Tổng tiền: {$orderData['final_amount']}đ
+- Trạng thái: " . $this->formatOrderStatus($orderData['status']) . "
+- Số sản phẩm: {$orderData['items_count']} sản phẩm
+- Ngày tạo: {$orderData['created_at']}
+
+**GỢI Ý:** " . $this->getOrderSuggestion($orderData['status']) . "
+
+Hãy trả lời một cách tự nhiên, không cần theo format cố định. Sử dụng emoji phù hợp và phong cách thân thiện.";
+
+        $reply = $this->llmService->chat("Tôi cần thông tin về đơn hàng {$orderNumber}", [
+            'system' => $systemPrompt,
+            'conversation_history' => $context['conversation_history'] ?? []
+        ]);
+
         return [
             'success' => true,
             'type' => 'order_lookup',
             'found' => true,
             'order' => $orderData,
-            'reply' => "📋 **THÔNG TIN ĐƠN HÀNG**\n\n" .
-                      "🔹 **Mã đơn hàng:** {$orderNumber}\n" .
-                      "🔹 **Khách hàng:** {$orderData['customer_name']}\n" .
-                      "🔹 **Số điện thoại:** {$orderData['customer_phone']}\n" .
-                      "🔹 **Tổng tiền:** {$orderData['final_amount']}đ\n" .
-                      "🔹 **Trạng thái:** " . $this->formatOrderStatus($orderData['status']) . "\n" .
-                      "🔹 **Số sản phẩm:** {$orderData['items_count']} sản phẩm\n" .
-                      "🔹 **Ngày tạo:** {$orderData['created_at']}\n\n" .
-                      "💡 **Gợi ý:** " . $this->getOrderSuggestion($orderData['status']),
+            'reply' => $reply,
             'products' => []
         ];
     }
@@ -278,19 +300,32 @@ class SalesAgent
             'last_order' => $customer->orders->max('created_at')?->format('d/m/Y') ?? 'N/A'
         ];
 
+        // Use LLM to generate natural response instead of hard-coded format
+        $systemPrompt = "Bạn là Sales Agent chuyên nghiệp. Người dùng vừa tra cứu thông tin khách hàng. Hãy trả lời một cách tự nhiên và thân thiện với thông tin khách hàng được cung cấp.
+
+**THÔNG TIN KHÁCH HÀNG:**
+- Họ tên: {$customerData['name']}
+- Số điện thoại: {$customerData['phone']}
+- Email: {$customerData['email']}
+- Tổng chi tiêu: {$customerData['total_spent']}đ
+- Số đơn hàng: {$ordersCount} đơn
+- Đơn hàng gần nhất: {$customerData['last_order']}
+
+**PHÂN TÍCH:** " . $this->getCustomerAnalysis($totalSpent, $ordersCount) . "
+
+Hãy trả lời một cách tự nhiên, không cần theo format cố định. Sử dụng emoji phù hợp và phong cách thân thiện.";
+
+        $reply = $this->llmService->chat("Tôi cần thông tin về khách hàng có SĐT {$phone}", [
+            'system' => $systemPrompt,
+            'conversation_history' => $context['conversation_history'] ?? []
+        ]);
+
         return [
             'success' => true,
             'type' => 'customer_lookup',
             'found' => true,
             'customer' => $customerData,
-            'reply' => "👤 **THÔNG TIN KHÁCH HÀNG**\n\n" .
-                      "🔹 **Họ tên:** {$customerData['name']}\n" .
-                      "🔹 **Số điện thoại:** {$customerData['phone']}\n" .
-                      "🔹 **Email:** {$customerData['email']}\n" .
-                      "🔹 **Tổng chi tiêu:** {$customerData['total_spent']}đ\n" .
-                      "🔹 **Số đơn hàng:** {$ordersCount} đơn\n" .
-                      "🔹 **Đơn hàng gần nhất:** {$customerData['last_order']}\n\n" .
-                      "💡 **Phân tích:** " . $this->getCustomerAnalysis($totalSpent, $ordersCount),
+            'reply' => $reply,
             'products' => []
         ];
     }
@@ -329,7 +364,7 @@ class SalesAgent
     /**
      * Handle daily order count query
      */
-    private function handleDailyOrderQuery(string $message): array
+    private function handleDailyOrderQuery(string $message, array $context = []): array
     {
         try {
             // Xác định ngày cần tra cứu
@@ -352,29 +387,37 @@ class SalesAgent
             $revenue = $orders->sum('final_amount');
             $pendingOrders = Order::where('status', 'pending')->count();
             
-            $reply = "📊 **THỐNG KÊ ĐƠN HÀNG {$dateLabel}**\n\n" .
-                    "🔹 **Số đơn hàng:** {$orderCount} đơn\n" .
-                    "🔹 **Doanh thu:** " . number_format($revenue) . "đ\n" .
-                    "🔹 **Đơn chờ xử lý:** {$pendingOrders} đơn\n\n";
-            
+            // Prepare data for LLM
+            $orderDetails = [];
             if ($orderCount > 0) {
                 $avgOrderValue = $revenue / $orderCount;
-                $reply .= "🔹 **Giá trị đơn TB:** " . number_format($avgOrderValue) . "đ\n\n";
-                
-                // Hiển thị chi tiết đơn hàng
-                $reply .= "📋 **CHI TIẾT ĐƠN HÀNG:**\n";
                 foreach ($orders->take(5) as $order) {
-                    $reply .= "• {$order->order_number} - " . number_format($order->final_amount) . "đ - {$order->status}\n";
+                    $orderDetails[] = [
+                        'order_number' => $order->order_number,
+                        'amount' => number_format($order->final_amount),
+                        'status' => $order->status
+                    ];
                 }
-                
-                if ($orders->count() > 5) {
-                    $reply .= "• ... và " . ($orders->count() - 5) . " đơn hàng khác\n";
-                }
-                
-                $reply .= "\n💡 **Phân tích:** {$dateLabel} có {$orderCount} đơn hàng với tổng doanh thu " . number_format($revenue) . "đ";
-            } else {
-                $reply .= "💡 **Thông tin:** {$dateLabel} chưa có đơn hàng nào được ghi nhận trong hệ thống.";
             }
+
+            $systemPrompt = "Bạn là Sales Agent chuyên nghiệp. Người dùng vừa hỏi về thống kê đơn hàng. Hãy trả lời một cách tự nhiên và thân thiện với dữ liệu được cung cấp.
+
+**THỐNG KÊ ĐƠN HÀNG {$dateLabel}:**
+- Số đơn hàng: {$orderCount} đơn
+- Doanh thu: " . number_format($revenue) . "đ
+- Đơn chờ xử lý: {$pendingOrders} đơn" . 
+($orderCount > 0 ? "\n- Giá trị đơn trung bình: " . number_format($revenue / $orderCount) . "đ" : "") . "
+
+" . ($orderCount > 0 ? "**CHI TIẾT ĐƠN HÀNG:**\n" . implode("\n", array_map(function($order) {
+    return "• {$order['order_number']} - {$order['amount']}đ - {$order['status']}";
+}, $orderDetails)) . ($orders->count() > 5 ? "\n• ... và " . ($orders->count() - 5) . " đơn hàng khác" : "") : "Chưa có đơn hàng nào được ghi nhận trong hệ thống.") . "
+
+Hãy trả lời một cách tự nhiên, không cần theo format cố định. Sử dụng emoji phù hợp và phong cách thân thiện.";
+
+            $reply = $this->llmService->chat("Tôi cần thống kê đơn hàng {$dateLabel}", [
+                'system' => $systemPrompt,
+                'conversation_history' => $context['conversation_history'] ?? []
+            ]);
 
             return [
                 'success' => true,
@@ -495,7 +538,7 @@ class SalesAgent
         if (strpos(strtolower($message), 'hôm nay') !== false && 
             (strpos(strtolower($message), 'đơn') !== false || strpos(strtolower($message), 'don') !== false)) {
             Log::info('SalesAgent: Detected daily order query in general handler');
-            return $this->handleDailyOrderQuery();
+            return $this->handleDailyOrderQuery($message, $context);
         }
 
         if (!$this->llmService->isConfigured()) {
@@ -848,7 +891,8 @@ class SalesAgent
             // Search for customer using vector store
             $customerResults = [];
             try {
-                $customerResults = $this->vectorEmbeddingService->searchCustomers($message, 5);
+                // Use universalVectorSearchService for customer search
+                $customerResults = $this->universalVectorSearchService->searchCustomers($message, 5);
             } catch (\Throwable $e) {
                 Log::warning('SalesAgent: Vector search for customers failed', ['error' => $e->getMessage()]);
             }
@@ -908,8 +952,6 @@ class SalesAgent
 
 **PHONG CÁCH TRẢ LỜI:**
 - Chuyên nghiệp, chi tiết, có cấu trúc rõ ràng
-- Sử dụng emoji phù hợp (👤📞📧💰📊)
-- Đưa ra phân tích và gợi ý hữu ích
 - Format dữ liệu dễ đọc với markdown
 - Luôn dựa trên dữ liệu thực tế từ hệ thống
 

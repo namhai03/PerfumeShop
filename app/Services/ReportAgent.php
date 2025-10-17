@@ -457,7 +457,7 @@ class ReportAgent
         
         **PHONG CÁCH TRẢ LỜI:**
         - Chuyên nghiệp, có cấu trúc, dễ hiểu
-        - Sử dụng emoji phù hợp (📊📈📉💰)
+
         - Đưa ra insights sâu sắc từ dữ liệu
         - Gợi ý hành động dựa trên phân tích
         - Format dữ liệu rõ ràng với markdown

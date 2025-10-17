@@ -1342,8 +1342,14 @@ function appendMsg(role, text, isTyping = false, agentName = null) {
             conversationHistory = conversationHistory.slice(-10);
         }
         
-        // Tự động lưu cuộc hội thoại sau mỗi 3 tin nhắn
-        if (conversationHistory.length % 3 === 0 && conversationHistory.length > 0) {
+        // Lưu cuộc hội thoại lần đầu khi có 2 tin nhắn (1 user + 1 assistant)
+        if (conversationHistory.length === 2) {
+            console.log('First conversation save after 2 messages');
+            saveCurrentConversation();
+        }
+        // Tự động lưu cuộc hội thoại sau mỗi 5 tin nhắn để tránh lưu quá thường xuyên
+        else if (conversationHistory.length % 5 === 0 && conversationHistory.length > 0) {
+            console.log('Auto-saving conversation after', conversationHistory.length, 'messages');
             saveCurrentConversation();
         }
         
@@ -1702,18 +1708,13 @@ document.addEventListener('DOMContentLoaded', function() {
     loadSavedConversations();
     updateChatHistorySidebar();
     
-    // Initialize current chat ID if not set
-    if (!currentChatId) {
-        currentChatId = generateChatId();
-    }
-    
-    // Try to restore current conversation from localStorage
+    // Try to restore current conversation from localStorage first
     const currentConversation = localStorage.getItem('currentConversation');
     if (currentConversation) {
         try {
             const data = JSON.parse(currentConversation);
             conversationHistory = Array.isArray(data.messages) ? data.messages : [];
-            currentChatId = data.chatId || currentChatId;
+            currentChatId = data.chatId || generateChatId();
             console.log('Restored current conversation:', conversationHistory.length, 'messages');
             console.log('Current chat ID:', currentChatId);
             
@@ -1731,7 +1732,12 @@ document.addEventListener('DOMContentLoaded', function() {
         } catch (error) {
             console.error('Error restoring conversation:', error);
             conversationHistory = [];
+            currentChatId = generateChatId();
         }
+    } else {
+        // Initialize current chat ID if no conversation to restore
+        currentChatId = generateChatId();
+        console.log('No conversation to restore, generated new chat ID:', currentChatId);
     }
     
     // Only show welcome message if no conversation history exists
@@ -1807,8 +1813,14 @@ function saveCurrentConversation() {
     
     console.log('Saving current conversation, messages:', conversationHistory.length);
     
+    // Ensure we have a valid chat ID
+    if (!currentChatId) {
+        currentChatId = generateChatId();
+        console.log('Generated new chat ID:', currentChatId);
+    }
+    
     const conversationData = {
-        id: currentChatId || generateChatId(),
+        id: currentChatId,
         timestamp: new Date().toISOString(),
         messages: [...conversationHistory],
         summary: generateConversationSummary(),
@@ -1817,11 +1829,18 @@ function saveCurrentConversation() {
     
     console.log('Conversation data:', conversationData);
     
-    // Remove existing conversation with same ID
-    savedConversations = savedConversations.filter(conv => conv.id !== conversationData.id);
+    // Check if conversation already exists
+    const existingIndex = savedConversations.findIndex(conv => conv.id === currentChatId);
     
-    // Add new conversation to the beginning
-    savedConversations.unshift(conversationData);
+    if (existingIndex !== -1) {
+        // Update existing conversation
+        console.log('Updating existing conversation at index:', existingIndex);
+        savedConversations[existingIndex] = conversationData;
+    } else {
+        // Add new conversation to the beginning
+        console.log('Adding new conversation');
+        savedConversations.unshift(conversationData);
+    }
     
     // Keep only last 50 conversations
     if (savedConversations.length > 50) {
@@ -1871,8 +1890,9 @@ function loadChatHistory(chatId) {
         return;
     }
     
-    // Save current conversation if it has messages
-    if (conversationHistory.length > 0) {
+    // Save current conversation if it has messages and is different from the one we're loading
+    if (conversationHistory.length > 0 && currentChatId !== chatId) {
+        console.log('Saving current conversation before switching to:', chatId);
         saveCurrentConversation();
     }
     

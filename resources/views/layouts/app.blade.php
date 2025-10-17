@@ -797,12 +797,7 @@
 
 
                 <div class="nav-divider"></div>
-                <li class="nav-item">
-                    <a href="#" class="nav-link">
-                        <i class="icon fas fa-gear"></i>
-                        Cấu hình
-                    </a>
-                </li>
+                
             </ul>
         </nav>
     </div>
